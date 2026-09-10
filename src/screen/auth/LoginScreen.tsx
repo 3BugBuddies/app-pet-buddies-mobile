@@ -33,7 +33,6 @@ export function LoginScreen() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       ><LogoHeader size="large" />
-        <Text style={styles.title}>Pet Buddies</Text>
         <Text style={styles.subtitle}>Entre para cuidar dos seus pets</Text>
 
         <Card style={styles.card}>

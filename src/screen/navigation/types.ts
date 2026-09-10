@@ -7,15 +7,19 @@ import type {
 } from '../../model/care';
 import type { PrescricaoDraft } from '../../model/prescription';
 
+
 export type AuthStackParamList = {
+  Onboarding: undefined;
   Login: undefined;
   Register: undefined;
 };
+
 
 export type HomeTabParamList = {
   HomeTutor: undefined;
   Score: { petId: string };
 };
+
 
 export type PlanoTabParamList = {
   CarePlan: { petId?: string } | undefined;
@@ -27,15 +31,18 @@ export type PlanoTabParamList = {
   AssistantNotice: { petId: string };
 };
 
+
 export type AgendaTabParamList = {
   AgendamentoTutor: { petId?: string } | undefined;
 };
+
 
 export type PetTabParamList = {
   PetProfile: { petId?: string } | undefined;
   MeusPets: undefined;
   NovoPet: undefined;
 };
+
 
 export type TutorTabParamList = {
   HomeTab: NavigatorScreenParams<HomeTabParamList>;
@@ -44,9 +51,11 @@ export type TutorTabParamList = {
   PetTab: NavigatorScreenParams<PetTabParamList>;
 };
 
+
 export type HojeTabParamList = {
   AgendaClinica: undefined;
 };
+
 
 export type PacientesTabParamList = {
   Pacientes: undefined;
@@ -60,9 +69,11 @@ export type PacientesTabParamList = {
   AssinarPrescricao: { draft: PrescricaoDraft };
 };
 
+
 export type ClinicaTabParamList = {
   Clinica: undefined;
 };
+
 
 export type VetTabParamList = {
   HojeTab: NavigatorScreenParams<HojeTabParamList>;

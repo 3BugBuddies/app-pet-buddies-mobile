@@ -56,14 +56,7 @@ export function CarePlanScreen({ route }: Props) {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}>
-        <LogoHeader size="small" />
-        <Text
-          style={styles.assistantLink}
-          onPress={() => navigation.navigate('AssistantNotice', { petId })}
-        >
-          Tirar dúvidas
-        </Text>
-
+        <LogoHeader size="large" />
         <View style={styles.header}>
           <Text style={styles.weekLabel}>{plan.weekLabel}</Text>
           <Text style={styles.title}>Cuidado</Text>

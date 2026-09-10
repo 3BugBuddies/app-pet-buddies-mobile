@@ -11,6 +11,7 @@ import { usePet } from '../../control/usePetsControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, spacing } from '../../styles/theme';
 import { interpretNarrative } from '../../model/careRules';
+import { LogoHeader } from '../../component/ui/LogoHeader';
 
 const QUICK_OPTIONS = ['Deu o remédio', 'Comeu bem', 'Comeu pouco', 'Evacuou', 'Fezes moles', 'Não evacuou'];
 
@@ -46,7 +47,7 @@ export function CheckInEntryScreen({ route }: Props) {
     >
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <CheckInTopBar title="Check-in" subtitle="Cuidados de hoje" stepLabel="1 / 3" />
-
+      <LogoHeader size="large" /> 
         <View style={styles.headline}>
           <Text style={styles.h1}>Como {pet.nome} passou hoje?</Text>
           <Text style={styles.p}>
