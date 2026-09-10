@@ -38,10 +38,10 @@ export default function OnboardingScreen() {
         <Pressable
           onPress={() => navigation.navigate('Login')}
           accessibilityRole="button"
-          accessibilityLabel="Ir para login"
+          accessibilityLabel="Pular onboarding"
           hitSlop={12}
         >
-          <Text style={styles.skip}>Entrar</Text>
+          <Text style={styles.skip}>Pular</Text>
         </Pressable>
       </View>
 

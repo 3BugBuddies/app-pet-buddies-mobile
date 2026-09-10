@@ -4,8 +4,10 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useContext, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ClinicCard } from '../../component/home/ClinicCard';
 import { GreetingHeader } from '../../component/home/GreetingHeader';
+import { HeroPetCard } from '../../component/home/HeroPetCard';
 import { PlanProgressCard } from '../../component/home/PlanProgressCard';
 import { PointsCard } from '../../component/home/PointsCard';
 import { TodayTasksCard } from '../../component/home/TodayTasksCard';
@@ -18,7 +20,6 @@ import { useScore } from '../../control/useScoreControl';
 import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
 import { colors, spacing } from '../../styles/theme';
 import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
-import { LogoHeader } from '../../component/ui/LogoHeader';
 
 type HomeTutorNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<HomeTabParamList, 'HomeTutor'>,
@@ -27,6 +28,7 @@ type HomeTutorNavigationProp = CompositeNavigationProp<
 
 export function HomeTutorScreen() {
   const navigation = useNavigation<HomeTutorNavigationProp>();
+  const insets = useSafeAreaInsets();
   const { session } = useContext(AuthContext);
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
   const pet = pets?.[0];
@@ -55,61 +57,83 @@ export function HomeTutorScreen() {
 
   const doneCount = tasks.filter((task) => task.completed).length;
 
+  const petNames =
+    pets && pets.length > 1
+      ? pets.map((p) => p.nome).join(' & ')
+      : pet.nome;
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <GreetingHeader
-        greeting={`${greetingForNow()}, ${session?.nome ?? 'tutor'}`}
-        petName={pet.nome}
-        userName={session?.nome?.split(' ')[0] ?? 'Tutor'}
-        onAvatarPress={() =>
-          navigation.navigate('PetTab', { screen: 'PetProfile', params: { petId: pet.id! } })
-        }
-      />
-
-      <View style={styles.bento}>
-        <Pressable
-          onPress={() =>
-            navigation.navigate('PlanoTab', { screen: 'CarePlan', params: { petId: pet.id! } })
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 140 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <GreetingHeader
+          greeting={`${greetingForNow()},`}
+          petName={pet.nome}
+          userName={session?.nome?.split(' ')[0] ?? 'Tutor'}
+          onAvatarPress={() =>
+            navigation.navigate('PetTab', { screen: 'PetProfile', params: { petId: pet.id! } })
           }
-        >
-          <PlanProgressCard weekLabel={plan.weekLabel} doneCount={doneCount} totalCount={tasks.length} />
-        </Pressable>
-
-        <TodayTasksCard
-          tasks={tasks.map((task) => ({
-            id: task.id,
-            title: task.title,
-            time: task.time,
-            done: task.completed,
-          }))}
-          onToggle={(id) => toggleTask.mutate(id)}
         />
 
-        <View style={styles.row}>
-          <View style={styles.half}>
-            {nextAppointment ? (
-              <ClinicCard
-                title={nextAppointment.reason}
-                dayLabel={formatAppointmentDate(nextAppointment.date).dayLabel}
-                timeLabel={formatAppointmentDate(nextAppointment.date).timeLabel}
-              />
-            ) : (
-              <ClinicCard title="Sem consultas agendadas" />
-            )}
-          </View>
-          <View style={styles.half}>
-            <Pressable onPress={() => navigation.navigate('Score', { petId: pet.id! })}>
-              <PointsCard
-                points={score.totalPoints}
-                tierLabel={`Tier ${score.tier} · ${score.pointsToNextTier} p/ ${score.nextTier}`}
-                filledDots={2}
-                totalDots={3}
-              />
-            </Pressable>
+        <View style={styles.bento}>
+          <HeroPetCard petNames={petNames} />
+
+          <Pressable
+            onPress={() =>
+              navigation.navigate('PlanoTab', { screen: 'CarePlan', params: { petId: pet.id! } })
+            }
+          >
+            <PlanProgressCard
+              weekLabel={plan.weekLabel}
+              doneCount={doneCount}
+              totalCount={tasks.length}
+            />
+          </Pressable>
+
+          <TodayTasksCard
+            tasks={tasks.map((task) => ({
+              id: task.id,
+              title: task.title,
+              time: task.time,
+              done: task.completed,
+            }))}
+            onToggle={(id) => toggleTask.mutate(id)}
+          />
+
+          <View style={styles.row}>
+            <View style={styles.half}>
+              {nextAppointment ? (
+                <ClinicCard
+                  title={nextAppointment.reason}
+                  dayLabel={formatAppointmentDate(nextAppointment.date).dayLabel}
+                  timeLabel={formatAppointmentDate(nextAppointment.date).timeLabel}
+                />
+              ) : (
+                <ClinicCard title="Sem consultas agendadas" />
+              )}
+            </View>
+            <View style={styles.half}>
+              <Pressable
+                style={styles.half}
+                onPress={() => navigation.navigate('Score', { petId: pet.id! })}
+              >
+                <PointsCard
+                  points={score.totalPoints}
+                  tierLabel={`Tier ${score.tier} · ${score.pointsToNextTier} p/ ${score.nextTier}`}
+                  filledDots={2}
+                  totalDots={3}
+                />
+              </Pressable>
+            </View>
           </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -119,13 +143,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    padding: spacing.lg,
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   bento: {
     gap: spacing.md,
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
   },
   row: {
     flexDirection: 'row',

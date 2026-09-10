@@ -4,7 +4,7 @@ import { colors, radii, spacing } from '../../styles/theme';
 
 const RING_SIZE = 84;
 const RING_RADIUS = 36;
-const RING_STROKE = 8;
+const RING_STROKE = 7;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 interface PlanProgressCardProps {
@@ -13,7 +13,7 @@ interface PlanProgressCardProps {
   totalCount: number;
 }
 
-export function PlanProgressCard({ weekLabel, doneCount, totalCount }: PlanProgressCardProps) {
+export function PlanProgressCard({ doneCount, totalCount }: PlanProgressCardProps) {
   const progress = totalCount > 0 ? doneCount / totalCount : 0;
   const strokeDashoffset = RING_CIRCUMFERENCE - RING_CIRCUMFERENCE * progress;
   const percentLabel = `${Math.round(progress * 100)}%`;
@@ -21,11 +21,11 @@ export function PlanProgressCard({ weekLabel, doneCount, totalCount }: PlanProgr
   return (
     <View style={styles.card}>
       <View style={styles.textBlock}>
-        <Text style={styles.label}>Plano vivo</Text>
-        <Text style={styles.week}>{weekLabel}</Text>
+        <Text style={styles.title}>Plano da semana</Text>
         <Text style={styles.sub}>
-          {doneCount} de {totalCount} tarefas hoje
+          {doneCount} de {totalCount} tarefas concluídas
         </Text>
+        <Text style={styles.incentive}>Vocês estão indo muito bem! ✨</Text>
       </View>
 
       <View style={styles.ringWrap}>
@@ -34,7 +34,7 @@ export function PlanProgressCard({ weekLabel, doneCount, totalCount }: PlanProgr
             cx={RING_SIZE / 2}
             cy={RING_SIZE / 2}
             r={RING_RADIUS}
-            stroke="rgba(255,255,255,0.25)"
+            stroke={colors.border}
             strokeWidth={RING_STROKE}
             fill="none"
           />
@@ -42,7 +42,7 @@ export function PlanProgressCard({ weekLabel, doneCount, totalCount }: PlanProgr
             cx={RING_SIZE / 2}
             cy={RING_SIZE / 2}
             r={RING_RADIUS}
-            stroke={colors.textLight}
+            stroke={colors.primary}
             strokeWidth={RING_STROKE}
             strokeLinecap="round"
             strokeDasharray={RING_CIRCUMFERENCE}
@@ -62,7 +62,7 @@ export function PlanProgressCard({ weekLabel, doneCount, totalCount }: PlanProgr
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.cardHome,
+    backgroundColor: colors.cardChia,
     borderRadius: radii.lg,
     padding: spacing.lg,
     flexDirection: 'row',
@@ -74,23 +74,22 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xs,
   },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: colors.textLight,
-    opacity: 0.85,
-  },
-  week: {
-    fontSize: 22,
+  title: {
+    fontFamily: 'Sora',
+    fontSize: 16,
     fontWeight: '700',
-    color: colors.textLight,
+    color: colors.textPrimary,
   },
   sub: {
-    fontSize: 14,
-    color: colors.textLight,
-    opacity: 0.9,
+    fontFamily: 'Inter',
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  incentive: {
+    fontFamily: 'Inter',
+    fontSize: 13,
+    color: colors.textPrimary,
+    marginTop: 2,
   },
   ringWrap: {
     width: RING_SIZE,
@@ -106,8 +105,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   ringLabelText: {
+    fontFamily: 'Sora',
     fontSize: 16,
     fontWeight: '700',
-    color: colors.textLight,
+    color: colors.textPrimary,
   },
 });
