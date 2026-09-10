@@ -1,21 +1,27 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, typography } from '../../styles/theme';
+import { colors, radii, spacing, typography } from '../../styles/theme';
 
 interface GreetingHeaderProps {
-  greeting: string;
-  petName: string;
+  greeting: string; // Ex: "Bom dia,"
+  userName: string; // Ex: "Mari"
+  petName?: string; // Ex: "Buddy"
   onAvatarPress?: () => void;
 }
 
-export function GreetingHeader({ greeting, petName, onAvatarPress }: GreetingHeaderProps) {
+export function GreetingHeader({ greeting, userName, onAvatarPress }: GreetingHeaderProps) {
   return (
     <View style={styles.row}>
-      <View>
-        <Text style={styles.hi}>{greeting}</Text>
-        <Text style={styles.name}>{petName}</Text>
+      <View style={styles.textContainer}>
+        <Text style={styles.greeting}>{greeting}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>{userName}</Text>
+          <Text style={styles.sunIcon}>☀️</Text>
+        </View>
+        <Text style={styles.subtitle}>QUE BOM TE VER POR AQUI!</Text>
       </View>
+
       <Pressable accessibilityRole="button" onPress={onAvatarPress} style={styles.avatar}>
-        <Text style={styles.avatarLetter}>{petName.charAt(0).toUpperCase()}</Text>
+        <Text style={styles.avatarLetter}>{userName.charAt(0).toUpperCase()}</Text>
       </Pressable>
     </View>
   );
@@ -24,31 +30,53 @@ export function GreetingHeader({ greeting, petName, onAvatarPress }: GreetingHea
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
+    marginBottom: spacing.lg,
   },
-  hi: {
-    ...typography.body,
+  textContainer: {
+    flex: 1,
+  },
+  greeting: {
+    fontFamily: 'Inter',
+    fontSize: 16,
     color: colors.textSecondary,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   name: {
-    fontSize: 34,
+    fontFamily: 'Sora',
+    fontSize: 32,
     fontWeight: '700',
-    letterSpacing: -0.5,
     color: colors.textPrimary,
+    letterSpacing: -0.5,
+  },
+  sunIcon: {
+    fontSize: 24,
+  },
+  subtitle: {
+    fontFamily: 'Inter',
+    fontSize: 10,
+    fontWeight: '600',
+    letterSpacing: 1.5,
+    color: colors.textMuted,
+    marginTop: 4,
   },
   avatar: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: radii.pill,
-    backgroundColor: colors.cardMax,
+    backgroundColor: colors.cardChia,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.surface,
   },
   avatarLetter: {
-    ...typography.subtitle,
-    color: colors.textPrimary,
+    fontFamily: 'Sora',
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary,
   },
 });

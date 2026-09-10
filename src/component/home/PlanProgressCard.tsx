@@ -62,7 +62,7 @@ export function PlanProgressCard({ weekLabel, doneCount, totalCount }: PlanProgr
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.cardHome,
     borderRadius: radii.lg,
     padding: spacing.lg,
     flexDirection: 'row',

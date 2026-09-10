@@ -1,18 +1,22 @@
 /**
- * 1. PALETA PRIMITIVA (Cores Agnósticas)
- * Cores nomeadas pela sua representação visual (Hex), sem atrelar a uma função.
- * Facilita a manutenção e a criação de múltiplos temas no futuro.
+ * 1. PALETA PRIMITIVA (Pet Buddies + Tarsila)
  */
 export const primitiveColors = {
-  // Cores Base do "Cuidado Tecnológico" (Opção 1)
-  royalBlue: '#3B4FE4',
-  softYellow: '#FCE7BA',
-  pastelSalmon: '#FFBEA3',
-  pastelBlue: '#E2EEFE',
-  iceBackground: '#F4F6FB',
-  darkNavy: '#1F243A',
+  // Pet Buddies (Predominante)
+  pbLaranja: '#FF8400',
+  pbAzulCeu: '#3FA9F6',
+  pbAzulMarinho: '#152039',
+  pbAmarelo: '#FFC83D',
+  pbCreme: '#FFFDF9',
 
-  // Neutros e Tons de Cinza
+  // Tarsila (Detalhes e Acentos)
+  tsTangerine: '#F8982E',
+  tsSky: '#A9D7F3',
+  tsElectric: '#303A95',
+  tsNeon: '#D8E022',
+  tsLeche: '#F7F3E6',
+
+  // Neutros
   white: '#FFFFFF',
   gray100: '#F3F4F6',
   gray200: '#E5E7EB',
@@ -21,71 +25,63 @@ export const primitiveColors = {
   gray500: '#6B7280',
   gray800: '#1F2937',
   black: '#000000',
-
-  // Cores de Status (Semânticas Universais)
-  green500: '#22C55E',
-  red500: '#EF4444',
-  yellow500: '#F59E0B',
 };
 
 /**
  * 2. PALETA SEMÂNTICA & TOKENS DE DESIGN
- * Aqui as primitivas ganham propósito. É esta paleta que o aplicativo consumirá.
- * Permite trocar a cor "primary" facilmente em todo o app mudando apenas aqui.
  */
-
 export const colors = {
   // Fundo e Superfícies
-  background: primitiveColors.iceBackground, // Fundo principal relaxante
-  surface: primitiveColors.white,            // Fundo de cartões (Bento UI)
-  surfaceDark: primitiveColors.darkNavy,     // Elementos escuros / cabeçalhos
+  background: primitiveColors.pbCreme, 
+  surface: primitiveColors.white,            
+  surfaceDark: primitiveColors.pbAzulMarinho,     
 
   // Identidade Principal
-  primary: primitiveColors.royalBlue,        // Botões principais, ícones ativos
-  secondary: primitiveColors.gray500,        // Elementos secundários, bordas
+  primary: primitiveColors.pbAzulMarinho,     // Elementos âncora, TopBar, Textos fortes
+  secondary: primitiveColors.tsElectric,      // Acentos profundos Tarsila
+  action: primitiveColors.pbLaranja,          // Call to Action (Botões primários)
+  accent: primitiveColors.pbAmarelo,          // Recompensas, Estrelas, Badges
 
-  // Textos
-  textPrimary: primitiveColors.darkNavy,     // Texto principal com alto contraste
-  textSecondary: primitiveColors.gray500,    // Metadados e subtítulos
-  textMuted: primitiveColors.gray400,        // Textos menos importantes / placeholders
-  textLight: primitiveColors.white,          // Texto sobre fundos escuros (botões)
+  // Textos (Acessibilidade/Contraste)
+  textPrimary: primitiveColors.pbAzulMarinho,   
+  textSecondary: primitiveColors.gray500,    
+  textMuted: primitiveColors.gray400,        
+  textLight: primitiveColors.white,          
 
-  // Elementos Estruturais
-  border: primitiveColors.gray200,           // Linhas divisórias e contornos de inputs
-  borderStrong: primitiveColors.gray300,
+  // Estrutura
+  border: primitiveColors.gray200,           
+  borderStrong: primitiveColors.gray300,   
 
-  // Status e Feedbacks
-  success: primitiveColors.green500,
-  error: primitiveColors.red500,
-  warning: primitiveColors.yellow500,
+  // Status e Feedbacks (Usando a vibração da Tarsila)
+  success: primitiveColors.tsNeon, // O Neon da Tarsila é perfeito para sucesso/check
+  error: '#EF4444',
+  warning: primitiveColors.tsTangerine,
 
-  // Cartões Identidade Pet Buddies (Gamificação / Personas)
-  cardMax: primitiveColors.softYellow,       // Amarelo suave para alertas leves/ações do tutor
-  cardChia: primitiveColors.pastelBlue,      // Azul pastel para informações de plano/IA
-  cardAlert: primitiveColors.pastelSalmon,   // Salmão para avisos/urgências
-}
+  cardHome: primitiveColors.pbLaranja, // Cartões Home (Plano, Agenda, Pet)
+  cardProgress: primitiveColors.pbAmarelo, // Cartão Progresso (Plano Vivo)
+  cardProtocol: primitiveColors.tsSky, // Cartão Protocolos (Agenda)
 
+  // Cartões Bento UI (Aplicando transparência de ~15% = '26' no HEX para UX suave)
+  cardMax: `${primitiveColors.pbAmarelo}26`,       
+  cardChia: `${primitiveColors.pbAzulCeu}26`,      
+  cardAlert: `${primitiveColors.tsTangerine}26`,   
+};
 
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
+  xs: 4, sm: 8, md: 16, lg: 24, xl: 32,
 };
 
 export const radii = {
-  sm: 8,
-  md: 16,
-  lg: 24,
-  pill: 999,
+  sm: 8, md: 16, lg: 24, pill: 999,
 };
 
 export const typography = {
-  title: { fontSize: 24, fontWeight: '700' as const },
-  subtitle: { fontSize: 16, fontWeight: '600' as const },
-  body: { fontSize: 14, fontWeight: '400' as const },
-  caption: { fontSize: 12, fontWeight: '400' as const },
+  // Sora para Títulos (Branding Forte)
+  title: { fontFamily: 'Sora', fontSize: 24, fontWeight: '700' as const },
+  subtitle: { fontFamily: 'Sora', fontSize: 16, fontWeight: '600' as const },
+  // Inter para Corpo (Leitura Perfeita)
+  body: { fontFamily: 'Inter', fontSize: 14, fontWeight: '400' as const },
+  caption: { fontFamily: 'Inter', fontSize: 12, fontWeight: '400' as const },
 };
 
 export const theme = { colors, spacing, radii, typography };

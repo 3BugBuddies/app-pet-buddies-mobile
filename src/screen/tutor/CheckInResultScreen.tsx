@@ -1,0 +1,223 @@
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
+import { DoseTrack } from '../../component/checkin/DoseTrack';
+import { Button } from '../../component/ui/Button';
+import { useCompleteCheckInTask } from '../../control/useCarePlanControl';
+import { useEscalationPreview } from '../../control/useCheckInControl';
+import type { PlanoTabParamList } from '../navigation/types';
+import { colors, radii, spacing } from '../../styles/theme';
+import { parseDoseRange } from '../../model/careRules';
+
+// Único item do mock com faixa de dose — o check-in narrado sempre resolve
+// pra ele (mesma tarefa que careService.ts usa em confirmCheckIn).
+const DOSE_RANGE_TASK_ID = 'lactulona';
+
+type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInResult'>;
+
+export function CheckInResultScreen({ route }: Props) {
+  const { petId, result } = route.params;
+  const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
+  const completeTask = useCompleteCheckInTask(petId);
+  const escalationPreview = useEscalationPreview();
+
+  const vetInitial =
+    result.vetName
+      .split(' ')
+      .find((part) => !/^(dr|dra)\.?$/i.test(part))
+      ?.charAt(0)
+      .toUpperCase() ?? result.vetName.charAt(0).toUpperCase();
+
+  const range = parseDoseRange(result.doseRangeLabel);
+  const fillPct = range.max > range.min ? ((Number.parseFloat(result.doseLabel) - range.min) / (range.max - range.min)) * 100 : 50;
+
+  const handleComplete = async () => {
+    await completeTask.mutateAsync(DOSE_RANGE_TASK_ID);
+    navigation.navigate('CarePlan', { petId });
+  };
+
+  const handlePreviewEscalation = async () => {
+    const preview = await escalationPreview.mutateAsync();
+    navigation.navigate('CheckInEscalation', { petId, result: preview });
+  };
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <CheckInTopBar title="Dose de hoje" subtitle={result.doseRangeLabel} stepLabel="3 / 3" />
+
+      <View style={styles.doseCard}>
+        <Text style={styles.doseLabel}>Dose de hoje</Text>
+        <View style={styles.doseRow}>
+          <Text style={styles.doseValue}>{result.doseLabel}</Text>
+          <Text style={styles.doseRange}>da faixa {result.doseRangeLabel}</Text>
+        </View>
+        <DoseTrack
+          minLabel={`${range.min} ${range.unit} · menor`}
+          maxLabel={`${range.max} ${range.unit} · maior`}
+          fillPct={Math.max(0, Math.min(100, fillPct))}
+        />
+      </View>
+
+      <View style={styles.ruleCard}>
+        <Text style={styles.ruleLabel}>Regra da prescrição</Text>
+        <Text style={styles.ruleCode}>{result.ruleDescription}</Text>
+        <Text style={styles.ruleMeta}>{result.ruleConfirmedAtLabel}</Text>
+        <View style={styles.ruleDivider} />
+        <View style={styles.vetRow}>
+          <View style={styles.vetAvatar}>
+            <Text style={styles.vetAvatarText}>{vetInitial}</Text>
+          </View>
+          <View>
+            <Text style={styles.vetName}>{result.vetName}</Text>
+            <Text style={styles.vetCrmv}>
+              {result.vetCrmv} · prescrição de {result.prescriptionDateLabel}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.recordRow}>
+        <View style={styles.recordDot} />
+        <Text style={styles.recordText}>
+          Registrado no prontuário · +{result.pointsEarned} pts
+        </Text>
+      </View>
+
+      <View style={styles.actions}>
+        <Button
+          label={`Marquei: dei ${result.doseLabel}`}
+          backgroundColor={colors.warning}
+          textColor={colors.textLight}
+          loading={completeTask.isPending}
+          onPress={handleComplete}
+        />
+        <Button
+          label="Ver o que muda se piorar"
+          variant="secondary"
+          loading={escalationPreview.isPending}
+          onPress={handlePreviewEscalation}
+        />
+        <Button label="Voltar/Cancelar" variant="secondary" onPress={() => navigation.goBack()} />
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  content: {
+    padding: spacing.lg,
+    gap: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  doseCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  doseLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: colors.warning,
+  },
+  doseRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: spacing.sm,
+  },
+  doseValue: {
+    fontSize: 56,
+    fontWeight: '700',
+    letterSpacing: -1.5,
+    color: colors.textPrimary,
+  },
+  doseRange: {
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  ruleCard: {
+    backgroundColor: colors.cardChia,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  ruleLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    color: colors.primary,
+  },
+  ruleCode: {
+    fontFamily: 'monospace',
+    fontSize: 14,
+    color: colors.textPrimary,
+  },
+  ruleMeta: {
+    fontSize: 15,
+    color: colors.textSecondary,
+  },
+  ruleDivider: {
+    height: 1,
+    backgroundColor: `${colors.primary}33`,
+  },
+  vetRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  vetAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vetAvatarText: {
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  vetName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  vetCrmv: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  recordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    padding: spacing.md,
+  },
+  recordDot: {
+    width: 8,
+    height: 8,
+    borderRadius: radii.pill,
+    backgroundColor: colors.success,
+  },
+  recordText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  actions: {
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+});

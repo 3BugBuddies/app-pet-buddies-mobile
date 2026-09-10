@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Card } from '../../component/ui/Card';
@@ -16,20 +17,22 @@ import { Input } from '../../component/ui/Input';
 import { useLoginControl } from '../../control/authControl';
 import type { AuthStackParamList } from '../navigation/types';
 import { colors, spacing, typography } from '../../styles/theme';
+import { LogoHeader } from '../../component/ui/LogoHeader';
 
 export function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { email, setEmail, senha, setSenha, erros, entrar, isEntrando } = useLoginControl();
+  const insets = useSafeAreaInsets();
 
   return (
     <KeyboardAvoidingView
-      style={styles.flex}
+      style={[styles.flex, { paddingTop: insets.top + spacing.md }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
-      >
+      ><LogoHeader size="large" />
         <Text style={styles.title}>Pet Buddies</Text>
         <Text style={styles.subtitle}>Entre para cuidar dos seus pets</Text>
 
