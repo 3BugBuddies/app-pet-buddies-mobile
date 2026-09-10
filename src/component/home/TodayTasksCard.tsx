@@ -1,5 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { colors, radii, spacing } from '../../styles/theme';
 
 export interface HomeTask {
   id: string;
@@ -11,19 +12,29 @@ export interface HomeTask {
 interface TodayTasksCardProps {
   tasks: HomeTask[];
   onToggle: (id: string) => void;
+  onViewAll?: () => void;
 }
 
-export function TodayTasksCard({ tasks, onToggle }: TodayTasksCardProps) {
+function taskIconName(title: string): React.ComponentProps<typeof Ionicons>['name'] {
+  const t = title.toLowerCase();
+  if (t.includes('raç') || t.includes('comi') || t.includes('alim')) return 'restaurant-outline';
+  if (t.includes('escov') || t.includes('pelo') || t.includes('banho')) return 'cut-outline';
+  if (t.includes('brinc') || t.includes('passei')) return 'tennisball-outline';
+  if (t.includes('remé') || t.includes('medicam') || t.includes('vacin')) return 'medkit-outline';
+  return 'paw-outline';
+}
+
+export function TodayTasksCard({ tasks, onToggle, onViewAll }: TodayTasksCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.title}>Hoje em casa</Text>
-        <View style={styles.tag}>
-          <Text style={styles.tagText}>tutor</Text>
-        </View>
+        <Pressable onPress={onViewAll} hitSlop={8} accessibilityRole="button">
+          <Text style={styles.viewAll}>Ver tudo {'>'}</Text>
+        </Pressable>
       </View>
 
-      {tasks.map((task) => (
+      {tasks.slice(0, 4).map((task) => (
         <Pressable
           key={task.id}
           accessibilityRole="checkbox"
@@ -32,14 +43,22 @@ export function TodayTasksCard({ tasks, onToggle }: TodayTasksCardProps) {
           onPress={() => onToggle(task.id)}
         >
           <View style={[styles.checkbox, task.done && styles.checkboxDone]}>
-            {task.done ? <Text style={styles.checkMark}>✓</Text> : null}
+            {task.done && (
+              <Ionicons name="checkmark" size={14} color={colors.textLight} />
+            )}
           </View>
-          <View style={styles.taskText}>
-            <Text style={[styles.taskTitle, task.done && styles.taskTitleDone]}>
-              {task.title}
-            </Text>
-            <Text style={styles.taskWhen}>{task.time}</Text>
-          </View>
+          <Text
+            style={[styles.taskTitle, task.done && styles.taskTitleDone]}
+            numberOfLines={1}
+          >
+            {task.title}
+          </Text>
+          <Text style={styles.taskTime}>{task.time}</Text>
+          <Ionicons
+            name={taskIconName(task.title)}
+            size={20}
+            color={colors.textMuted}
+          />
         </Pressable>
       ))}
     </View>
@@ -49,11 +68,14 @@ export function TodayTasksCard({ tasks, onToggle }: TodayTasksCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radii.lg,
     padding: spacing.lg,
     gap: spacing.md,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
@@ -61,24 +83,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    ...typography.subtitle,
+    fontFamily: 'Sora',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.textPrimary,
   },
-  tag: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs / 2,
-    borderRadius: radii.pill,
-    backgroundColor: colors.cardMax,
-  },
-  tagText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textPrimary,
+  viewAll: {
+    fontFamily: 'Inter',
+    fontSize: 13,
+    color: colors.textSecondary,
   },
   taskRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   checkbox: {
     width: 26,
@@ -90,28 +108,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxDone: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  checkMark: {
-    color: colors.textLight,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  taskText: {
-    flex: 1,
+    backgroundColor: colors.action,
+    borderColor: colors.action,
   },
   taskTitle: {
-    ...typography.body,
-    fontSize: 16,
+    fontFamily: 'Inter',
+    fontSize: 14,
     color: colors.textPrimary,
+    flex: 1,
   },
   taskTitleDone: {
     color: colors.textSecondary,
     textDecorationLine: 'line-through',
   },
-  taskWhen: {
-    ...typography.caption,
+  taskTime: {
+    fontFamily: 'Inter',
+    fontSize: 13,
     color: colors.textSecondary,
   },
 });

@@ -8,6 +8,7 @@ import type {
 import type { PrescricaoDraft } from '../../model/prescription';
 
 export type AuthStackParamList = {
+  Onboarding: undefined;
   Login: undefined;
   Register: undefined;
 };
