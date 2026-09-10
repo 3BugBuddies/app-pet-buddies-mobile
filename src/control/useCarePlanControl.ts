@@ -14,7 +14,7 @@ export function useCarePlan(petId: string) {
 export function useToggleCareTask(petId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (taskId: string) => toggleTask(taskId),
+    mutationFn: (taskId: string) => toggleTask(petId, taskId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: carePlanKey(petId) });
     },
@@ -24,7 +24,7 @@ export function useToggleCareTask(petId: string) {
 export function useCompleteCheckInTask(petId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (taskId: string) => completeCheckInTask(taskId),
+    mutationFn: (taskId: string) => completeCheckInTask(petId, taskId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: carePlanKey(petId) });
       queryClient.invalidateQueries({ queryKey: ['score', petId] });
