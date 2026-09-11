@@ -9,8 +9,14 @@ const registerSchema = object({
     .required('Confirme a senha')
     .oneOf([ref('senha')], 'As senhas não conferem'),
   perfil: string().oneOf(PERFIS, 'Selecione um perfil').required('Selecione um perfil'),
+  
+  // Campo CRMV dinâmico (obrigatório apenas para Veterinários)
+  crmv: string().when('perfil', {
+    is: 'VET',
+    then: (schema) => schema.required('O CRMV é obrigatório para veterinários'),
+    otherwise: (schema) => schema.nullable(),
+  }),
 });
 
 type RegisterFormValues = InferType<typeof registerSchema>;
-
 export { RegisterFormValues, registerSchema };

@@ -2,16 +2,17 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { NarrativeInput } from '../../component/checkin/NarrativeInput';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
+import { LogoHeader } from '../../component/ui/LogoHeader';
 import { usePet } from '../../control/usePetsControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, spacing } from '../../styles/theme';
 import { interpretNarrative } from '../../model/careRules';
-import { LogoHeader } from '../../component/ui/LogoHeader';
 
 const QUICK_OPTIONS = ['Deu o remédio', 'Comeu bem', 'Comeu pouco', 'Evacuou', 'Fezes moles', 'Não evacuou'];
 
@@ -20,6 +21,7 @@ type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInEntry'>;
 export function CheckInEntryScreen({ route }: Props) {
   const { petId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
+  const insets = useSafeAreaInsets();
   const { data: pet, isLoading: isLoadingPet } = usePet(petId);
   const [narrative, setNarrative] = useState('');
 
@@ -41,47 +43,51 @@ export function CheckInEntryScreen({ route }: Props) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <CheckInTopBar title="Check-in" subtitle="Cuidados de hoje" stepLabel="1 / 3" />
-      <LogoHeader size="large" /> 
-        <View style={styles.headline}>
-          <Text style={styles.h1}>Como {pet.nome} passou hoje?</Text>
-          <Text style={styles.p}>
-            Conte do seu jeito. A dose de hoje sai da regra que a vet escreveu.
-          </Text>
-        </View>
+    <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
+      <CheckInTopBar title="Check-in" subtitle="Cuidados de hoje" stepLabel="1 / 3" />
 
-        <NarrativeInput
-          value={narrative}
-          onChangeText={setNarrative}
-          placeholder="ex.: dei o remédio, mas ela comeu pouco e as fezes tavam moles"
-        />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <LogoHeader size="large" />
 
-        <QuickChips options={QUICK_OPTIONS} onSelect={appendChip} />
+          <View style={styles.headline}>
+            <Text style={styles.h1}>Como {pet.nome} passou hoje?</Text>
+            <Text style={styles.p}>
+              Conte do seu jeito. A dose de hoje sai da regra que a vet escreveu.
+            </Text>
+          </View>
 
-        <Button
-          label="Continuar"
-          backgroundColor={colors.textPrimary}
-          textColor={colors.textLight}
-          disabled={!narrative.trim()}
-          onPress={handleContinue}
-        />
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <NarrativeInput
+            value={narrative}
+            onChangeText={setNarrative}
+            placeholder="ex.: dei o remédio, mas ela comeu pouco e as fezes tavam moles"
+          />
+
+          <QuickChips options={QUICK_OPTIONS} onSelect={appendChip} />
+
+          <Button
+            label="Continuar"
+            backgroundColor={colors.textPrimary}
+            textColor={colors.textLight}
+            disabled={!narrative.trim()}
+            onPress={handleContinue}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
-  screen: {
+  root: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  flex: {
+    flex: 1,
   },
   content: {
     padding: spacing.lg,

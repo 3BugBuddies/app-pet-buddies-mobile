@@ -1,7 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Input } from '../../component/ui/Input';
@@ -32,6 +33,7 @@ type Props = NativeStackScreenProps<PacientesTabParamList, 'ProntuarioForm'>;
 export function ProntuarioFormScreen({ route }: Props) {
   const { petId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
+  const insets = useSafeAreaInsets();
   const [recordType, setRecordType] = useState<RecordType>('CONSULTA');
 
   const {
@@ -58,119 +60,130 @@ export function ProntuarioFormScreen({ route }: Props) {
   );
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
       <Text style={styles.title}>O que aconteceu?</Text>
 
-      <View style={styles.typeGrid}>
-        {RECORD_TYPES.map((type) => {
-          const active = type.key === recordType;
-          return (
-            <Pressable
-              key={type.key}
-              onPress={() => setRecordType(type.key)}
-              style={[styles.typeButton, active && styles.typeButtonActive]}
-            >
-              <Text style={[styles.typeButtonText, active && styles.typeButtonTextActive]}>
-                {type.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.typeGrid}>
+            {RECORD_TYPES.map((type) => {
+              const active = type.key === recordType;
+              return (
+                <Pressable
+                  key={type.key}
+                  onPress={() => setRecordType(type.key)}
+                  style={[styles.typeButton, active && styles.typeButtonActive]}
+                >
+                  <Text style={[styles.typeButtonText, active && styles.typeButtonTextActive]}>
+                    {type.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
-      <Input
-        label="Anamnese (opcional)"
-        placeholder="ex.: Tutora relata coceira no ouvido há 3 dias"
-        value={anamnese}
-        onChangeText={setAnamnese}
-        multiline
-        numberOfLines={3}
-        style={styles.notesInput}
-      />
-      <View style={styles.chipsRow}>
-        {ANAMNESE_CHIPS.map((chip) => (
-          <Pressable key={chip} onPress={() => setAnamnese(chip)} style={styles.anamneseChip}>
-            <Text style={styles.anamneseChipText}>{chip}</Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <Input
-        label="Diagnóstico"
-        placeholder="ex.: Otite leve no ouvido direito"
-        value={diagnostico}
-        onChangeText={setDiagnostico}
-        hasError={!!diagnosticoErro}
-      />
-      <FieldError message={diagnosticoErro ?? undefined} />
-
-      <Input
-        label="Tratamento"
-        placeholder="ex.: Gotas antibióticas por 7 dias"
-        value={tratamento}
-        onChangeText={setTratamento}
-        hasError={!!tratamentoErro}
-      />
-      <FieldError message={tratamentoErro ?? undefined} />
-
-      <Input
-        label="Peso (kg)"
-        placeholder="ex.: 17,2"
-        value={weight}
-        onChangeText={setWeight}
-        keyboardType="decimal-pad"
-      />
-
-      <Input
-        label="Observações (opcional)"
-        placeholder="ex.: Retorno em 10 dias"
-        value={observacao}
-        onChangeText={setObservacao}
-        multiline
-        numberOfLines={4}
-        style={styles.notesInput}
-      />
-
-      <View style={styles.homeCard}>
-        <View style={styles.homeHeader}>
-          <Text style={styles.homeLabel}>Orientação para casa</Text>
-          <Switch
-            value={homeInstructionOn}
-            onValueChange={setHomeInstructionOn}
-            trackColor={{ true: colors.warning, false: colors.borderStrong }}
-          />
-        </View>
-        {homeInstructionOn ? (
           <Input
-            label="O que a tutora deve fazer"
-            placeholder="ex.: Observar reação no local por 48h"
-            value={homeInstructionText}
-            onChangeText={setHomeInstructionText}
+            label="Anamnese (opcional)"
+            placeholder="ex.: Tutora relata coceira no ouvido há 3 dias"
+            value={anamnese}
+            onChangeText={setAnamnese}
+            multiline
+            numberOfLines={3}
+            style={styles.notesInput}
           />
-        ) : null}
-      </View>
+          <View style={styles.chipsRow}>
+            {ANAMNESE_CHIPS.map((chip) => (
+              <Pressable key={chip} onPress={() => setAnamnese(chip)} style={styles.anamneseChip}>
+                <Text style={styles.anamneseChipText}>{chip}</Text>
+              </Pressable>
+            ))}
+          </View>
 
-      <Button label="Avançar para Prescrição" loading={isSaving} onPress={salvar} />
-    </ScrollView>
+          <Input
+            label="Diagnóstico"
+            placeholder="ex.: Otite leve no ouvido direito"
+            value={diagnostico}
+            onChangeText={setDiagnostico}
+            hasError={!!diagnosticoErro}
+          />
+          <FieldError message={diagnosticoErro ?? undefined} />
+
+          <Input
+            label="Tratamento"
+            placeholder="ex.: Gotas antibióticas por 7 dias"
+            value={tratamento}
+            onChangeText={setTratamento}
+            hasError={!!tratamentoErro}
+          />
+          <FieldError message={tratamentoErro ?? undefined} />
+
+          <Input
+            label="Peso (kg)"
+            placeholder="ex.: 17,2"
+            value={weight}
+            onChangeText={setWeight}
+            keyboardType="decimal-pad"
+          />
+
+          <Input
+            label="Observações (opcional)"
+            placeholder="ex.: Retorno em 10 dias"
+            value={observacao}
+            onChangeText={setObservacao}
+            multiline
+            numberOfLines={4}
+            style={styles.notesInput}
+          />
+
+          <View style={styles.homeCard}>
+            <View style={styles.homeHeader}>
+              <Text style={styles.homeLabel}>Orientação para casa</Text>
+              <Switch
+                value={homeInstructionOn}
+                onValueChange={setHomeInstructionOn}
+                trackColor={{ true: colors.warning, false: colors.borderStrong }}
+              />
+            </View>
+            {homeInstructionOn ? (
+              <Input
+                label="O que a tutora deve fazer"
+                placeholder="ex.: Observar reação no local por 48h"
+                value={homeInstructionText}
+                onChangeText={setHomeInstructionText}
+              />
+            ) : null}
+          </View>
+
+          <Button label="Avançar para Prescrição" loading={isSaving} onPress={salvar} />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  root: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
+  flex: {
+    flex: 1,
   },
   title: {
     fontSize: 28,
     fontWeight: '700',
     letterSpacing: -0.5,
     color: colors.textPrimary,
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.xs,
+  },
+  content: {
+    padding: spacing.lg,
+    gap: spacing.sm,
+    paddingBottom: spacing.xl,
   },
   typeGrid: {
     flexDirection: 'row',

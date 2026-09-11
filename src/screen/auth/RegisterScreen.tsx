@@ -1,14 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Card } from '../../component/ui/Card';
@@ -24,12 +17,14 @@ const PERFIL_LABEL: Record<string, string> = {
 
 export function RegisterScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+  const insets = useSafeAreaInsets();
   const {
     nome, setNome,
     email, setEmail,
     senha, setSenha,
     confirmarSenha, setConfirmarSenha,
     perfil, setPerfil,
+    crmv, setCrmv,
     perfis,
     erros,
     cadastrar,
@@ -37,150 +32,82 @@ export function RegisterScreen() {
   } = useRegisterControl();
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.subtitle}>Crie sua conta para começar</Text>
+    <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
+      <Text style={styles.subtitle}>Crie sua conta para começar</Text>
 
-        <Card style={styles.card}>
-          <Text style={styles.sectionLabel}>Eu sou</Text>
-          <View style={styles.perfilRow}>
-            {perfis.map((opcao) => (
-              <Pressable
-                key={opcao}
-                onPress={() => setPerfil(opcao)}
-                style={[styles.perfilChip, perfil === opcao && styles.perfilChipAtivo]}
-              >
-                <Text style={[styles.perfilChipText, perfil === opcao && styles.perfilChipTextAtivo]}>
-                  {PERFIL_LABEL[opcao]}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <FieldError message={erros.perfil} />
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Card style={styles.card}>
+            <Text style={styles.sectionLabel}>Eu sou</Text>
 
-          <Input
-            label="Nome"
-            placeholder="Seu nome completo"
-            value={nome}
-            onChangeText={setNome}
-            hasError={!!erros.nome}
-          />
-          <FieldError message={erros.nome} />
+            <View style={styles.perfilRow}>
+              {perfis.map((opcao) => (
+                <Pressable
+                  key={opcao}
+                  onPress={() => setPerfil(opcao)}
+                  style={[styles.perfilChip, perfil === opcao && styles.perfilChipAtivo]}
+                >
+                  <Text style={[styles.perfilChipText, perfil === opcao && styles.perfilChipTextAtivo]}>
+                    {PERFIL_LABEL[opcao]}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            <FieldError message={erros.perfil} />
 
-          <Input
-            label="E-mail"
-            placeholder="voce@email.com"
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-            hasError={!!erros.email}
-          />
-          <FieldError message={erros.email} />
+            <Input label="Nome" placeholder="Seu nome completo" value={nome} onChangeText={setNome} hasError={!!erros.nome} />
+            <FieldError message={erros.nome} />
 
-          <Input
-            label="Senha"
-            placeholder="••••••••"
-            secureTextEntry
-            value={senha}
-            onChangeText={setSenha}
-            hasError={!!erros.senha}
-          />
-          <FieldError message={erros.senha} />
+            <Input label="E-mail" placeholder="voce@email.com" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} hasError={!!erros.email} />
+            <FieldError message={erros.email} />
 
-          <Input
-            label="Confirmar senha"
-            placeholder="••••••••"
-            secureTextEntry
-            value={confirmarSenha}
-            onChangeText={setConfirmarSenha}
-            hasError={!!erros.confirmarSenha}
-          />
-          <FieldError message={erros.confirmarSenha} />
+            {perfil === 'VET' ? (
+              <>
+                <Input label="CRMV" placeholder="ex.: CRMV-SP 12345" autoCapitalize="characters" value={crmv} onChangeText={setCrmv} hasError={!!erros.crmv} />
+                <FieldError message={erros.crmv} />
+              </>
+            ) : null}
 
-          {erros.geral ? <Text style={styles.apiError}>{erros.geral}</Text> : null}
+            <Input label="Senha" placeholder="••••••••" secureTextEntry value={senha} onChangeText={setSenha} hasError={!!erros.senha} />
+            <FieldError message={erros.senha} />
 
-          <View style={styles.buttonSpacing}>
-            <Button label="Cadastrar" loading={isCadastrando} onPress={cadastrar} />
-          </View>
-        </Card>
+            <Input label="Confirmar senha" placeholder="••••••••" secureTextEntry value={confirmarSenha} onChangeText={setConfirmarSenha} hasError={!!erros.confirmarSenha} />
+            <FieldError message={erros.confirmarSenha} />
 
-        <Pressable onPress={() => navigation.navigate('Login')} style={styles.loginLink}>
-          <Text style={styles.loginText}>Já tem conta? Entrar</Text>
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            {erros.geral ? <Text style={styles.apiError}>{erros.geral}</Text> : null}
+
+            <View style={styles.buttonSpacing}>
+              <Button label="Cadastrar" loading={isCadastrando} onPress={cadastrar} />
+            </View>
+          </Card>
+
+          <Pressable onPress={() => navigation.navigate('Login')} style={styles.loginLink}>
+            <Text style={styles.loginText}>Já tem conta? Entrar</Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: spacing.lg,
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-  },
-  card: {
-    gap: 0,
-  },
-  sectionLabel: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginBottom: spacing.xs,
-  },
-  perfilRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  perfilChip: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-  },
-  perfilChipAtivo: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  perfilChipText: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  perfilChipTextAtivo: {
-    color: colors.textLight,
-  },
-  buttonSpacing: {
-    marginTop: spacing.sm,
-  },
-  apiError: {
-    ...typography.caption,
-    color: colors.error,
-    marginBottom: spacing.sm,
-  },
-  loginLink: {
-    marginTop: spacing.lg,
-    alignItems: 'center',
-  },
-  loginText: {
-    ...typography.body,
-    color: colors.primary,
-  },
+  root: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: spacing.lg, paddingBottom: spacing.xl },
+  subtitle: { ...typography.body, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
+  card: { gap: 0 },
+  sectionLabel: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xs },
+  perfilRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  perfilChip: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingVertical: spacing.sm, alignItems: 'center' },
+  perfilChipAtivo: { backgroundColor: colors.primary, borderColor: colors.primary },
+  perfilChipText: { ...typography.body, color: colors.textSecondary },
+  perfilChipTextAtivo: { color: colors.textLight, fontWeight: 'bold' },
+  buttonSpacing: { marginTop: spacing.sm },
+  apiError: { ...typography.caption, color: colors.error, marginBottom: spacing.sm },
+  loginLink: { marginTop: spacing.lg, alignItems: 'center' },
+  loginText: { ...typography.body, color: colors.primary, fontWeight: 'bold' },
 });

@@ -9,13 +9,13 @@ import { TaskListCard } from '../../component/care-plan/TaskListCard';
 import { WeekStrip } from '../../component/care-plan/WeekStrip';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
+import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useAppointments } from '../../control/useAppointmentsControl';
 import { useCarePlan, useToggleCareTask } from '../../control/useCarePlanControl';
 import { usePets } from '../../control/usePetsControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, spacing } from '../../styles/theme';
 import { formatAppointmentDate } from '../../model/formatDate';
-import { LogoHeader } from '../../component/ui/LogoHeader';
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CarePlan'>;
 
@@ -54,14 +54,17 @@ export function CarePlanScreen({ route }: Props) {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}>
-        <LogoHeader size="large" />
-        <View style={styles.header}>
-          <Text style={styles.weekLabel}>{plan.weekLabel}</Text>
-          <Text style={styles.title}>Cuidado</Text>
-        </View>
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
+      <LogoHeader size="large" />
+      <View style={styles.header}>
+        <Text style={styles.weekLabel}>{plan.weekLabel}</Text>
+        <Text style={styles.title}>Cuidado</Text>
+      </View>
 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
+      >
         <WeekStrip days={plan.weekDays} />
 
         <ProgressBarCard doneCount={doneCount} totalCount={plan.tasks.length} pointsToday={pointsToday} />
@@ -76,7 +79,6 @@ export function CarePlanScreen({ route }: Props) {
           />
         </TaskListCard>
 
-
         <Text style={styles.sectionLabel}>Clínica</Text>
         {nextAppointment ? (
           <ClinicRow
@@ -89,8 +91,6 @@ export function CarePlanScreen({ route }: Props) {
           <ClinicRow dayNumber="–" title="Sem consultas" whenLabel="Nada agendado" tagLabel="" />
         )}
       </ScrollView>
-
-
     </View>
   );
 }
@@ -100,19 +100,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  assistantLink: {
-    alignSelf: 'flex-end',
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
-  },
   header: {
     gap: 2,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
   },
   weekLabel: {
     fontSize: 15,
@@ -125,6 +116,10 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     color: colors.textPrimary,
   },
+  content: {
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
   sectionLabel: {
     fontSize: 13,
     fontWeight: '600',
@@ -136,9 +131,6 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    // TutorTabs.tsx tem a tab bar flutuante com bottom:24 + height:64 (=88px)
-    // sobre o conteúdo (tabBarStyle é position:absolute, então a tela não
-    // ganha esse respiro de graça). Sem isso o botão fica atrás da tab bar.
     paddingBottom: 88 + spacing.md,
     backgroundColor: colors.background,
     borderTopWidth: 1,

@@ -4,19 +4,108 @@ import { LoginFormValues } from '../model/login';
 import { RegisterFormValues } from '../model/register';
 import { AuthSession } from '../model/session';
 
+// MANTENHA false para testar a interface. 
+// Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
+const USE_API = false;
+
 const SESSION_KEY = 'SESSION';
+const USUARIOS_KEY = 'USUARIOS';
+
+interface UsuarioLocal {
+  id: string;
+  nome: string;
+  email: string;
+  senha: string;
+  perfil: AuthSession['perfil'];
+}
+
+// Estes são os usuários falsos que permitem o login no emulador
+const initialUsuarios: UsuarioLocal[] = [
+  { id: 'tutor-1', nome: 'Marina', email: 'tutor@email.com', senha: '123456', perfil: 'TUTOR' },
+  { id: 'vet-1', nome: 'Dra. Helena', email: 'vet@email.com', senha: '123456', perfil: 'VET' },
+];
+
+const loadLocalUsuarios = async (): Promise<UsuarioLocal[]> => {
+  try {
+    const strList = await AsyncStorage.getItem(USUARIOS_KEY);
+    if (strList != null) {
+      return JSON.parse(strList);
+    }
+    await AsyncStorage.setItem(USUARIOS_KEY, JSON.stringify(initialUsuarios));
+    return initialUsuarios;
+  } catch (err: any) {
+    console.log('Erro ao carregar usuários locais: ' + err.message);
+    return initialUsuarios;
+  }
+};
+
+const fakeTokenFor = (usuarioId: string): string => `local-token.${usuarioId}`;
 
 const login = async (credenciais: LoginFormValues): Promise<AuthSession> => {
-  const resposta = await apiJava.post('/auth/login', credenciais);
-  return resposta.data;
+  if (USE_API) {
+    try {
+      const resposta = await apiJava.post('/auth/login', credenciais);
+      return resposta.data;
+    } catch (err: any) {
+      console.log('Erro ao entrar na API: ' + err.message);
+      throw new Error('Não foi possível entrar. Verifique suas credenciais.');
+    }
+  }
+
+  // Fallback (Mock)
+  const usuarios = await loadLocalUsuarios();
+  const encontrado = usuarios.find(
+    (usuario) => usuario.email === credenciais.email && usuario.senha === credenciais.senha
+  );
+
+  if (!encontrado) {
+    throw new Error('E-mail ou senha inválidos.');
+  }
+
+  return {
+    token: fakeTokenFor(encontrado.id),
+    usuarioId: encontrado.id,
+    nome: encontrado.nome,
+    perfil: encontrado.perfil,
+  };
 };
 
 const register = async (dados: RegisterFormValues): Promise<AuthSession> => {
-  const resposta = await apiJava.post('/auth/registro', dados);
-  return resposta.data;
+  if (USE_API) {
+    try {
+      const resposta = await apiJava.post('/auth/registro', dados);
+      return resposta.data;
+    } catch (err: any) {
+      console.log('Erro ao cadastrar na API: ' + err.message);
+      throw new Error('Não foi possível concluir o cadastro.');
+    }
+  }
+
+  // Fallback (Mock)
+  const usuarios = await loadLocalUsuarios();
+  if (usuarios.some((usuario) => usuario.email === dados.email)) {
+    throw new Error('Já existe uma conta com esse e-mail.');
+  }
+
+  const novoUsuario: UsuarioLocal = {
+    id: `usr-${Date.now()}`,
+    nome: dados.nome,
+    email: dados.email,
+    senha: dados.senha,
+    perfil: dados.perfil as AuthSession['perfil'],
+  };
+
+  await AsyncStorage.setItem(USUARIOS_KEY, JSON.stringify([...usuarios, novoUsuario]));
+
+  return {
+    token: fakeTokenFor(novoUsuario.id),
+    usuarioId: novoUsuario.id,
+    nome: novoUsuario.nome,
+    perfil: novoUsuario.perfil,
+  };
 };
 
-// AsyncStorage persiste a sessão entre fechamentos do app — nunca substituir por API.
+// AsyncStorage persiste a sessão entre fechamentos do app - nunca substituir por API.
 const saveSession = async (session: AuthSession): Promise<void> => {
   await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(session));
 };
