@@ -33,10 +33,8 @@ const getEscalationPreview = async (): Promise<CheckInEscalationResult> => {
   return response.data;
 };
 
-// Assinatura atualizada para incluir petId, exigido pelo endpoint PATCH da API.
-// Pontos são creditados pelo servidor no momento do confirmCheckIn.
 const completeCheckInTask = async (petId: string, taskId: string): Promise<void> => {
-  await apiJava.patch(`/plano-cuidado/${petId}/tarefas/${taskId}`);
+  await apiJava.post(`/plano-cuidado/${petId}/tarefas/${taskId}/concluir`);
 };
 
 const getScore = async (petId: string): Promise<CareScore> => {

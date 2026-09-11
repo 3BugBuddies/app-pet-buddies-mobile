@@ -1,8 +1,9 @@
 import { apiDotNet } from './apiClient';
 import type { Appointment, CreateAppointmentInput } from '../model/appointment';
 
-const getAllAppointments = async (): Promise<Appointment[]> => {
-  const response = await apiDotNet.get('/consultas');
+const getAllAppointments = async (petId?: string): Promise<Appointment[]> => {
+  const url = petId ? `/consultas?petId=${petId}` : '/consultas';
+  const response = await apiDotNet.get(url);
   return response.data;
 };
 

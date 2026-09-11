@@ -7,12 +7,12 @@ import { AuthSession } from '../model/session';
 const SESSION_KEY = 'SESSION';
 
 const login = async (credenciais: LoginFormValues): Promise<AuthSession> => {
-  const resposta = await apiJava.post('/login', credenciais);
+  const resposta = await apiJava.post('/auth/login', credenciais);
   return resposta.data;
 };
 
 const register = async (dados: RegisterFormValues): Promise<AuthSession> => {
-  const resposta = await apiJava.post('/usuarios', dados);
+  const resposta = await apiJava.post('/auth/registro', dados);
   return resposta.data;
 };
 

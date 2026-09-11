@@ -33,7 +33,7 @@ export function HomeTutorScreen() {
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
   const pet = pets?.[0];
 
-  const { data: appointments, isLoading: isLoadingAppointments } = useAppointments();
+  const { data: appointments, isLoading: isLoadingAppointments } = useAppointments(pet?.id);
   const { data: plan, isLoading: isLoadingPlan } = useCarePlan(pet?.id ?? '');
   const { data: score, isLoading: isLoadingScore } = useScore(pet?.id ?? '');
   const toggleTask = useToggleCareTask(pet?.id ?? '');

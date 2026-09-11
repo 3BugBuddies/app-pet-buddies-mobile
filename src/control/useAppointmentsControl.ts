@@ -9,18 +9,18 @@ import {
 } from '../repository/appointmentRepository';
 import type { CreateAppointmentInput } from '../model/appointment';
 
-const APPOINTMENTS_KEY = ['appointments'];
+const APPOINTMENTS_KEY = 'appointments';
 
-export function useAppointments() {
+export function useAppointments(petId?: string) {
   return useQuery({
-    queryKey: APPOINTMENTS_KEY,
-    queryFn: getAllAppointments,
+    queryKey: [APPOINTMENTS_KEY, petId ?? null],
+    queryFn: () => getAllAppointments(petId),
   });
 }
 
 export function useAppointment(id: string) {
   return useQuery({
-    queryKey: [...APPOINTMENTS_KEY, id],
+    queryKey: [APPOINTMENTS_KEY, id],
     queryFn: () => getAppointmentById(id),
     enabled: !!id,
   });
@@ -31,7 +31,7 @@ export function useCreateAppointment() {
   return useMutation({
     mutationFn: (payload: CreateAppointmentInput) => createAppointment(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: APPOINTMENTS_KEY });
+      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
     },
   });
 }
@@ -42,8 +42,8 @@ export function useUpdateAppointment() {
     mutationFn: ({ id, payload }: { id: string; payload: Partial<CreateAppointmentInput> }) =>
       updateAppointment(id, payload),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: APPOINTMENTS_KEY });
-      queryClient.invalidateQueries({ queryKey: [...APPOINTMENTS_KEY, variables.id] });
+      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY, variables.id] });
     },
   });
 }
@@ -53,7 +53,7 @@ export function useToggleAppointmentAttendance() {
   return useMutation({
     mutationFn: (id: string) => toggleAttendance(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: APPOINTMENTS_KEY });
+      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
     },
   });
 }
@@ -63,7 +63,7 @@ export function useDeleteAppointment() {
   return useMutation({
     mutationFn: (id: string) => deleteAppointment(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: APPOINTMENTS_KEY });
+      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
     },
   });
 }
