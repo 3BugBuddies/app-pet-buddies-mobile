@@ -1,4 +1,6 @@
+import { useContext } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AuthContext } from '../context/authContext';
 import {
   createAppointment,
   deleteAppointment,
@@ -11,10 +13,15 @@ import type { CreateAppointmentInput } from '../model/appointment';
 
 const APPOINTMENTS_KEY = 'appointments';
 
+// Sem petId: busca por veterinarioId (lado vet) ou responsavelId (lado tutor),
+// conforme o perfil da sessão. Com petId: filtra por animal (prontuário).
 export function useAppointments(petId?: string) {
+  const { session } = useContext(AuthContext);
+  const veterinarioId = session?.veterinarioId;
+  const responsavelId = session?.responsavelId;
   return useQuery({
-    queryKey: [APPOINTMENTS_KEY, petId ?? null],
-    queryFn: () => getAllAppointments(petId),
+    queryKey: [APPOINTMENTS_KEY, petId ?? veterinarioId ?? responsavelId ?? null],
+    queryFn: () => getAllAppointments(petId ?? responsavelId, petId ? undefined : veterinarioId),
   });
 }
 

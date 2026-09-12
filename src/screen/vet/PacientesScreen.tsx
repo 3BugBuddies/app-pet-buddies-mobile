@@ -1,86 +1,88 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { PatientCard } from '../../component/patients/PatientCard';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Card } from '../../component/ui/Card';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { usePatients } from '../../control/usePatientsControl';
+// import { usePatients } from '../../control/usePatientsControl'; // Sprint 4: /pacientes-clinica não existe no Java v2.3.1
+import { useClinicPets } from '../../control/usePetsControl';
 import type { PacientesTabParamList } from '../navigation/types';
-import { colors, radii, spacing } from '../../styles/theme';
+import { colors, radii, spacing, typography } from '../../styles/theme';
 
-type FilterKey = 'ATENCAO' | 'EM_DIA' | 'RENOVAR';
-
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: 'ATENCAO', label: 'Atenção' },
-  { key: 'EM_DIA', label: 'Em dia' },
-  { key: 'RENOVAR', label: 'Renovar' },
-];
+const ESPECIE_LABEL: Record<string, string> = {
+  CACHORRO: 'Cachorro',
+  GATO: 'Gato',
+  PASSARO: 'Pássaro',
+  COELHO: 'Coelho',
+  HAMSTER: 'Hamster',
+  OUTRO: 'Outro',
+};
 
 export function PacientesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
-  const { data: patients, isLoading, isError } = usePatients();
-  const [activeFilter, setActiveFilter] = useState<FilterKey>('ATENCAO');
+  const { data: pets, isLoading, isError } = useClinicPets();
+  const [busca, setBusca] = useState('');
 
   const filtered = useMemo(() => {
-    if (!patients) return [];
-    if (activeFilter === 'ATENCAO') return patients.filter((p) => p.alert);
-    if (activeFilter === 'RENOVAR') return patients.filter((p) => p.adherencePct >= 100);
-    return patients.filter((p) => !p.alert && p.adherencePct < 100);
-  }, [patients, activeFilter]);
+    if (!pets) return [];
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return pets;
+    return pets.filter(
+      (p) =>
+        p.nome.toLowerCase().includes(termo) ||
+        (p.raca ?? '').toLowerCase().includes(termo)
+    );
+  }, [pets, busca]);
 
   if (isLoading) {
     return <LoadingIndicator label="Carregando pacientes..." />;
   }
 
-  if (isError || !patients) {
+  if (isError || !pets) {
     return <LoadingIndicator label="Não foi possível carregar os pacientes." />;
   }
 
-  const attentionCount = patients.filter((p) => p.alert).length;
-  const averageAdherence = Math.round(
-    patients.reduce((sum, p) => sum + p.adherencePct, 0) / (patients.length || 1)
-  );
-
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      {/* Sprint 4: reativar quando /pacientes-clinica estiver disponível
       <Text style={styles.subtitle}>
         {patients.length} planos ativos · {averageAdherence}% de adesão
       </Text>
+      */}
 
-      <View style={styles.searchBar}>
-        <View style={styles.searchDot} />
-        <Text style={styles.searchPlaceholder}>Buscar pet ou tutor</Text>
-      </View>
+      <TextInput
+        style={styles.searchBar}
+        placeholder="Buscar pet ou raça"
+        placeholderTextColor={colors.textMuted}
+        value={busca}
+        onChangeText={setBusca}
+        returnKeyType="search"
+        clearButtonMode="while-editing"
+      />
 
+      {/* Sprint 4: reativar filtros de adesão quando /pacientes-clinica estiver disponível
       <View style={styles.filters}>
-        {FILTERS.map((filter) => {
-          const active = filter.key === activeFilter;
-          const count = filter.key === 'ATENCAO' ? attentionCount : undefined;
-          return (
-            <Pressable
-              key={filter.key}
-              onPress={() => setActiveFilter(filter.key)}
-              style={[styles.chip, active && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, active && styles.chipTextActive]}>
-                {filter.label}
-                {count !== undefined ? ` · ${count}` : ''}
-              </Text>
-            </Pressable>
-          );
-        })}
+        {FILTERS.map((filter) => { ... })}
       </View>
+      */}
 
       <View style={styles.list}>
         {filtered.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhum paciente nesse filtro.</Text>
+          <Text style={styles.emptyText}>Nenhum paciente encontrado.</Text>
         ) : (
-          filtered.map((patient) => (
-            <PatientCard
-              key={patient.petId}
-              patient={patient}
-              onPress={() => navigation.navigate('DetalhesPet', { petId: patient.petId })}
-            />
+          filtered.map((pet) => (
+            <Pressable
+              key={pet.id}
+              onPress={() => navigation.navigate('DetalhesPet', { petId: pet.id! })}
+            >
+              <Card>
+                <Text style={styles.petNome}>{pet.nome}</Text>
+                <Text style={styles.petMeta}>
+                  {ESPECIE_LABEL[pet.especie] ?? pet.especie}
+                  {pet.raca ? ` · ${pet.raca}` : ''}
+                </Text>
+              </Card>
+            </Pressable>
           ))
         )}
       </View>
@@ -98,58 +100,28 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingBottom: spacing.xl,
   },
-  subtitle: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
   searchBar: {
     height: 52,
     borderRadius: radii.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: spacing.md,
-    gap: spacing.sm,
-  },
-  searchDot: {
-    width: 16,
-    height: 16,
-    borderRadius: radii.pill,
-    borderWidth: 2,
-    borderColor: colors.textMuted,
-  },
-  searchPlaceholder: {
     fontSize: 16,
-    color: colors.textMuted,
-  },
-  filters: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: {
-    backgroundColor: colors.textPrimary,
-    borderColor: colors.textPrimary,
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  chipTextActive: {
-    color: colors.textLight,
+    color: colors.textPrimary,
   },
   list: {
     gap: spacing.sm,
+  },
+  petNome: {
+    ...typography.body,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  petMeta: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginTop: 2,
   },
   emptyText: {
     fontSize: 14,

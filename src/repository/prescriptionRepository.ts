@@ -4,7 +4,7 @@ import { addFakePrescription, getFakePrescriptionsByAnimalId } from './fakeData'
 
 // MANTENHA false para testar a interface.
 // Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = true;
+const USE_API = false;
 
 const getPrescriptionsByAnimalId = async (animalId: string): Promise<Prescription[]> => {
   if (USE_API) {

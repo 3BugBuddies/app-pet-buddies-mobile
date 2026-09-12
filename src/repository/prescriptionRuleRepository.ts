@@ -4,7 +4,7 @@ import { addFakeRule, getFakeRulesByPrescriptionId } from './fakeData';
 
 // MANTENHA false para testar a interface.
 // Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = true;
+const USE_API = false;
 
 const getRulesByPrescriptionId = async (prescricaoId: string): Promise<PrescriptionRule[]> => {
   if (USE_API) {

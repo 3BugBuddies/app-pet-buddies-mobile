@@ -9,16 +9,30 @@ import {
 
 // MANTENHA false para testar a interface.
 // Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = true;
+const USE_API = false;
 
-const getAllAppointments = async (petId?: string): Promise<Appointment[]> => {
+const getAllAppointments = async (
+  petId?: string | number | null,
+  veterinarioId?: string | number | null
+): Promise<Appointment[]> => {
   if (USE_API) {
-    const url = petId ? `/consulta?animalId=${petId}` : '/consulta';
+    let url = '/consulta';
+    if (veterinarioId) url = `/consulta?veterinarioId=${veterinarioId}`;
+    else if (petId) url = `/consulta?animalId=${petId}`;
     const response = await apiJava.get(url);
-    return response.data._embedded?.consultaResponseList ?? [];
+    const list = response.data._embedded?.consultaResponseList ?? [];
+    return list.map((c: any) => ({
+      id: c.id.toString(),
+      petId: c.animalId.toString(),
+      vetId: c.veterinarioId.toString(),
+      date: c.dataHora,
+      reason: c.motivo || '',
+      status: c.status,
+    }));
   }
   const all = getFakeAppointments();
-  return petId ? all.filter((a) => a.petId === petId) : all;
+  if (petId) return all.filter((a) => a.petId === String(petId));
+  return all;
 };
 
 const getAppointmentById = async (id: string): Promise<Appointment | undefined> => {

@@ -6,7 +6,7 @@ import { AuthSession } from '../model/session';
 
 // MANTENHA false para testar a interface. 
 // Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = true;
+const USE_API = false;
 
 const SESSION_KEY = 'SESSION';
 const USUARIOS_KEY = 'USUARIOS';

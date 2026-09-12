@@ -4,7 +4,7 @@ import { FAKE_CLINIC_PATIENTS } from './fakeData';
 
 // MANTENHA false para testar a interface.
 // Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = true;
+const USE_API = false;
 
 // Agregação de adesão da clínica — derivada de plano/consulta no Java.
 const getClinicPatients = async (): Promise<ClinicPatient[]> => {

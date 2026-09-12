@@ -13,7 +13,7 @@ import { useAppointments, useToggleAppointmentAttendance } from '../../control/u
 import { AuthContext } from '../../context/authContext';
 import { useLogoutControl } from '../../control/authControl';
 import { useClinicPets } from '../../control/usePetsControl';
-import { usePatients } from '../../control/usePatientsControl';
+// import { usePatients } from '../../control/usePatientsControl'; // Sprint 4: rota /pacientes-clinica não existe no Java v2.3.1
 import type { HojeTabParamList, VetTabParamList } from '../navigation/types';
 import { colors, spacing, typography } from '../../styles/theme';
 import { formatAppointmentDate } from '../../model/formatDate';
@@ -29,13 +29,15 @@ export function AgendaClinicaScreen() {
   const { sair } = useLogoutControl();
   const { data: appointments, isLoading: isLoadingAppts, isError: isApptsError } = useAppointments();
   const { data: pets, isLoading: isLoadingPets } = useClinicPets();
-  const { data: patients, isLoading: isLoadingPatients } = usePatients();
+  // const { data: patients, isLoading: isLoadingPatients } = usePatients(); // Sprint 4
   const toggleAttendance = useToggleAppointmentAttendance();
 
   const items: NextPatientItem[] = useMemo(() => {
     if (!appointments || !pets) return [];
+    const hoje = new Date().toISOString().slice(0, 10);
     return appointments
       .slice()
+      .filter((a) => a.date?.slice(0, 10) === hoje)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((appointment) => {
         const pet = pets.find((p) => p.id === appointment.petId);
@@ -50,11 +52,11 @@ export function AgendaClinicaScreen() {
       });
   }, [appointments, pets]);
 
-  if (isLoadingAppts || isLoadingPets || isLoadingPatients) {
+  if (isLoadingAppts || isLoadingPets) {
     return <LoadingIndicator label="Carregando a agenda..." />;
   }
 
-  if (isApptsError || !appointments || !patients) {
+  if (isApptsError || !appointments) {
     return <LoadingIndicator label="Não foi possível carregar a agenda." />;
   }
 
@@ -63,11 +65,9 @@ export function AgendaClinicaScreen() {
   const remaining = totalCount - seenCount;
   const nextItem = items.find((item) => !item.seen);
 
-  const pendingCount = patients.filter((patient) => patient.alert).length;
-  const averageAdherence =
-    patients.length > 0
-      ? Math.round(patients.reduce((sum, patient) => sum + patient.adherencePct, 0) / patients.length)
-      : 0;
+  // const pendingCount = patients.filter((patient) => patient.alert).length; // Sprint 4
+  // const averageAdherence = patients.length > 0                             // Sprint 4
+  //   ? Math.round(patients.reduce((sum, p) => sum + p.adherencePct, 0) / patients.length) : 0;
 
   const dateLabel = new Intl.DateTimeFormat('pt-BR', {
     weekday: 'long',
@@ -102,6 +102,7 @@ export function AgendaClinicaScreen() {
         onToggle={(id) => toggleAttendance.mutate(id)}
       />
 
+      {/* Sprint 4: reativar quando /pacientes-clinica estiver disponível no Java
       <View style={styles.row}>
         <View style={styles.half}>
           <HomePendingCard count={pendingCount} />
@@ -110,6 +111,7 @@ export function AgendaClinicaScreen() {
           <ActivePlansCard count={patients.length} adherencePct={averageAdherence} />
         </View>
       </View>
+      */}
 
       <Text
         style={styles.patientsLink}
