@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
@@ -11,8 +11,8 @@ import type { AuthStackParamList } from '../navigation/types';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
 const PERFIL_LABEL: Record<string, string> = {
-  TUTOR: 'Sou tutor',
-  VET: 'Sou veterinário(a)',
+  TUTOR: 'Tutor',
+  VET: 'Veterinário',
 };
 
 export function RegisterScreen() {
@@ -24,6 +24,7 @@ export function RegisterScreen() {
     senha, setSenha,
     confirmarSenha, setConfirmarSenha,
     perfil, setPerfil,
+    telefone, setTelefone,
     crmv, setCrmv,
     perfis,
     erros,
@@ -33,7 +34,11 @@ export function RegisterScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
-      <Text style={styles.subtitle}>Crie sua conta para começar</Text>
+      <Image
+        source={require('../../../assets/images/logo-pb-bottom.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
@@ -65,12 +70,31 @@ export function RegisterScreen() {
             <Input label="E-mail" placeholder="voce@email.com" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} hasError={!!erros.email} />
             <FieldError message={erros.email} />
 
-            {perfil === 'VET' ? (
+            {perfil === 'TUTOR' ? (
               <>
-                <Input label="CRMV" placeholder="ex.: CRMV-SP 12345" autoCapitalize="characters" value={crmv} onChangeText={setCrmv} hasError={!!erros.crmv} />
+                <Input
+                  label="Telefone"
+                  placeholder="ex.: 11 98765-4321"
+                  keyboardType="phone-pad"
+                  value={telefone}
+                  onChangeText={setTelefone}
+                  hasError={!!erros.telefone}
+                />
+                <FieldError message={erros.telefone} />
+              </>
+            ) : (
+              <>
+                <Input
+                  label="CRMV"
+                  placeholder="ex.: CRMV-SP 12345"
+                  autoCapitalize="characters"
+                  value={crmv}
+                  onChangeText={setCrmv}
+                  hasError={!!erros.crmv}
+                />
                 <FieldError message={erros.crmv} />
               </>
-            ) : null}
+            )}
 
             <Input label="Senha" placeholder="••••••••" secureTextEntry value={senha} onChangeText={setSenha} hasError={!!erros.senha} />
             <FieldError message={erros.senha} />
@@ -98,7 +122,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   scrollContent: { flexGrow: 1, justifyContent: 'center', padding: spacing.lg, paddingBottom: spacing.xl },
-  subtitle: { ...typography.body, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.lg, marginBottom: spacing.lg },
+  logo: { width: 140, height: 56, alignSelf: 'center', marginBottom: spacing.lg },
   card: { gap: 0 },
   sectionLabel: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xs },
   perfilRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },

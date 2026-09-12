@@ -37,5 +37,13 @@ interface RegraDraft {
   acao: (typeof TP_ACAO)[number];
 }
 
+// DTO que a API Java espera ao receber uma regra dentro do payload de prescrição.
+// Mesma forma que RegraDraft, mas explícito como tipo de contrato (não state).
+interface RegraPrescricaoRequest {
+  condicaoClinicaId: string;
+  rotuloCongelado: string;
+  acao: (typeof TP_ACAO)[number];
+}
+
 export { CONDICOES_CLINICAS, TP_ACAO, prescriptionRuleSchema };
-export type { PrescriptionRule, RegraDraft };
+export type { PrescriptionRule, RegraDraft, RegraPrescricaoRequest };

@@ -1,9 +1,9 @@
 import { useContext, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
-import { prescriptionSchema, type PrescricaoDraft } from '../model/prescription';
+import { prescriptionSchema, type NarrativaPrescricaoRequest, type PrescricaoDraft } from '../model/prescription';
 import { CONDICOES_CLINICAS, TP_ACAO, type RegraDraft } from '../model/prescriptionRule';
-import { createPrescription } from '../repository/prescriptionRepository';
+import { createPrescription, draftPrescription } from '../repository/prescriptionRepository';
 import { createRule } from '../repository/prescriptionRuleRepository';
 
 const hojeIso = () => new Date().toISOString().slice(0, 10);
@@ -33,7 +33,12 @@ const usePrescricaoDraftControl = ({ animalId, registroAtendimentoId }: UsePresc
   const [frequenciaDia, setFrequenciaDia] = useState(1);
   const [duracaoDias, setDuracaoDias] = useState(7);
   const [orientacao, setOrientacao] = useState('');
+  const [regras, setRegras] = useState<RegraDraft[]>([]);
   const [erros, setErros] = useState<Record<string, string>>({});
+
+  const removerRegra = (index: number) => {
+    setRegras((atual) => atual.filter((_, i) => i !== index));
+  };
 
   const validar = async (): Promise<PrescricaoDraft | null> => {
     setErros({});
@@ -42,7 +47,8 @@ const usePrescricaoDraftControl = ({ animalId, registroAtendimentoId }: UsePresc
         { medicamento, doseMin, doseMax, unidade, frequenciaDia, duracaoDias, orientacao },
         { abortEarly: false }
       );
-      return { animalId, registroAtendimentoId, medicamento, doseMin, doseMax, unidade, frequenciaDia, duracaoDias, orientacao, regras: [] };
+      // Usa o estado real de regras em vez de array vazio hardcoded
+      return { animalId, registroAtendimentoId, medicamento, doseMin, doseMax, unidade, frequenciaDia, duracaoDias, orientacao, regras };
     } catch (error: any) {
       if (!error?.inner) return null;
       const errosAtuais: Record<string, string> = {};
@@ -62,6 +68,8 @@ const usePrescricaoDraftControl = ({ animalId, registroAtendimentoId }: UsePresc
     frequenciaDia, setFrequenciaDia,
     duracaoDias, setDuracaoDias,
     orientacao, setOrientacao,
+    regras, setRegras,
+    removerRegra,
     erros,
     validar,
   };
@@ -139,4 +147,12 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft) => {
   };
 };
 
-export { usePrescricaoDraftControl, useNovaRegraControl, useAssinarPrescricaoControl };
+// Envia narrativa do veterinário para a IA e recebe rascunho estruturado.
+// O chamador usa os campos retornados para preencher automaticamente o formulário.
+const useDraftPrescription = () => {
+  return useMutation({
+    mutationFn: (data: NarrativaPrescricaoRequest) => draftPrescription(data),
+  });
+};
+
+export { usePrescricaoDraftControl, useNovaRegraControl, useAssinarPrescricaoControl, useDraftPrescription };

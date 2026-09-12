@@ -10,41 +10,49 @@ import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInConfirm'>;
 
-const APPETITE_LABEL: Record<string, string> = {
-  NORMAL: 'Comeu bem',
-  LOW: 'Comeu pouco',
-  NONE: 'Não comeu',
-};
-
-const STOOL_LABEL: Record<string, string> = {
-  NORMAL: 'Normais',
-  SOFT: 'Moles',
-  BLOOD: 'Com sangue',
-};
-
 export function CheckInConfirmScreen({ route }: Props) {
-  const { petId, narrative, interpretation } = route.params;
+  const { petId, extracaoResponse } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const confirmCheckIn = useConfirmCheckIn();
 
+  // Monta os campos de revisão a partir do que a IA extraiu da narrativa
   const fields: ConfirmedField[] = [
-    { label: 'Remédio', value: interpretation.medicationGiven ? 'Dado' : 'Não dado', flagged: !interpretation.medicationGiven },
-    { label: 'Apetite', value: APPETITE_LABEL[interpretation.appetite], flagged: interpretation.appetite !== 'NORMAL' },
-    { label: 'Evacuou', value: interpretation.defecated ? 'Sim' : 'Não', flagged: !interpretation.defecated },
-    { label: 'Fezes', value: STOOL_LABEL[interpretation.stoolConsistency], flagged: interpretation.stoolConsistency !== 'NORMAL' },
-    ...(interpretation.vomited ? [{ label: 'Vômito', value: 'Sim', flagged: true }] : []),
-    ...(interpretation.apathetic ? [{ label: 'Apatia', value: 'Sim', flagged: true }] : []),
-    ...(interpretation.breathingDifficulty
-      ? [{ label: 'Respiração', value: 'Com dificuldade', flagged: true }]
-      : []),
+    {
+      label: 'Estado geral',
+      value: extracaoResponse.degradado ? 'Degradado' : 'Estável',
+      flagged: extracaoResponse.degradado,
+    },
+    {
+      label: 'Condições identificadas',
+      value: extracaoResponse.condicoes.length > 0
+        ? `${extracaoResponse.condicoes.length} condição(ões) detectada(s)`
+        : 'Nenhuma condição detectada',
+      flagged: false,
+    },
+    ...extracaoResponse.redFlags.map((flag) => ({
+      label: 'Alerta',
+      value: flag,
+      flagged: true,
+    })),
   ];
 
   const handleConfirm = async () => {
-    const result = await confirmCheckIn.mutateAsync({ interpretation });
+    // Constrói o payload do contrato (seção 7) a partir do que a IA extraiu e o
+    // tutor confirmou. As condições voltam ao Java no mesmo formato que vieram.
+    const result = await confirmCheckIn.mutateAsync({
+      animalId: extracaoResponse.animalId,
+      narrativa: extracaoResponse.narrativa,
+      condicoes: extracaoResponse.condicoes.map((c) => ({
+        condicaoClinicaId: c.condicaoClinicaId,
+        valorBooleano: c.valorBooleano,
+        valorNumerico: c.valorNumerico,
+        confianca: c.confianca,
+      })),
+    });
     if (result.status === 'ESCALATION') {
       navigation.navigate('CheckInEscalation', { petId, result });
     } else if (result.status === 'NO_RULE') {
-      navigation.navigate('CheckInNoRule', { petId, result, narrative });
+      navigation.navigate('CheckInNoRule', { petId, result, narrative: extracaoResponse.narrativa });
     } else {
       navigation.navigate('CheckInResult', { petId, result });
     }
@@ -61,7 +69,7 @@ export function CheckInConfirmScreen({ route }: Props) {
         </Text>
       </View>
 
-      <Text style={styles.quote}>"{narrative}"</Text>
+      <Text style={styles.quote}>"{extracaoResponse.narrativa}"</Text>
 
       <ConfirmedFieldsCard fields={fields} />
 

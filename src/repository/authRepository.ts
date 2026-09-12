@@ -6,7 +6,7 @@ import { AuthSession } from '../model/session';
 
 // MANTENHA false para testar a interface. 
 // Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = false;
+const USE_API = true;
 
 const SESSION_KEY = 'SESSION';
 const USUARIOS_KEY = 'USUARIOS';
@@ -17,12 +17,14 @@ interface UsuarioLocal {
   email: string;
   senha: string;
   perfil: AuthSession['perfil'];
+  responsavelId?: string | null;
+  veterinarioId?: string | null;
 }
 
 // Estes são os usuários falsos que permitem o login no emulador
 const initialUsuarios: UsuarioLocal[] = [
-  { id: 'tutor-1', nome: 'Marina', email: 'tutor@email.com', senha: '123456', perfil: 'TUTOR' },
-  { id: 'vet-1', nome: 'Dra. Helena', email: 'vet@email.com', senha: '123456', perfil: 'VET' },
+  { id: 'tutor-1', nome: 'Marina', email: 'tutor@email.com', senha: '123456', perfil: 'TUTOR', responsavelId: 'tutor-1', veterinarioId: null },
+  { id: 'vet-1', nome: 'Dra. Helena', email: 'vet@email.com', senha: '123456', perfil: 'VET', responsavelId: null, veterinarioId: 'vet-1' },
 ];
 
 const loadLocalUsuarios = async (): Promise<UsuarioLocal[]> => {
@@ -67,13 +69,24 @@ const login = async (credenciais: LoginFormValues): Promise<AuthSession> => {
     usuarioId: encontrado.id,
     nome: encontrado.nome,
     perfil: encontrado.perfil,
+    responsavelId: encontrado.responsavelId ?? null,
+    veterinarioId: encontrado.veterinarioId ?? null,
   };
 };
 
 const register = async (dados: RegisterFormValues): Promise<AuthSession> => {
   if (USE_API) {
     try {
-      const resposta = await apiJava.post('/auth/registro', dados);
+      // Java espera "tipo" em vez de "perfil" (contrato seção 4)
+      const payload = {
+        tipo: dados.perfil,
+        nome: dados.nome,
+        email: dados.email,
+        senha: dados.senha,
+        telefone: dados.telefone ?? undefined, // obrigatório para TUTOR
+        crmv: dados.crmv ?? undefined,         // obrigatório para VET
+      };
+      const resposta = await apiJava.post('/auth/registro', payload);
       return resposta.data;
     } catch (err: any) {
       console.log('Erro ao cadastrar na API: ' + err.message);
@@ -87,12 +100,15 @@ const register = async (dados: RegisterFormValues): Promise<AuthSession> => {
     throw new Error('Já existe uma conta com esse e-mail.');
   }
 
+  const novoId = `usr-${Date.now()}`;
   const novoUsuario: UsuarioLocal = {
-    id: `usr-${Date.now()}`,
+    id: novoId,
     nome: dados.nome,
     email: dados.email,
     senha: dados.senha,
     perfil: dados.perfil as AuthSession['perfil'],
+    responsavelId: dados.perfil === 'TUTOR' ? novoId : null,
+    veterinarioId: dados.perfil === 'VET' ? novoId : null,
   };
 
   await AsyncStorage.setItem(USUARIOS_KEY, JSON.stringify([...usuarios, novoUsuario]));
@@ -102,6 +118,8 @@ const register = async (dados: RegisterFormValues): Promise<AuthSession> => {
     usuarioId: novoUsuario.id,
     nome: novoUsuario.nome,
     perfil: novoUsuario.perfil,
+    responsavelId: novoUsuario.responsavelId ?? null,
+    veterinarioId: novoUsuario.veterinarioId ?? null,
   };
 };
 

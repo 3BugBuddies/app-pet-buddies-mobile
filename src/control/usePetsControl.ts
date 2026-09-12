@@ -14,13 +14,14 @@ import {
 
 const PETS_KEY = ['pets'];
 
-// "Meus pets" do tutor logado.
+// "Meus pets" do tutor logado — usa responsavelId (vínculo da tabela T_PB_RESPONSAVEL),
+// não usuarioId, pois a API Java filtra por /animal?responsavelId=.
 export function usePets() {
   const { session } = useContext(AuthContext);
   return useQuery({
-    queryKey: [...PETS_KEY, session?.usuarioId],
-    queryFn: () => getPetsByResponsavelId(session?.usuarioId ?? ''),
-    enabled: !!session?.usuarioId,
+    queryKey: [...PETS_KEY, session?.responsavelId],
+    queryFn: () => getPetsByResponsavelId(String(session?.responsavelId ?? '')),
+    enabled: !!session?.responsavelId,
   });
 }
 

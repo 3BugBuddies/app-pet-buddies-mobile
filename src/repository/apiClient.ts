@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { Alert } from 'react-native';
 
 const SESSION_KEY = 'SESSION';
 
@@ -20,12 +21,24 @@ const addAuthInterceptor = (instance: ReturnType<typeof axios.create>) => {
   });
 };
 
-// Domínio de Registro: consultas, prontuários, prescrições, regras (.NET)
-const apiDotNet = axios.create({ baseURL: 'http://10.0.2.2:5297/api' });
-addAuthInterceptor(apiDotNet);
-
-// Domínio de Cuidado: auth, plano, check-in, pontuação, badges (Java / Spring HATEOAS)
-const apiJava = axios.create({ baseURL: 'http://10.0.2.2:8080/api' });
+// Todos os recursos do app vão para a API Java (Spring HATEOAS)
+// .NET é back-office da clínica e não é chamado diretamente pelo app
+const apiJava = axios.create({
+  baseURL: 'http://petbuddies-java-rm563925.mexicocentral.azurecontainer.io:8080/api',
+});
 addAuthInterceptor(apiJava);
 
-export { apiDotNet, apiJava };
+// Se o Java devolver 401, o token expirou: limpa a sessão e avisa o usuário.
+// O AuthContext vai detectar a sessão nula no próximo render e redirecionar ao Login.
+apiJava.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      await AsyncStorage.removeItem(SESSION_KEY);
+      Alert.alert('Sessão expirada', 'Faça login novamente para continuar.');
+    }
+    return Promise.reject(error);
+  }
+);
+
+export { apiJava };

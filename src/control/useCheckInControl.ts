@@ -1,10 +1,16 @@
 import { useMutation } from '@tanstack/react-query';
-import { confirmCheckIn, getEscalationPreview } from '../repository/careRepository';
-import type { CheckInInterpretation } from '../model/care';
+import { confirmCheckIn, extractCheckIn, getEscalationPreview } from '../repository/careRepository';
+import type { CheckInExtracaoRequest, CheckInRequest } from '../model/care';
+
+export function useExtractCheckIn() {
+  return useMutation({
+    mutationFn: (data: CheckInExtracaoRequest) => extractCheckIn(data),
+  });
+}
 
 export function useConfirmCheckIn() {
   return useMutation({
-    mutationFn: (params: { interpretation: CheckInInterpretation }) => confirmCheckIn(params),
+    mutationFn: (payload: CheckInRequest) => confirmCheckIn(payload),
   });
 }
 

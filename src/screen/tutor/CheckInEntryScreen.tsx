@@ -10,9 +10,9 @@ import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { LogoHeader } from '../../component/ui/LogoHeader';
 import { usePet } from '../../control/usePetsControl';
+import { useExtractCheckIn } from '../../control/useCheckInControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, spacing } from '../../styles/theme';
-import { interpretNarrative } from '../../model/careRules';
 
 const QUICK_OPTIONS = ['Deu o remédio', 'Comeu bem', 'Comeu pouco', 'Evacuou', 'Fezes moles', 'Não evacuou'];
 
@@ -24,6 +24,7 @@ export function CheckInEntryScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const { data: pet, isLoading: isLoadingPet } = usePet(petId);
   const [narrative, setNarrative] = useState('');
+  const extractCheckIn = useExtractCheckIn();
 
   if (isLoadingPet) {
     return <LoadingIndicator label="Carregando check-in..." />;
@@ -33,9 +34,14 @@ export function CheckInEntryScreen({ route }: Props) {
     return <LoadingIndicator label="Pet não encontrado." />;
   }
 
-  const handleContinue = () => {
-    const interpretation = interpretNarrative(narrative);
-    navigation.navigate('CheckInConfirm', { petId, narrative, interpretation });
+  const handleContinue = async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const extracaoResponse = await extractCheckIn.mutateAsync({
+      animalId: petId,
+      dataReferencia: today,
+      narrativa: narrative,
+    });
+    navigation.navigate('CheckInConfirm', { petId, extracaoResponse });
   };
 
   const appendChip = (text: string) => {
@@ -73,6 +79,7 @@ export function CheckInEntryScreen({ route }: Props) {
             backgroundColor={colors.textPrimary}
             textColor={colors.textLight}
             disabled={!narrative.trim()}
+            loading={extractCheckIn.isPending}
             onPress={handleContinue}
           />
         </ScrollView>

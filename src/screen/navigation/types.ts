@@ -2,6 +2,7 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 import type {
   CheckInDoseResult,
   CheckInEscalationResult,
+  CheckinExtracaoResponse,
   CheckInInterpretation,
   CheckInNoRuleResult,
 } from '../../model/care';
@@ -24,7 +25,7 @@ export type HomeTabParamList = {
 export type PlanoTabParamList = {
   CarePlan: { petId?: string } | undefined;
   CheckInEntry: { petId: string };
-  CheckInConfirm: { petId: string; narrative: string; interpretation: CheckInInterpretation };
+  CheckInConfirm: { petId: string; extracaoResponse: CheckinExtracaoResponse };
   CheckInResult: { petId: string; result: CheckInDoseResult };
   CheckInEscalation: { petId: string; result: CheckInEscalationResult };
   CheckInNoRule: { petId: string; result: CheckInNoRuleResult; narrative: string };

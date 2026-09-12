@@ -127,7 +127,7 @@ export function ProntuarioFormScreen({ route }: Props) {
             onChangeText={setWeight}
             keyboardType="decimal-pad"
           />
-
+        <Button label="Avançar para Prescrição" loading={isSaving} onPress={salvar} />
           <Input
             label="Observações (opcional)"
             placeholder="ex.: Retorno em 10 dias"
@@ -138,7 +138,7 @@ export function ProntuarioFormScreen({ route }: Props) {
             style={styles.notesInput}
           />
 
-          <View style={styles.homeCard}>
+          {/* <View style={styles.homeCard}>
             <View style={styles.homeHeader}>
               <Text style={styles.homeLabel}>Orientação para casa</Text>
               <Switch
@@ -155,9 +155,9 @@ export function ProntuarioFormScreen({ route }: Props) {
                 onChangeText={setHomeInstructionText}
               />
             ) : null}
-          </View>
+          </View> */}
 
-          <Button label="Avançar para Prescrição" loading={isSaving} onPress={salvar} />
+  
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

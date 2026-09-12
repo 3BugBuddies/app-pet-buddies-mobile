@@ -9,6 +9,9 @@ interface AuthSession {
   usuarioId: string;
   nome: string;
   perfil: Perfil;
+  // Vínculos retornados pelo Java — null quando o perfil não tem o vínculo
+  responsavelId?: number | string | null;
+  veterinarioId?: number | string | null;
 }
 
 export { PERFIS };

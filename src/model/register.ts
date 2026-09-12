@@ -9,8 +9,15 @@ const registerSchema = object({
     .required('Confirme a senha')
     .oneOf([ref('senha')], 'As senhas não conferem'),
   perfil: string().oneOf(PERFIS, 'Selecione um perfil').required('Selecione um perfil'),
-  
-  // Campo CRMV dinâmico (obrigatório apenas para Veterinários)
+
+  // Obrigatório para TUTOR (contrato seção 4 — Erros do registro: REGISTRO_INCOMPLETO)
+  telefone: string().when('perfil', {
+    is: 'TUTOR',
+    then: (schema) => schema.required('O telefone é obrigatório para tutores'),
+    otherwise: (schema) => schema.nullable(),
+  }),
+
+  // Obrigatório para VET (contrato seção 4 — Erros do registro: REGISTRO_INCOMPLETO)
   crmv: string().when('perfil', {
     is: 'VET',
     then: (schema) => schema.required('O CRMV é obrigatório para veterinários'),

@@ -3,7 +3,7 @@
 // secao "Antes de tudo"), entao os nomes aqui seguem a mesma convencao ja usada nos DTOs
 // existentes (prefixo de coluna cai, FK vira "<entidade>Id") ate a API real ser publicada.
 import { InferType, object, string, number, ref } from 'yup';
-import type { RegraDraft } from './prescriptionRule';
+import type { RegraDraft, RegraPrescricaoRequest } from './prescriptionRule';
 
 const DATA_ISO_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -56,6 +56,39 @@ interface PrescricaoDraft {
   duracaoDias: number;
   orientacao: string;
   regras: RegraDraft[];
+}
+
+// --- DTOs do fluxo de IA: Rascunho de Prescrição (POST /api/prescricao/rascunho) ---
+
+// O veterinário dita a conduta em linguagem natural; a IA estrutura os campos.
+export interface NarrativaPrescricaoRequest {
+  animalId: string;
+  registroAtendimentoId?: string;
+  narrativa: string;
+}
+
+// Campos de prescrição que a IA extraiu da narrativa — objeto aninhado dentro
+// de RascunhoPrescricaoResponse, espelhando o PrescricaoRequest do Java.
+export interface PrescricaoRequest {
+  medicamento: string;
+  doseMin: number;
+  doseMax: number;
+  unidade: string;
+  frequenciaDia: number;
+  duracaoDias: number;
+  orientacao?: string;
+}
+
+// Corpo completo da resposta de POST /api/prescricao/rascunho.
+// O Java retorna um objeto estruturado com a prescrição, regras propostas e metadados
+// de confiança — não campos soltos na raiz.
+export interface RascunhoPrescricaoResponse {
+  narrativaOriginal: string;
+  extracaoDisponivel: boolean;
+  motivoDegradacao: string | null;
+  prescricao: PrescricaoRequest;
+  regrasPropostas: RegraPrescricaoRequest[];
+  condicoesDescartadas: string[];
 }
 
 export { Prescription, prescriptionSchema };

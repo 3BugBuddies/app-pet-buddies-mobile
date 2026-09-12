@@ -118,3 +118,49 @@ export interface Badge {
   name: string;
   unlocked: boolean;
 }
+
+// --- DTOs do fluxo de IA: Check-in Narrado (POST /api/checkin/extracao) ---
+
+export interface CheckinExtracaoRequest {
+  animalId: number | string;
+  dataReferencia: string; // "yyyy-MM-dd"
+  narrativa: string;
+}
+
+// Uma condição clínica que a IA identificou na narrativa do tutor.
+// Espelha o array "condicoes" do CheckinExtracaoResponse do Java.
+export interface CondicaoObservadaExtracao {
+  condicaoClinicaId: number;
+  valorBooleano?: boolean;
+  valorNumerico?: number;
+  confianca: number; // 0.0 – 1.0
+}
+
+// Corpo cru da resposta de /checkin/extracao — sem envelope HATEOAS (contrato seção 5).
+export interface CheckinExtracaoResponse {
+  animalId: number | string;
+  dataReferencia: string;
+  narrativa: string;
+  condicoes: CondicaoObservadaExtracao[];
+  redFlags: string[];
+  degradado: boolean;
+}
+
+// --- DTOs do fluxo de confirmação: POST /api/checkin ---
+
+// Condição confirmada pelo tutor — mesma forma da extração, remetida de volta ao Java.
+export interface CondicaoConfirmadaRequest {
+  condicaoClinicaId: number;
+  valorBooleano?: boolean;
+  valorNumerico?: number;
+  confianca: number;
+}
+
+// Payload completo de POST /api/checkin (contrato seção 7 — Tutor · check-in em dois passos).
+export interface CheckInRequest {
+  animalId: number | string;
+  narrativa: string;
+  itemPlanoCuidadoId?: number;
+  ticUtilizada?: string;
+  condicoes: CondicaoConfirmadaRequest[];
+}

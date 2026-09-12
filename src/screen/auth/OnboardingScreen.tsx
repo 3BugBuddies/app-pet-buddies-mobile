@@ -10,8 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../../component/ui/Button';
-import { LogoHeader } from '../../component/ui/LogoHeader';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { colors, spacing, typography } from '../../styles/theme';
 import type { AuthStackParamList } from '../navigation/types';
 
 // Asset: add `onboarding-transperent.png` to assets/images/ before shipping
@@ -34,14 +33,13 @@ export default function OnboardingScreen() {
     >
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <LogoHeader size="large" style={styles.logo} />
         <Pressable
           onPress={() => navigation.navigate('Login')}
           accessibilityRole="button"
-          accessibilityLabel="Pular onboarding"
+          accessibilityLabel="Ir para o login"
           hitSlop={12}
         >
-          <Text style={styles.skip}>Pular</Text>
+          <Text style={styles.skip}>Entrar</Text>
         </Pressable>
       </View>
 
@@ -69,7 +67,7 @@ export default function OnboardingScreen() {
           onPress={() => navigation.navigate('Register')}
         />
         <Button
-          label="Cadastrar Clínica/Vet"
+          label="Cadastrar Veterinário"
           variant="secondary"
           onPress={() => navigation.navigate('Register')}
         />
@@ -100,8 +98,8 @@ const styles = StyleSheet.create({
   },
   topBar: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    justifyContent: 'flex-end',
     marginBottom: spacing.lg,
   },
   logo: {
@@ -110,7 +108,7 @@ const styles = StyleSheet.create({
   skip: {
     ...typography.body,
     color: colors.primary,
-    fontWeight: '600',
+    fontWeight: '800',
   },
   heroBlob: {
     backgroundColor: colors.cardChia,

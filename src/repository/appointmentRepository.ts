@@ -1,37 +1,73 @@
-import { apiDotNet } from './apiClient';
+import { apiJava } from './apiClient';
 import type { Appointment, CreateAppointmentInput } from '../model/appointment';
+import {
+  addFakeAppointment,
+  deleteFakeAppointment,
+  getFakeAppointments,
+  updateFakeAppointment,
+} from './fakeData';
+
+// MANTENHA false para testar a interface.
+// Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
+const USE_API = true;
 
 const getAllAppointments = async (petId?: string): Promise<Appointment[]> => {
-  const url = petId ? `/consultas?petId=${petId}` : '/consultas';
-  const response = await apiDotNet.get(url);
-  return response.data;
+  if (USE_API) {
+    const url = petId ? `/consulta?animalId=${petId}` : '/consulta';
+    const response = await apiJava.get(url);
+    return response.data._embedded?.consultaResponseList ?? [];
+  }
+  const all = getFakeAppointments();
+  return petId ? all.filter((a) => a.petId === petId) : all;
 };
 
 const getAppointmentById = async (id: string): Promise<Appointment | undefined> => {
-  const response = await apiDotNet.get(`/consultas/${id}`);
-  return response.data;
+  if (USE_API) {
+    const response = await apiJava.get(`/consulta/${id}`);
+    return response.data;
+  }
+  return getFakeAppointments().find((a) => a.id === id);
 };
 
 const createAppointment = async (payload: CreateAppointmentInput): Promise<Appointment> => {
-  const response = await apiDotNet.post('/consultas', payload);
-  return response.data;
+  if (USE_API) {
+    // Agendamento usa rota dedicada (contrato seção 7)
+    const response = await apiJava.post('/consulta/agendamento', payload);
+    return response.data;
+  }
+  const nova: Appointment = { id: `appt-${Date.now()}`, vetId: 'vet-1', status: 'SCHEDULED', ...payload };
+  return addFakeAppointment(nova);
 };
 
 const updateAppointment = async (
   id: string,
   payload: Partial<CreateAppointmentInput>
 ): Promise<Appointment> => {
-  const response = await apiDotNet.put(`/consultas/${id}`, payload);
-  return response.data;
+  if (USE_API) {
+    const response = await apiJava.put(`/consulta/${id}`, payload);
+    return response.data;
+  }
+  return updateFakeAppointment(id, payload);
 };
 
-// Alterna CONFIRMED ↔ COMPLETED — resposta da API já traz o status atualizado.
+// Fecha o atendimento via POST /{id}/fechamento (contrato seção 7 — Vet · fechar atendimento)
 const toggleAttendance = async (id: string): Promise<void> => {
-  await apiDotNet.patch(`/consultas/${id}/atendimento`);
+  if (USE_API) {
+    await apiJava.post(`/consulta/${id}/fechamento`, {});
+    return;
+  }
+  const appt = getFakeAppointments().find((a) => a.id === id);
+  if (appt) {
+    updateFakeAppointment(id, { status: appt.status === 'CONFIRMED' ? 'COMPLETED' : 'CONFIRMED' } as any);
+  }
 };
 
 const deleteAppointment = async (id: string): Promise<void> => {
-  await apiDotNet.delete(`/consultas/${id}`);
+  if (USE_API) {
+    await apiJava.delete(`/consulta/${id}`);
+    return;
+  }
+  deleteFakeAppointment(id);
 };
 
 export {
