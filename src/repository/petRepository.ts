@@ -77,7 +77,16 @@ const FAKE_PROFILES: Record<string, PetProfileDetails> = {
 const getPetProfileDetails = async (petId: string): Promise<PetProfileDetails> => {
   const profile = FAKE_PROFILES[petId];
   if (!profile) {
-    throw new Error('Perfil não encontrado');
+    return {
+      petId,
+      ageLabel: 'Idade não informada',
+      weightLabel: 'Peso não informado',
+      neuteredLabel: 'Não informado',
+      sexLabel: 'Não informado',
+      planStatusLabel: 'Aguardando plano',
+      homeInstruction: 'Nenhuma orientação registrada ainda.',
+      vaccines: [],
+    };
   }
   return profile;
 };

@@ -6,21 +6,43 @@ import { addFakePrescription, getFakePrescriptionsByAnimalId } from './fakeData'
 // Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
 const USE_API = true;
 
+// Normaliza um item da lista do backend para o tipo interno Prescription
+function mapPrescription(p: any): Prescription {
+  return {
+    id: p.id?.toString() ?? null,
+    medicamento: p.medicamento,
+    doseMin: p.doseMin,
+    doseMax: p.doseMax,
+    unidade: p.unidade,
+    frequenciaDia: p.frequenciaDia,
+    duracaoDias: p.duracaoDias,
+    dataInicio: p.dataInicio?.slice(0, 10) ?? p.dataInicio, // backend devolve "AAAA-MM-DD"
+    orientacao: p.orientacao ?? null,
+    materialOrigemId: p.materialOrigemId?.toString() ?? null,
+    versaoOrigem: p.versaoOrigem ?? null,
+    animalId: p.animalId?.toString() ?? '',
+    veterinarioId: p.veterinarioId?.toString() ?? '',
+    registroAtendimentoId: p.registroAtendimentoId?.toString() ?? null,
+  };
+}
+
 const getPrescriptionsByAnimalId = async (animalId: string): Promise<Prescription[]> => {
   if (USE_API) {
     // Filho não é aninhado — é filtro (contrato regra 2)
     const response = await apiJava.get(`/prescricao?animalId=${animalId}`);
-    return response.data._embedded?.prescricaoResponseList ?? [];
+    const list = response.data._embedded?.prescricaoResponseList ?? [];
+    return list.map(mapPrescription);
   }
   return getFakePrescriptionsByAnimalId(animalId);
 };
 
-// Prescrição é imutável (T_PB_PRESCRICAO): não existe PUT. "Editar" cria uma nova
-// prescrição com materialOrigemId apontando para a original.
 const createPrescription = async (prescription: Prescription): Promise<Prescription> => {
   if (USE_API) {
-    const response = await apiJava.post('/prescricao', prescription);
-    return response.data;
+    // Backend exige wrapper: { "prescricoes": [...] }
+    // Retorna lista HATEOAS — pega o primeiro item criado
+    const response = await apiJava.post('/prescricao', { prescricoes: [prescription] });
+    const list = response.data._embedded?.prescricaoResponseList ?? [];
+    return list.length > 0 ? mapPrescription(list[0]) : prescription;
   }
   return addFakePrescription(prescription);
 };

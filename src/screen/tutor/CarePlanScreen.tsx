@@ -8,6 +8,7 @@ import { ProgressBarCard } from '../../component/care-plan/ProgressBarCard';
 import { TaskListCard } from '../../component/care-plan/TaskListCard';
 import { WeekStrip } from '../../component/care-plan/WeekStrip';
 import { Button } from '../../component/ui/Button';
+import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useAppointments } from '../../control/useAppointmentsControl';
@@ -40,7 +41,14 @@ export function CarePlanScreen({ route }: Props) {
   }
 
   if (isPetsError || isPlanError || !plan || !petId) {
-    return <LoadingIndicator label="Não foi possível carregar o plano." />;
+    return (
+      <ErrorState
+        type="500"
+        message="Não foi possível carregar o plano de cuidados."
+        onRetry={() => navigation.goBack()}
+        retryLabel="Voltar"
+      />
+    );
   }
 
   const doneCount = plan.tasks.filter((task) => task.completed).length;

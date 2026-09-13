@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import {
   Image,
   KeyboardAvoidingView,
@@ -16,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Input } from '../../component/ui/Input';
+import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { usePetFormControl } from '../../control/usePetFormControl';
 import type { PetTabParamList } from '../navigation/types';
 import { colors, radii, spacing, typography } from '../../styles/theme';
@@ -39,9 +39,11 @@ const SEXO_LABEL: Record<string, string> = {
   FEMEA: 'Fêmea',
 };
 
-export function NovoPetScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<PetTabParamList>>();
+type Props = NativeStackScreenProps<PetTabParamList, 'NovoPet'>;
+
+export function NovoPetScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const petId = route.params?.petId;
 
   const {
     nome, setNome,
@@ -57,11 +59,22 @@ export function NovoPetScreen() {
     alergia, setAlergia,
     erros,
     salvar,
+    isFetchingPet,
     isSaving,
     ESPECIES,
     PORTES,
     SEXOS,
-  } = usePetFormControl(() => navigation.goBack());
+  } = usePetFormControl((novoPetId) => {
+    if (novoPetId) {
+      navigation.replace('PetProfile', { petId: novoPetId });
+    } else {
+      navigation.goBack();
+    }
+  }, petId);
+
+  if (isFetchingPet) {
+    return <LoadingIndicator label="Carregando dados..." />;
+  }
 
   return (
     <KeyboardAvoidingView
@@ -81,6 +94,11 @@ export function NovoPetScreen() {
           style={styles.heroBanner}
           resizeMode="contain"
         />
+        <Text style={styles.heroSubtitle}>
+          {petId
+            ? 'Atualize os dados do seu companheiro'
+            : 'Cadastre o novo companheiro...'}
+        </Text>
 
         {/* Cartão 1 — Informações básicas */}
         <View style={styles.card}>
@@ -273,7 +291,11 @@ export function NovoPetScreen() {
 
         {/* Rodapé — empilhado: ação principal no topo */}
         <View style={styles.footer}>
-          <Button label="Salvar pet" loading={isSaving} onPress={salvar} />
+          <Button
+            label={petId ? 'Salvar alterações' : 'Salvar pet'}
+            loading={isSaving}
+            onPress={salvar}
+          />
           <Button label="Cancelar" variant="secondary" onPress={() => navigation.goBack()} />
         </View>
       </ScrollView>
@@ -299,6 +321,12 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 140,
     borderRadius: radii.lg,
+    marginBottom: spacing.xs,
+  },
+  heroSubtitle: {
+    ...typography.subtitle,
+    color: colors.textSecondary,
+    textAlign: 'center',
     marginBottom: spacing.xs,
   },
 

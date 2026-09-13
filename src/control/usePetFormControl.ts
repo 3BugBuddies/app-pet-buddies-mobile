@@ -1,7 +1,7 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { AuthContext } from '../context/authContext';
-import { useCreatePet } from './usePetsControl';
+import { useCreatePet, usePet, useUpdatePet } from './usePetsControl';
 import { petSchema, ESPECIES, PORTES, SEXOS } from '../model/pet';
 
 // Aplica máscara DD/MM/AAAA enquanto o usuário digita
@@ -12,16 +12,26 @@ function aplicarMascaraData(text: string): string {
   return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
 }
 
-// Converte DD/MM/AAAA → AAAA-MM-DD para o petSchema
-function mascaraParaIso(mascara: string): string | null {
+// Converte DD/MM/AAAA → AAAA-MM-DD para o petSchema.
+// Se o ano estiver incompleto (< 4 dígitos) retorna a máscara crua para que o
+// Regex do petSchema gere a mensagem de erro amigável em vez de falha silenciosa.
+function mascaraParaIso(mascara: string): string {
   const partes = mascara.split('/');
-  if (partes.length !== 3 || partes[2].length !== 4) return null;
+  if (partes.length !== 3 || partes[2].length !== 4) return mascara;
   return `${partes[2]}-${partes[1]}-${partes[0]}`;
 }
 
-export function usePetFormControl(onSuccess: () => void) {
+// Converte AAAA-MM-DD → DD/MM/AAAA para preencher o campo visual
+function isoParaMascara(iso: string): string {
+  const [ano, mes, dia] = iso.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
+export function usePetFormControl(onSuccess: (petId: string) => void, petId?: string) {
   const { session } = useContext(AuthContext);
+  const { data: petToEdit, isLoading: isFetchingPet } = usePet(petId ?? '');
   const createPet = useCreatePet();
+  const updatePet = useUpdatePet();
 
   const [nome, setNome] = useState('');
   const [especie, setEspecie] = useState<string>('CACHORRO');
@@ -35,6 +45,23 @@ export function usePetFormControl(onSuccess: () => void) {
   const [alergia, setAlergia] = useState('');
   const [erros, setErros] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (petToEdit) {
+      setNome(petToEdit.nome);
+      setEspecie(petToEdit.especie);
+      setRaca(petToEdit.raca ?? '');
+      setPorte(petToEdit.porte ?? null);
+      setSexo(petToEdit.sexo);
+      setPeso(petToEdit.peso ? String(petToEdit.peso).replace('.', ',') : '');
+      setCastrado(petToEdit.castrado ?? false);
+      setCondicaoCronica(petToEdit.condicaoCronica ?? false);
+      setAlergia(petToEdit.alergia ?? '');
+      if (petToEdit.dataNascimento) {
+        setDataNascimento(isoParaMascara(petToEdit.dataNascimento));
+      }
+    }
+  }, [petToEdit]);
+
   const handleDataChange = (text: string) => {
     setDataNascimento(aplicarMascaraData(text));
   };
@@ -45,15 +72,14 @@ export function usePetFormControl(onSuccess: () => void) {
     const pesoRaw = peso.trim().replace(',', '.');
     const pesoNum = pesoRaw ? parseFloat(pesoRaw) : null;
 
-    // Converte máscara visual → ISO antes de validar
-    const dataNascimentoIso = dataNascimento.trim()
+    const dataNascimentoIso: string | null = dataNascimento.trim()
       ? mascaraParaIso(dataNascimento)
       : null;
 
     try {
       const dadosValidados = await petSchema.validate(
         {
-          id: null,
+          id: petId || null,
           nome,
           especie,
           raca: raca.trim() || null,
@@ -71,12 +97,16 @@ export function usePetFormControl(onSuccess: () => void) {
         { abortEarly: false }
       );
 
-      await createPet.mutateAsync(dadosValidados);
+      const petSalvo = petId
+        ? await updatePet.mutateAsync(dadosValidados)
+        : await createPet.mutateAsync(dadosValidados);
 
       Alert.alert(
         'Sucesso!',
-        'Seu novo companheiro foi cadastrado com sucesso.',
-        [{ text: 'Continuar', onPress: onSuccess }]
+        petId
+          ? 'Dados do pet atualizados com sucesso.'
+          : 'Seu novo companheiro foi cadastrado com sucesso.',
+        [{ text: 'Continuar', onPress: () => onSuccess(petSalvo?.id ?? petId ?? '') }]
       );
     } catch (error: any) {
       if (error?.inner) {
@@ -108,7 +138,8 @@ export function usePetFormControl(onSuccess: () => void) {
     alergia, setAlergia,
     erros,
     salvar,
-    isSaving: createPet.isPending,
+    isFetchingPet,
+    isSaving: createPet.isPending || updatePet.isPending,
     ESPECIES,
     PORTES,
     SEXOS,

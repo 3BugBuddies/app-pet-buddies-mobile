@@ -1,13 +1,15 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { HeroCard } from '../../component/pet-profile/HeroCard';
 import { InfoTintCard } from '../../component/pet-profile/InfoTintCard';
 import { StatsRow } from '../../component/pet-profile/StatsRow';
 import { VaccineListCard } from '../../component/pet-profile/VaccineListCard';
+import { Button } from '../../component/ui/Button';
+import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useLogoutControl } from '../../control/authControl';
-import { usePet, usePetProfileDetails, usePets } from '../../control/usePetsControl';
+import { useDeletePet, usePet, usePetProfileDetails, usePets } from '../../control/usePetsControl';
 import type { PetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../../styles/theme';
@@ -23,17 +25,53 @@ export function PetProfileScreen({ route }: Props) {
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
   const { data: profile, isLoading: isLoadingProfile, isError: isProfileError } =
     usePetProfileDetails(petId);
+  const deletePet = useDeletePet();
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Excluir Pet',
+      `Tem certeza que deseja remover ${pet?.nome} do seu perfil?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            await deletePet.mutateAsync(petId);
+            navigation.navigate('MeusPets');
+          },
+        },
+      ]
+    );
+  };
+
+  if (deletePet.isPending) {
+    return <LoadingIndicator label="Excluindo pet..." />;
+  }
 
   if (isLoadingPets || isLoadingPet || isLoadingProfile) {
     return <LoadingIndicator label="Carregando o perfil..." />;
   }
 
   if (isPetsError || isPetError || isProfileError || !pet || !profile || !petId) {
-    return <LoadingIndicator label="Não foi possível carregar o perfil." />;
+    return (
+      <ErrorState
+        type="500"
+        message="Não foi possível carregar o perfil deste pet."
+        onRetry={() => navigation.navigate('MeusPets')}
+        retryLabel="Voltar para Meus Pets"
+      />
+    );
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[
+        styles.content,
+        { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 },
+      ]}
+    >
       <Text style={styles.allPetsLink} onPress={() => navigation.navigate('MeusPets')}>
         Ver todos os pets
       </Text>
@@ -74,6 +112,21 @@ export function PetProfileScreen({ route }: Props) {
         você narra como foi; a IA só interpreta a narrativa — a dose vem sempre da faixa e das
         regras que a vet autorou.
       </Text>
+
+      <View style={{ gap: spacing.md, marginTop: spacing.md }}>
+        <Button
+          label="Editar dados do Pet"
+          variant="secondary"
+          onPress={() => navigation.navigate('NovoPet', { petId })}
+        />
+        <Button
+          label="Excluir Pet"
+          variant="secondary"
+          textColor={colors.error}
+          onPress={handleDelete}
+          loading={deletePet.isPending}
+        />
+      </View>
 
       <Pressable style={styles.logoutButton} onPress={sair}>
         <Text style={styles.logoutText}>Sair da conta</Text>

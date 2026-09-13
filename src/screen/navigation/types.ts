@@ -42,7 +42,7 @@ export type AgendaTabParamList = {
 export type PetTabParamList = {
   PetProfile: { petId?: string } | undefined;
   MeusPets: undefined;
-  NovoPet: undefined;
+  NovoPet: { petId?: string } | undefined;
 };
 
 

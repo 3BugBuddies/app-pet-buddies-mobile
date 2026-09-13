@@ -39,7 +39,7 @@ export function AgendaClinicaScreen() {
     const hoje = new Date().toISOString().slice(0, 10);
     return appointments
       .slice()
-      .filter((a) => a.date?.slice(0, 10) === hoje)
+      .filter((a) => a.date?.slice(0, 10) >= hoje)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((appointment) => {
         const pet = pets.find((p) => p.id === appointment.petId);

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { VaccineListCard } from '../../component/pet-profile/VaccineListCard';
 import { Button } from '../../component/ui/Button';
+import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import useMedicalRecordControl from '../../control/useMedicalRecordControl';
 import { usePet, usePetProfileDetails } from '../../control/usePetsControl';
@@ -78,7 +79,14 @@ export function DetalhesPetScreen({ route }: Props) {
   }
 
   if (isPetError || !pet) {
-    return <LoadingIndicator label="Não foi possível carregar o pet." />;
+    return (
+      <ErrorState
+        type="500"
+        message="Não foi possível carregar as informações do pet."
+        onRetry={() => navigation.goBack()}
+        retryLabel="Voltar"
+      />
+    );
   }
 
   const pesoLabel = pet.peso ? `${pet.peso.toString().replace('.', ',')} kg` : null;

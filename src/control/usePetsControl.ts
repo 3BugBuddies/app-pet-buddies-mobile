@@ -47,6 +47,7 @@ export function usePetProfileDetails(petId: string) {
     queryKey: ['petProfile', petId],
     queryFn: () => getPetProfileDetails(petId),
     enabled: !!petId,
+    retry: false,
   });
 }
 

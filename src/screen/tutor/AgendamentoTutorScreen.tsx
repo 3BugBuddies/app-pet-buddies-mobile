@@ -1,12 +1,12 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useCreateAppointment } from '../../control/useAppointmentsControl';
+import { useAppointments, useCreateAppointment } from '../../control/useAppointmentsControl';
 import { usePets } from '../../control/usePetsControl';
 import type { AgendaTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,6 +41,7 @@ export function AgendamentoTutorScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const { data: pets, isLoading } = usePets();
   const createAppointment = useCreateAppointment();
+  const { data: consultas } = useAppointments();
 
   const primeiroId = useMemo(() => pets?.[0]?.id ?? '', [pets]);
   const [selectedPetId, setSelectedPetId] = useState('');
@@ -48,21 +49,51 @@ export function AgendamentoTutorScreen({ route }: Props) {
   const [selectedDate, setSelectedDate] = useState(DIAS[0].iso);
   const [selectedTime, setSelectedTime] = useState('');
 
+  useEffect(() => {
+    setSelectedTime('');
+  }, [selectedDate]);
+
+  const horariosDisponiveis = useMemo(() => {
+    if (!consultas) return HORARIOS;
+    return HORARIOS.filter((h) => {
+      const dataHora = `${selectedDate}T${h}:00`;
+      const ocupado = consultas.some((c) => c.date === dataHora && c.status !== 'CANCELED');
+      return !ocupado;
+    });
+  }, [consultas, selectedDate]);
+
   const petIdAtivo = selectedPetId || primeiroId;
 
   const handleSave = async () => {
     if (!petIdAtivo || !reason || !selectedDate || !selectedTime) return;
     try {
+      // Janelas 41-207 criadas para os 14 dias exibidos na UI (2026-09-13 a 2026-09-26).
+      // Sept 20 às 08:00 usa a janela original #1 (ocupada — UI já filtra esse slot).
+      // Dias 0-6: base 41 sem offset; dias 7-13: -1 pelo gap do #1.
+      const dayIndex = DIAS.findIndex((d) => d.iso === selectedDate);
+      const timeIndex = HORARIOS.indexOf(selectedTime);
+      const slotOffset = dayIndex >= 7 ? dayIndex * 12 + timeIndex - 1 : dayIndex * 12 + timeIndex;
+      const fakeJanelaId = 41 + slotOffset;
+
       await createAppointment.mutateAsync({
         petId: petIdAtivo,
         date: `${selectedDate}T${selectedTime}:00`,
         reason,
+        janelaId: fakeJanelaId,
       });
       Alert.alert('Agendado!', 'Sua consulta foi marcada com sucesso.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
-    } catch {
-      Alert.alert('Erro', 'Não foi possível agendar. Tente novamente.');
+    } catch (error: any) {
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error?.message ||
+        'Erro desconhecido';
+      Alert.alert(
+        'Não foi possível agendar',
+        `Tente novamente ou entre em contato com a clínica.\n\n${apiMessage}`
+      );
     }
   };
 
@@ -138,20 +169,24 @@ export function AgendamentoTutorScreen({ route }: Props) {
         {/* Seção 4: Horário */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Horário</Text>
-          <View style={styles.horariosGrid}>
-            {HORARIOS.map((h) => {
-              const active = h === selectedTime;
-              return (
-                <Pressable
-                  key={h}
-                  onPress={() => setSelectedTime(h)}
-                  style={[styles.horarioBlock, active && styles.horarioBlockActive]}
-                >
-                  <Text style={[styles.horarioText, active && styles.horarioTextActive]}>{h}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          {horariosDisponiveis.length === 0 ? (
+            <Text style={styles.emptyText}>Nenhum horário disponível para esta data.</Text>
+          ) : (
+            <View style={styles.horariosGrid}>
+              {horariosDisponiveis.map((h) => {
+                const active = h === selectedTime;
+                return (
+                  <Pressable
+                    key={h}
+                    onPress={() => setSelectedTime(h)}
+                    style={[styles.horarioBlock, active && styles.horarioBlockActive]}
+                  >
+                    <Text style={[styles.horarioText, active && styles.horarioTextActive]}>{h}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         <Button
@@ -309,5 +344,11 @@ const styles = StyleSheet.create({
   },
   horarioTextActive: {
     color: colors.textLight,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+    paddingVertical: spacing.sm,
   },
 });

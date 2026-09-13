@@ -8,6 +8,7 @@ export function useCarePlan(petId: string) {
     queryKey: carePlanKey(petId),
     queryFn: () => getPlan(petId),
     enabled: !!petId,
+    retry: false,
   });
 }
 
