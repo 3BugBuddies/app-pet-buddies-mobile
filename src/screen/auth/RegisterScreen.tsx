@@ -24,8 +24,8 @@ export function RegisterScreen() {
     senha, setSenha,
     confirmarSenha, setConfirmarSenha,
     perfil, setPerfil,
-    telefone, setTelefone,
-    crmv, setCrmv,
+    telefone, handleTelefoneChange,
+    crmv, handleCrmvChange,
     perfis,
     erros,
     cadastrar,
@@ -77,7 +77,7 @@ export function RegisterScreen() {
                   placeholder="ex.: 11 98765-4321"
                   keyboardType="phone-pad"
                   value={telefone}
-                  onChangeText={setTelefone}
+                  onChangeText={handleTelefoneChange}
                   hasError={!!erros.telefone}
                 />
                 <FieldError message={erros.telefone} />
@@ -89,7 +89,7 @@ export function RegisterScreen() {
                   placeholder="ex.: CRMV-SP 12345"
                   autoCapitalize="characters"
                   value={crmv}
-                  onChangeText={setCrmv}
+                  onChangeText={handleCrmvChange}
                   hasError={!!erros.crmv}
                 />
                 <FieldError message={erros.crmv} />

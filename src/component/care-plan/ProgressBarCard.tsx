@@ -7,7 +7,7 @@ interface ProgressBarCardProps {
   pointsToday: number;
 }
 
-export function ProgressBarCard({ doneCount, totalCount, pointsToday }: ProgressBarCardProps) {
+export function ProgressBarCard({ doneCount, totalCount }: Omit<ProgressBarCardProps, 'pointsToday'>) {
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
   return (
     <View style={styles.card}>
@@ -19,7 +19,6 @@ export function ProgressBarCard({ doneCount, totalCount, pointsToday }: Progress
           <View style={[styles.fill, { width: `${pct}%` }]} />
         </View>
       </View>
-      <Text style={styles.points}>+{pointsToday}</Text>
     </View>
   );
 }

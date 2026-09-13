@@ -20,7 +20,9 @@ export function PatientCard({ patient, onPress }: PatientCardProps) {
       </View>
       <View style={styles.textBlock}>
         <View style={styles.headRow}>
-          <Text style={styles.name}>{patient.petName}</Text>
+          <Text style={styles.name}>
+            {patient.petName} <Text style={styles.idText}>#{patient.petId}</Text>
+          </Text>
           <Text style={styles.meta}>
             {patient.tutorName} · {patient.weekLabel}
           </Text>
@@ -89,4 +91,5 @@ const styles = StyleSheet.create({
   note: {
     fontSize: 13,
   },
+  idText: { fontSize: 12, color: colors.textMuted, fontWeight: '400' },
 });

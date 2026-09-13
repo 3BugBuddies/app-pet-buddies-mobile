@@ -18,7 +18,7 @@ const ACAO_LABEL: Record<string, string> = {
 type Props = NativeStackScreenProps<PacientesTabParamList, 'NovaRegra'>;
 
 export function NovaRegraScreen({ route }: Props) {
-  const { draft } = route.params;
+  const { animalId, registroAtendimentoId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
   const { condicoes, acoes, condicaoClinicaId, setCondicaoClinicaId, acao, setAcao, construirRegra } =
@@ -26,10 +26,10 @@ export function NovaRegraScreen({ route }: Props) {
 
   const handleAdd = () => {
     const regra = construirRegra();
-    navigation.navigate('Prescricao', {
-      animalId: route.params.draft.animalId,
-      registroAtendimentoId: route.params.draft.registroAtendimentoId,
-      novaRegra: regra,
+    navigation.navigate({
+      name: 'Prescricao',
+      params: { animalId, registroAtendimentoId, novaRegra: regra },
+      merge: true,
     });
   };
   return (

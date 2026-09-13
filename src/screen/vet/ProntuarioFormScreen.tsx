@@ -40,7 +40,7 @@ export function ProntuarioFormScreen({ route }: Props) {
     anamnese, setAnamnese,
     diagnostico, setDiagnostico,
     observacao, setObservacao,
-    weight, setWeight,
+    weight, handleWeightChange,
     diagnosticoErro,
     isSaving,
     salvar,
@@ -111,7 +111,7 @@ export function ProntuarioFormScreen({ route }: Props) {
             label="Peso (kg)"
             placeholder="ex.: 17,2"
             value={weight}
-            onChangeText={setWeight}
+            onChangeText={handleWeightChange}
             keyboardType="decimal-pad"
           />
 

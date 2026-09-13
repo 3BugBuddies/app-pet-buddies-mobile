@@ -45,9 +45,10 @@ export function TutorTabs() {
         name="PlanoTab"
         component={PlanoTabStack}
         options={{
-          tabBarLabel: 'Plano',
+          tabBarLabel: 'Evolução',
+          unmountOnBlur: true,
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'shield-checkmark' : 'shield-checkmark-outline'} size={size} color={color} />
+            <Ionicons name={focused ? 'time' : 'time-outline'} size={size} color={color} />
           ),
         }}
       />

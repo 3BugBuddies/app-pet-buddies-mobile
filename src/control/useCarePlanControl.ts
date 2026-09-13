@@ -41,10 +41,27 @@ export function useToggleCareTask(petId: string) {
 
 export function useCompleteCheckInTask(petId: string) {
   const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (taskId: string) => completeCheckInTask(petId, taskId),
+    onMutate: async (taskId: string) => {
+      await queryClient.cancelQueries({ queryKey: carePlanKey(petId) });
+      const previous = queryClient.getQueryData(carePlanKey(petId));
+
+      // Trava o botão imediatamente na UI local
+      queryClient.setQueryData(carePlanKey(petId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          tasks: (old.tasks ?? []).map((t: any) =>
+            t.id === taskId ? { ...t, completed: true } : t
+          ),
+        };
+      });
+      return { previous };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: carePlanKey(petId) });
+      // Invalida apenas o score; preserva a trava local da Home
       queryClient.invalidateQueries({ queryKey: ['score', petId] });
     },
   });

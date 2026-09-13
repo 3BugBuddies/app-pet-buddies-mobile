@@ -90,12 +90,6 @@ export function PlanoPacienteScreen({ route }: Props) {
         </>
       ) : null}
 
-      <Text
-        style={styles.newOrientation}
-        onPress={() => Alert.alert('Em breve', 'Cadastro de nova orientação para casa em breve.')}
-      >
-        + Nova orientação para casa
-      </Text>
     </ScrollView>
   );
 }

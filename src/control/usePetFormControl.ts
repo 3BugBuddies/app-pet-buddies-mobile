@@ -40,6 +40,16 @@ export function usePetFormControl(onSuccess: (petId: string) => void, petId?: st
   const [sexo, setSexo] = useState<string>('');
   const [peso, setPeso] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
+
+  const handlePesoChange = (text: string) => {
+    // Permite apenas números e UMA vírgula
+    let formatado = text.replace(/[^0-9,]/g, '');
+    const partes = formatado.split(',');
+    if (partes.length > 2) {
+      formatado = partes[0] + ',' + partes.slice(1).join('');
+    }
+    setPeso(formatado);
+  };
   const [castrado, setCastrado] = useState(false);
   const [condicaoCronica, setCondicaoCronica] = useState(false);
   const [alergia, setAlergia] = useState('');
@@ -130,7 +140,7 @@ export function usePetFormControl(onSuccess: (petId: string) => void, petId?: st
     raca, setRaca,
     porte, setPorte,
     sexo, setSexo,
-    peso, setPeso,
+    peso, setPeso, handlePesoChange,
     dataNascimento,
     handleDataChange,
     castrado, setCastrado,

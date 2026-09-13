@@ -7,7 +7,7 @@ import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useCarePlan } from '../../control/useCarePlanControl';
-import { usePets } from '../../control/usePetsControl';
+import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
@@ -15,7 +15,8 @@ type Props = NativeStackScreenProps<PlanoTabParamList, 'CarePlan'>;
 
 export function CarePlanScreen({ route }: Props) {
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
-  const petId = route.params?.petId ?? pets?.[0]?.id ?? '';
+  const { activePetId } = useActivePetId();
+  const petId = route.params?.petId ?? activePetId ?? '';
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
 
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError } = useCarePlan(petId);

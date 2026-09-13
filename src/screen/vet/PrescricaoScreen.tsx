@@ -100,9 +100,8 @@ export function PrescricaoScreen({ route }: Props) {
     }
   };
 
-  const irParaRegra = async () => {
-    const draft = await validar();
-    if (draft) navigation.navigate('NovaRegra', { draft });
+  const irParaRegra = () => {
+    navigation.navigate('NovaRegra', { animalId, registroAtendimentoId });
   };
 
   const irParaAssinatura = async () => {

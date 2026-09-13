@@ -68,7 +68,7 @@ export type PacientesTabParamList = {
   // novaRegra viaja de volta via merge params para que o vet possa adicionar
   // múltiplas regras antes de assinar.
   Prescricao: { animalId: string; registroAtendimentoId: string; novaRegra?: RegraDraft };
-  NovaRegra: { draft: PrescricaoDraft };
+  NovaRegra: { animalId: string; registroAtendimentoId: string };
   AssinarPrescricao: { draft: PrescricaoDraft };
 };
 

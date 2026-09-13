@@ -84,3 +84,25 @@ export function useDeletePet() {
     },
   });
 }
+
+// Estado global do pet ativo — compartilhado entre todas as abas via React Query cache.
+// Ao trocar o pet no carrossel da Home, todas as telas reativas (Plano, Perfil, Agenda)
+// respondem automaticamente sem precisar de navegação com params.
+export function useActivePetId() {
+  const queryClient = useQueryClient();
+  const { data: pets } = usePets();
+
+  const { data: activeId } = useQuery({
+    queryKey: ['activePetIdLocal'],
+    queryFn: () => null as string | null,
+    staleTime: Infinity,
+  });
+
+  const resolvedId = activeId || (pets && pets.length > 0 ? String(pets[0].id) : null);
+
+  const setActivePetId = (id: string) => {
+    queryClient.setQueryData(['activePetIdLocal'], id);
+  };
+
+  return { activePetId: resolvedId, setActivePetId };
+}

@@ -126,7 +126,7 @@ const confirmCheckIn = async (payload: CheckInRequest): Promise<CheckInResult> =
     vetName: 'Dra. Ana Souza',
     vetCrmv: 'CRMV-SP 12345',
     prescriptionDateLabel: hoje,
-    pointsEarned: 10,
+    pointsEarned: 0,
   };
 };
 

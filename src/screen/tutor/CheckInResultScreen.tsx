@@ -39,7 +39,10 @@ export function CheckInResultScreen({ route }: Props) {
       : 50;
 
   const handleFinish = () => {
-    navigation.navigate('CarePlan', { petId }); // Home já está travada — apenas retorna
+    // Limpa todo o stack do PlanoTab para que a aba Evolução
+    // não retenha as telas do check-in na pilha de navegação.
+    navigation.popToTop();
+    navigation.getParent()?.navigate('HomeTab');
   };
 
   const handlePreviewEscalation = async () => {
@@ -80,13 +83,6 @@ export function CheckInResultScreen({ route }: Props) {
             </Text>
           </View>
         </View>
-      </View>
-
-      <View style={styles.recordRow}>
-        <View style={styles.recordDot} />
-        <Text style={styles.recordText}>
-          Registrado no prontuário · +{safePoints} pts
-        </Text>
       </View>
 
       <View style={styles.actions}>

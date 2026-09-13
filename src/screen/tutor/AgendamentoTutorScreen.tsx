@@ -6,8 +6,8 @@ import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useAppointments, useCreateAppointment } from '../../control/useAppointmentsControl';
-import { usePets } from '../../control/usePetsControl';
+import { useAllPetsAppointments, useCreateAppointment } from '../../control/useAppointmentsControl';
+import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { AgendaTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../styles/theme';
@@ -41,10 +41,14 @@ export function AgendamentoTutorScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const { data: pets, isLoading } = usePets();
   const createAppointment = useCreateAppointment();
-  const { data: consultas } = useAppointments();
+  const { activePetId, setActivePetId } = useActivePetId();
+  const petIdAtivo = activePetId ?? '';
 
-  const primeiroId = useMemo(() => pets?.[0]?.id ?? '', [pets]);
-  const [selectedPetId, setSelectedPetId] = useState('');
+  // Busca agendamentos de todos os pets do tutor para bloquear slots já ocupados
+  // por qualquer animal da família, não apenas pelo pet ativo.
+  const petIds = pets?.map((p) => String(p.id!)) ?? [];
+  const consultas = useAllPetsAppointments(petIds);
+
   const [reason, setReason] = useState('');
   const [selectedDate, setSelectedDate] = useState(DIAS[0].iso);
   const [selectedTime, setSelectedTime] = useState('');
@@ -52,17 +56,6 @@ export function AgendamentoTutorScreen({ route }: Props) {
   useEffect(() => {
     setSelectedTime('');
   }, [selectedDate]);
-
-  const horariosDisponiveis = useMemo(() => {
-    if (!consultas) return HORARIOS;
-    return HORARIOS.filter((h) => {
-      const dataHora = `${selectedDate}T${h}:00`;
-      const ocupado = consultas.some((c) => c.date === dataHora && c.status !== 'CANCELED');
-      return !ocupado;
-    });
-  }, [consultas, selectedDate]);
-
-  const petIdAtivo = selectedPetId || primeiroId;
 
   const handleSave = async () => {
     if (!petIdAtivo || !reason || !selectedDate || !selectedTime) return;
@@ -118,7 +111,7 @@ export function AgendamentoTutorScreen({ route }: Props) {
               return (
                 <Pressable
                   key={pet.id}
-                  onPress={() => setSelectedPetId(pet.id!)}
+                  onPress={() => setActivePetId(String(pet.id!))}
                   style={[styles.petChip, active && styles.petChipActive]}
                 >
                   <View style={[styles.petAvatar, active && styles.petAvatarActive]}>
@@ -169,24 +162,55 @@ export function AgendamentoTutorScreen({ route }: Props) {
         {/* Seção 4: Horário */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Horário</Text>
-          {horariosDisponiveis.length === 0 ? (
-            <Text style={styles.emptyText}>Nenhum horário disponível para esta data.</Text>
-          ) : (
-            <View style={styles.horariosGrid}>
-              {horariosDisponiveis.map((h) => {
-                const active = h === selectedTime;
-                return (
-                  <Pressable
-                    key={h}
-                    onPress={() => setSelectedTime(h)}
-                    style={[styles.horarioBlock, active && styles.horarioBlockActive]}
-                  >
-                    <Text style={[styles.horarioText, active && styles.horarioTextActive]}>{h}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
+          {(() => {
+            const agora = new Date();
+            const hojeISO = agora.toISOString().slice(0, 10);
+
+            const horariosVisiveis = HORARIOS.filter((h) => {
+              // Remove slots ocupados por qualquer consulta ativa
+              const dataHora = `${selectedDate}T${h}:00`;
+              const ocupado = consultas?.some(
+                (c) => c.date.slice(0, 16) === dataHora.slice(0, 16) && c.status !== 'CANCELED'
+              );
+              if (ocupado) return false;
+
+              // Para o dia de hoje, remove slots que já passaram
+              if (selectedDate === hojeISO) {
+                const [hora, min] = h.split(':').map(Number);
+                const slotDate = new Date(selectedDate);
+                slotDate.setHours(hora, min, 0, 0);
+                // Exige ao menos 30 min de antecedência
+                if (slotDate.getTime() <= agora.getTime() + 30 * 60 * 1000) return false;
+              }
+
+              return true;
+            });
+
+            if (horariosVisiveis.length === 0) {
+              return (
+                <Text style={styles.emptyText}>
+                  Nenhum horário disponível para esta data. Selecione outro dia.
+                </Text>
+              );
+            }
+
+            return (
+              <View style={styles.horariosGrid}>
+                {horariosVisiveis.map((h) => {
+                  const active = h === selectedTime;
+                  return (
+                    <Pressable
+                      key={h}
+                      onPress={() => setSelectedTime(h)}
+                      style={[styles.horarioBlock, active && styles.horarioBlockActive]}
+                    >
+                      <Text style={[styles.horarioText, active && styles.horarioTextActive]}>{h}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            );
+          })()}
         </View>
 
         <Button
@@ -344,6 +368,15 @@ const styles = StyleSheet.create({
   },
   horarioTextActive: {
     color: colors.textLight,
+  },
+  horarioBlockDisabled: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    opacity: 0.4,
+  },
+  horarioTextDisabled: {
+    color: colors.textMuted,
+    textDecorationLine: 'line-through',
   },
   emptyText: {
     fontSize: 14,

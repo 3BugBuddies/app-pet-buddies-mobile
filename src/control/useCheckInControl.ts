@@ -14,6 +14,15 @@ export function useConfirmCheckIn() {
   return useMutation({
     mutationFn: (payload: CheckInRequest) => confirmCheckIn(payload),
     onSuccess: (_, variables) => {
+      // A API não atualiza o status do evento para CONCLUIDO após o check-in,
+      // então gravamos a conclusão diretamente no cache sem refetch.
+      queryClient.setQueryData(['carePlan', String(variables.animalId)], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          tasks: (old.tasks ?? []).map((t: any) => ({ ...t, completed: true })),
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ['prontuario', 'registros', String(variables.animalId)] });
     },
   });

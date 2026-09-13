@@ -39,7 +39,9 @@ export function NextPatientsCard({ items, onOpenPatient, onToggle }: NextPatient
             </Text>
           </View>
           <View style={styles.textBlock}>
-            <Text style={[styles.petName, item.seen && styles.textSeen]}>{item.petName}</Text>
+            <Text style={[styles.petName, item.seen && styles.textSeen]}>
+              {item.petName} <Text style={styles.idText}>#{item.petId}</Text>
+            </Text>
             <Text style={styles.reason}>{item.reason}</Text>
           </View>
           <Pressable
@@ -162,4 +164,5 @@ const styles = StyleSheet.create({
   statusTextSeen: {
     color: colors.success,
   },
+  idText: { fontSize: 12, color: colors.textMuted, fontWeight: '400' },
 });

@@ -1,5 +1,6 @@
 import { useContext } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert } from 'react-native';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
 import {
   createAppointment,
@@ -24,6 +25,19 @@ export function useAppointments(petId?: string) {
     queryFn: () => getAllAppointments(petId ?? responsavelId, petId ? undefined : veterinarioId),
     retry: false,
   });
+}
+
+// Busca agendamentos de todos os pets do tutor e unifica numa única lista.
+// Garante que um slot ocupado por qualquer pet da família apareça bloqueado.
+export function useAllPetsAppointments(petIds: string[]) {
+  const results = useQueries({
+    queries: petIds.map((id) => ({
+      queryKey: [APPOINTMENTS_KEY, id],
+      queryFn: () => getAllAppointments(id),
+      enabled: !!id,
+    })),
+  });
+  return results.flatMap((r) => r.data ?? []);
 }
 
 export function useAppointment(id: string) {
@@ -72,6 +86,11 @@ export function useDeleteAppointment() {
     mutationFn: (id: string) => deleteAppointment(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
+    },
+    onError: (error: any) => {
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.message ?? error?.message ?? 'Erro desconhecido';
+      Alert.alert(`Erro ${status ?? ''} ao cancelar`, detail);
     },
   });
 }

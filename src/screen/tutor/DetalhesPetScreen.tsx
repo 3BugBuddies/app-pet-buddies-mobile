@@ -10,6 +10,7 @@ import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import useMedicalRecordControl from '../../control/useMedicalRecordControl';
 import { usePet, usePetProfileDetails } from '../../control/usePetsControl';
+import { usePatients } from '../../control/usePatientsControl';
 import { useProcedures } from '../../control/useProcedureControl';
 import type { PetVaccine } from '../../model/care';
 import type { PacientesTabParamList } from '../navigation/types';
@@ -19,6 +20,13 @@ import { colors, radii, spacing } from '../../styles/theme';
 type Props = NativeStackScreenProps<PacientesTabParamList, 'DetalhesPet'>;
 
 type TabKey = 'HISTORICO' | 'AGENDAMENTOS' | 'VACINAS' | 'EXAMES' | 'PLANO';
+
+const STATUS_LABEL: Record<string, string> = {
+  SCHEDULED: 'Agendado',
+  CONFIRMED: 'Confirmado',
+  COMPLETED: 'Realizado',
+  CANCELED: 'Cancelado',
+};
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'HISTORICO', label: 'Histórico' },
@@ -57,6 +65,8 @@ export function DetalhesPetScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
   const { data: profile } = usePetProfileDetails(petId);
+  const { data: patients } = usePatients();
+  const tutorName = patients?.find((p) => p.petId === petId)?.tutorName;
   const { data: procedimentos, isLoading: isLoadingProcedimentos } = useProcedures(petId);
   const { registros: records, carregandoRegistros: isLoadingRecords } = useMedicalRecordControl(petId);
   const { data: appointments, isLoading: isLoadingAppts } = useAppointments(petId);
@@ -123,8 +133,6 @@ export function DetalhesPetScreen({ route }: Props) {
   const pesoLabel = pet.peso ? `${pet.peso.toString().replace('.', ',')} kg` : null;
   const idadeLabel = calcIdadeLabel(pet.dataNascimento);
   const castradoLabel = pet.castrado ? 'Sim' : 'Não';
-  const breedLabel = `${pet.raca || pet.especie} · ${pet.sexo}`;
-
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <View style={styles.hero}>
@@ -134,8 +142,10 @@ export function DetalhesPetScreen({ route }: Props) {
         <View style={styles.heroText}>
           <Text style={styles.name}>{pet.nome}</Text>
           <Text style={styles.detail}>
-            {breedLabel} · {idadeLabel}
-            {pesoLabel ? ` · ${pesoLabel}` : ''}
+            {`ID: ${pet.id} · ${pet.raca || pet.especie} · ${pet.sexo}`}
+          </Text>
+          <Text style={styles.detail}>
+            {`Tutor: ${tutorName || 'N/A'}`}
           </Text>
         </View>
         {profile ? (
@@ -215,7 +225,7 @@ export function DetalhesPetScreen({ route }: Props) {
                   {formatAppointmentDate(appt.date).dayLabel} às {formatAppointmentDate(appt.date).timeLabel}
                 </Text>
                 <Text style={styles.timelineTitle}>{appt.reason}</Text>
-                <Text style={styles.timelineBody}>Status: {appt.status}</Text>
+                <Text style={styles.timelineBody}>Status: {STATUS_LABEL[appt.status] || appt.status}</Text>
                 <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
                   <Button
                     label="Reagendar"

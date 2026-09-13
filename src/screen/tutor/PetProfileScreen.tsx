@@ -9,7 +9,7 @@ import { Button } from '../../component/ui/Button';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useLogoutControl } from '../../control/authControl';
-import { useDeletePet, usePet, usePets } from '../../control/usePetsControl';
+import { useActivePetId, useDeletePet, usePet, usePets } from '../../control/usePetsControl';
 import { useProcedures } from '../../control/useProcedureControl';
 import useMedicalRecordControl from '../../control/useMedicalRecordControl';
 import type { PetVaccine } from '../../model/care';
@@ -51,7 +51,8 @@ export function PetProfileScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const { sair } = useLogoutControl();
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
-  const petId = route.params?.petId ?? pets?.[0]?.id ?? '';
+  const { activePetId } = useActivePetId();
+  const petId = route.params?.petId ?? activePetId ?? '';
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
   const { data: procedimentos, isLoading: isLoadingProcedimentos } = useProcedures(petId);
   const { registros, carregandoRegistros } = useMedicalRecordControl(petId);
@@ -67,8 +68,18 @@ export function PetProfileScreen({ route }: Props) {
           text: 'Excluir',
           style: 'destructive',
           onPress: async () => {
-            await deletePet.mutateAsync(petId);
-            navigation.navigate('MeusPets');
+            try {
+              await deletePet.mutateAsync(petId);
+              navigation.navigate('MeusPets');
+            } catch (error: any) {
+              const status = error?.response?.status;
+              const msg =
+                error?.response?.data?.message ||
+                JSON.stringify(error?.response?.data) ||
+                error?.message ||
+                'Erro desconhecido';
+              Alert.alert(`Erro ${status ?? ''}`, msg);
+            }
           },
         },
       ]
@@ -124,7 +135,9 @@ export function PetProfileScreen({ route }: Props) {
 
       <HeroCard
         petName={pet.nome}
-        breedLabel={`${pet.raca} · ${pet.especie} • ${sexoLabel}`}
+        breedLabel={`${pet.raca} · ${pet.especie} · ${sexoLabel}`}
+        planStatusLabel="Perfil do pet"
+        imageUrl={pet.foto}
       />
 
       <StatsRow

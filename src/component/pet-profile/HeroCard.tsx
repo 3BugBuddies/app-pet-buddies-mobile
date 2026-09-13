@@ -1,26 +1,29 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
 
 interface HeroCardProps {
   petName: string;
   breedLabel: string;
   planStatusLabel: string;
+  imageUrl?: string | null;
 }
 
-export function HeroCard({ petName, breedLabel, planStatusLabel }: HeroCardProps) {
+export function HeroCard({ petName, breedLabel, planStatusLabel, imageUrl }: HeroCardProps) {
   return (
     <View style={styles.hero}>
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderText}>foto de {petName}</Text>
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.avatarImage} />
+      ) : (
+        <View style={styles.avatarFallback}>
+          <Text style={styles.avatarInitial}>{petName.charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
+      <View style={styles.infoBlock}>
+        <Text style={styles.name}>{petName}</Text>
+        <Text style={styles.breed}>{breedLabel}</Text>
       </View>
-      <View style={styles.footer}>
-        <View>
-          <Text style={styles.name}>{petName}</Text>
-          <Text style={styles.breed}>{breedLabel}</Text>
-        </View>
-        <View style={styles.tag}>
-          <Text style={styles.tagText}>{planStatusLabel}</Text>
-        </View>
+      <View style={styles.tag}>
+        <Text style={styles.tagText}>{planStatusLabel}</Text>
       </View>
     </View>
   );
@@ -28,55 +31,68 @@ export function HeroCard({ petName, breedLabel, planStatusLabel }: HeroCardProps
 
 const styles = StyleSheet.create({
   hero: {
-    height: 260,
+    backgroundColor: colors.surface,
     borderRadius: radii.lg,
-    backgroundColor: colors.cardMax,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  placeholder: {
     borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: colors.textPrimary,
-    borderRadius: radii.pill,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    borderColor: colors.border,
+    padding: spacing.xl,
+    alignItems: 'center',
+    gap: spacing.md,
+    shadowColor: colors.primary,
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
-  placeholderText: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    opacity: 0.7,
+  avatarImage: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 3,
+    borderColor: colors.cardChia,
   },
-  footer: {
-    position: 'absolute',
-    left: spacing.lg,
-    right: spacing.lg,
-    bottom: spacing.lg,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
+  avatarFallback: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.cardChia,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.surface,
+  },
+  avatarInitial: {
+    fontFamily: 'Sora',
+    fontSize: 40,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  infoBlock: {
+    alignItems: 'center',
+    gap: 2,
   },
   name: {
-    fontSize: 30,
+    fontFamily: 'Sora',
+    fontSize: 28,
     fontWeight: '700',
-    letterSpacing: -0.5,
     color: colors.textPrimary,
+    letterSpacing: -0.5,
   },
   breed: {
-    fontSize: 14,
-    color: colors.textPrimary,
-    opacity: 0.75,
+    fontFamily: 'Inter',
+    fontSize: 15,
+    color: colors.textSecondary,
   },
   tag: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
     borderRadius: radii.pill,
-    backgroundColor: colors.success,
+    backgroundColor: `${colors.success}1A`,
   },
   tagText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textLight,
+    fontFamily: 'Inter',
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.success,
   },
 });

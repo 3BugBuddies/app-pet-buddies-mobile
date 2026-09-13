@@ -51,7 +51,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
     raca, setRaca,
     porte, setPorte,
     sexo, setSexo,
-    peso, setPeso,
+    peso, handlePesoChange,
     dataNascimento,
     handleDataChange,
     castrado, setCastrado,
@@ -219,7 +219,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
                 label="Peso (kg)"
                 placeholder="Ex.: 10,5"
                 value={peso}
-                onChangeText={setPeso}
+                onChangeText={handlePesoChange}
                 keyboardType="decimal-pad"
                 hasError={!!erros.peso}
               />

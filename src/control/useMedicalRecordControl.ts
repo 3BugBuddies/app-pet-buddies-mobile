@@ -19,6 +19,7 @@ interface MedicalRecordControl {
   setObservacao: (value: string) => void;
   weight: string;
   setWeight: (value: string) => void;
+  handleWeightChange: (text: string) => void;
   homeInstructionOn: boolean;
   setHomeInstructionOn: (value: boolean) => void;
   homeInstructionText: string;
@@ -48,6 +49,15 @@ const useMedicalRecordControl = (
   const [observacao, setObservacao] = useState('');
   const [weight, setWeight] = useState('');
   const [homeInstructionOn, setHomeInstructionOn] = useState(false);
+
+  const handleWeightChange = (text: string) => {
+    let formatado = text.replace(/[^0-9,]/g, '');
+    const partes = formatado.split(',');
+    if (partes.length > 2) {
+      formatado = partes[0] + ',' + partes.slice(1).join('');
+    }
+    setWeight(formatado);
+  };
   const [homeInstructionText, setHomeInstructionText] = useState('');
   const [diagnosticoErro, setDiagnosticoErro] = useState<string | null>(null);
 
@@ -132,6 +142,7 @@ const useMedicalRecordControl = (
     setObservacao,
     weight,
     setWeight,
+    handleWeightChange,
     homeInstructionOn,
     setHomeInstructionOn,
     homeInstructionText,

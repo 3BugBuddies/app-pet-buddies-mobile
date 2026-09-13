@@ -1,12 +1,13 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button } from '../../component/ui/Button';
+
 import type { HomeTabParamList } from '../navigation/types';
-import { colors, radii, spacing } from '../../styles/theme';
+import { colors, spacing } from '../../styles/theme';
+import { Button } from '../../component/ui/Button';
 
 type Props = NativeStackScreenProps<HomeTabParamList, 'Score'>;
 
@@ -21,59 +22,66 @@ export function ScoreScreen({ route }: Props) {
         styles.content,
         { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 },
       ]}
+      showsVerticalScrollIndicator={false}
     >
-      <View style={styles.hero}>
-        <Ionicons name="trophy" size={64} color={colors.accent} style={{ marginBottom: spacing.md }} />
-        <Text style={styles.heroTitle}>Programa Pata Segura</Text>
-        <Text style={styles.heroSub}>
-          Em breve, cuidar do seu pet vai render prêmios, descontos e muito mais exclusividade.
-        </Text>
+      {/* HERO BANNER SUPERIOR */}
+      <Image
+        source={require('../../../assets/images/banner-pata-segura.png')}
+        style={styles.topBanner}
+        resizeMode="contain"
+      />
+
+      <Text style={styles.sectionTitle}>Como funciona?</Text>
+
+      {/* BENTO GRID DE FEATURES */}
+      <View style={styles.bentoGrid}>
+
+        {/* Feature 1: Selos por Visita */}
+        <View style={styles.bentoCard}>
+          <View style={[styles.iconBox, { backgroundColor: `${colors.primary}15` }]}>
+            <Feather name="check-circle" size={24} color={colors.primary} />
+          </View>
+          <Text style={styles.featureTitle}>1 Cuidado = 1 Selo</Text>
+          <Text style={styles.featureDesc}>
+            Consultas, vacinas e exames de rotina na clínica geram selos automáticos no seu cartão virtual.
+          </Text>
+        </View>
+
+        {/* Feature 2: Bônus de Pontualidade */}
+        <View style={styles.bentoCard}>
+          <View style={[styles.iconBox, { backgroundColor: `${colors.warning}15` }]}>
+            <Feather name="clock" size={24} color={colors.warning} />
+          </View>
+          <Text style={styles.featureTitle}>Bônus de Pontualidade</Text>
+          <Text style={styles.featureDesc}>
+            Manteve o reforço da vacina na data certa recomendada pela IA? Você ganha selos extras pelo compromisso!
+          </Text>
+        </View>
+
+        {/* Feature 3: Recompensas Reais */}
+        <View style={styles.bentoCard}>
+          <View style={[styles.iconBox, { backgroundColor: `${colors.success}15` }]}>
+            <Feather name="gift" size={24} color={colors.success} />
+          </View>
+          <Text style={styles.featureTitle}>Recompensas Reais</Text>
+          <Text style={styles.featureDesc}>
+            Complete a cartela de 10 selos e desbloqueie serviços de saúde preventiva por nossa conta, como check-ups.
+          </Text>
+        </View>
+
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Como vai funcionar?</Text>
-
-        <View style={styles.featureRow}>
-          <View style={styles.iconBox}>
-            <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-          </View>
-          <View style={styles.featureText}>
-            <Text style={styles.featureTitle}>Complete cuidados</Text>
-            <Text style={styles.featureDesc}>
-              Faça check-ins diários e dê os medicamentos no horário para ganhar pontos.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.featureRow}>
-          <View style={styles.iconBox}>
-            <Ionicons name="medkit" size={24} color={colors.primary} />
-          </View>
-          <View style={styles.featureText}>
-            <Text style={styles.featureTitle}>Prevenção premiada</Text>
-            <Text style={styles.featureDesc}>
-              Consultas e vacinas em dia aumentam o multiplicador do seu score.
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.featureRow}>
-          <View style={styles.iconBox}>
-            <Ionicons name="gift" size={24} color={colors.action} />
-          </View>
-          <View style={styles.featureText}>
-            <Text style={styles.featureTitle}>Troque por benefícios</Text>
-            <Text style={styles.featureDesc}>
-              Suba de tier (Bronze, Prata, Ouro) e troque pontos por exames e serviços na clínica.
-            </Text>
-          </View>
-        </View>
-      </View>
+      {/* BANNER INFERIOR */}
+      <Image
+        source={require('../../../assets/images/banner-pata-segura-bottom.png')}
+        style={styles.bottomBanner}
+        resizeMode="contain"
+      />
 
       <Button
         label="Voltar para a Home"
         onPress={() => navigation.goBack()}
-        style={{ marginTop: spacing.lg }}
+        style={{ marginTop: spacing.sm }}
       />
     </ScrollView>
   );
@@ -86,71 +94,58 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    gap: spacing.md,
   },
-  hero: {
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    padding: spacing.xl,
-    borderRadius: radii.lg,
+  topBanner: {
+    width: '100%',
+    height: 180,
+    borderRadius: 24,
+    marginBottom: spacing.xl,
+  },
+  bottomBanner: {
+    width: '100%',
+    height: 140,
+    borderRadius: 24,
+    marginTop: spacing.xl,
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  heroTitle: {
-    fontFamily: 'Sora',
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: spacing.sm,
-  },
-  heroSub: {
-    fontFamily: 'Inter',
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    padding: spacing.lg,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    gap: spacing.lg,
-  },
-  cardTitle: {
-    fontFamily: 'Sora',
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.textPrimary,
+    marginBottom: spacing.md,
+    marginLeft: spacing.xs,
   },
-  featureRow: {
-    flexDirection: 'row',
+  bentoGrid: {
     gap: spacing.md,
-    alignItems: 'flex-start',
+  },
+  bentoCard: {
+    backgroundColor: colors.surface,
+    padding: spacing.lg,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 1,
   },
   iconBox: {
     width: 48,
     height: 48,
-    borderRadius: radii.md,
-    backgroundColor: colors.cardChia,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  featureText: {
-    flex: 1,
-    gap: 4,
+    marginBottom: spacing.md,
   },
   featureTitle: {
-    fontFamily: 'Inter',
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '700',
     color: colors.textPrimary,
+    marginBottom: spacing.xs,
+    letterSpacing: -0.3,
   },
   featureDesc: {
-    fontFamily: 'Inter',
     fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 20,

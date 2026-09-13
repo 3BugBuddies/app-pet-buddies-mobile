@@ -2,7 +2,7 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +17,7 @@ import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { AuthContext } from '../../context/authContext';
 import { useAppointments } from '../../control/useAppointmentsControl';
 import { useCarePlan, useToggleCareTask } from '../../control/useCarePlanControl';
-import { usePets } from '../../control/usePetsControl';
+import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
@@ -33,14 +33,8 @@ export function HomeTutorScreen() {
   const { session } = useContext(AuthContext);
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
 
-  // UX: Context Selector — pet ativo no carrossel
-  const [activePetId, setActivePetId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (pets && pets.length > 0 && !activePetId) {
-      setActivePetId(String(pets[0].id));
-    }
-  }, [pets, activePetId]);
+  // UX: Context Selector — pet ativo sincronizado globalmente entre as abas
+  const { activePetId, setActivePetId } = useActivePetId();
 
   const activePet = useMemo(
     () => pets?.find((p) => String(p.id) === activePetId) ?? pets?.[0],
@@ -199,6 +193,7 @@ export function HomeTutorScreen() {
                   done: task.completed,
                 }))}
                 onToggle={(id) => toggleTask.mutate(id)}
+                isLocked={isCheckInDone}
               />
               {tasks.length > 0 && (
                 <Button

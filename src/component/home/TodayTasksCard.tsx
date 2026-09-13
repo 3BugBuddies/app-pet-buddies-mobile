@@ -12,6 +12,7 @@ export interface HomeTask {
 interface TodayTasksCardProps {
   tasks: HomeTask[];
   onToggle: (id: string) => void;
+  isLocked?: boolean;
 }
 
 function taskIconName(title: string): React.ComponentProps<typeof Ionicons>['name'] {
@@ -23,7 +24,7 @@ function taskIconName(title: string): React.ComponentProps<typeof Ionicons>['nam
   return 'paw-outline';
 }
 
-export function TodayTasksCard({ tasks, onToggle }: TodayTasksCardProps) {
+export function TodayTasksCard({ tasks, onToggle, isLocked }: TodayTasksCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -36,6 +37,7 @@ export function TodayTasksCard({ tasks, onToggle }: TodayTasksCardProps) {
           accessibilityRole="checkbox"
           accessibilityState={{ checked: task.done }}
           style={styles.taskRow}
+          disabled={isLocked || task.done}
           onPress={() => onToggle(task.id)}
         >
           <View style={[styles.checkbox, task.done && styles.checkboxDone]}>
