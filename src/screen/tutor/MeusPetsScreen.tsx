@@ -3,16 +3,19 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useContext } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card } from '../../component/ui/Card';
+import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { AuthContext } from '../../context/authContext';
 import { useLogoutControl } from '../../control/authControl';
 import { usePets } from '../../control/usePetsControl';
 import type { Pet } from '../../model/pet';
 import type { PetTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
 export function MeusPetsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PetTabParamList>>();
+  const insets = useSafeAreaInsets();
   const { data: pets, isLoading, isError, refetch, isRefetching } = usePets();
   const { session } = useContext(AuthContext);
   const { sair } = useLogoutControl();
@@ -21,20 +24,11 @@ export function MeusPetsScreen() {
     return <LoadingIndicator label="Carregando seus pets..." />;
   }
 
-  if (isError) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>Não foi possível carregar seus pets.</Text>
-        <Pressable onPress={() => refetch()}>
-          <Text style={styles.retryText}>Tentar novamente</Text>
-        </Pressable>
-      </View>
-    );
-  }
+  if (isError) return <ErrorState type="500" onRetry={refetch} />;
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, spacing.lg) }]}>
         <View>
           <Text style={styles.greeting}>Olá, {session?.nome ?? 'tutor'} 👋</Text>
           <Text style={styles.subtitle}>Seus pets</Text>
@@ -49,7 +43,7 @@ export function MeusPetsScreen() {
         keyExtractor={(pet) => pet.id!}
         numColumns={2}
         columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 130 }]}
         refreshing={isRefetching}
         onRefresh={refetch}
         ListEmptyComponent={
@@ -96,7 +90,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
     paddingBottom: spacing.md,
   },
   greeting: {

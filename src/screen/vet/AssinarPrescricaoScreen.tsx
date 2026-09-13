@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useContext } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
 import { AuthContext } from '../../context/authContext';
@@ -11,6 +11,7 @@ import type { PacientesTabParamList } from '../navigation/types';
 import type { VetTabParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'AssinarPrescricao'>;
@@ -22,21 +23,47 @@ type AssinarNavigationProp = CompositeNavigationProp<
 export function AssinarPrescricaoScreen({ route }: Props) {
   const { draft } = route.params;
   const navigation = useNavigation<AssinarNavigationProp>();
+  const insets = useSafeAreaInsets();
   const { session } = useContext(AuthContext);
   const { data: pet } = usePet(draft.animalId);
   const { assinar, isAssinando, erro } = useAssinarPrescricaoControl(draft);
 
-  const handleSign = async () => {
+  const executarAssinatura = async () => {
     try {
       await assinar();
-      navigation.navigate('HojeTab', { screen: 'AgendaClinica' });
+      Alert.alert(
+        'Sucesso!',
+        'Prescrição assinada e salva no prontuário do paciente.',
+        [
+          {
+            text: 'Compartilhar via WhatsApp',
+            onPress: () => navigation.navigate('HojeTab', { screen: 'AgendaClinica' }),
+          },
+          {
+            text: 'Voltar para Agenda',
+            style: 'cancel',
+            onPress: () => navigation.navigate('HojeTab', { screen: 'AgendaClinica' }),
+          },
+        ]
+      );
     } catch {
-      // erro ja fica visivel via `erro` (estado da mutation), nao precisa de Alert aqui.
+      // erro ja fica visivel via `erro` (estado da mutation).
     }
   };
 
+  const handleSign = () => {
+    Alert.alert(
+      'Assinatura Digital',
+      'Confirme com biometria ou PIN de 4 dígitos para assinar a prescrição.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Confirmar', onPress: executarAssinatura },
+      ]
+    );
+  };
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <CheckInTopBar title="Assinar prescrição" subtitle={pet?.nome} />
 
       <View style={styles.headline}>

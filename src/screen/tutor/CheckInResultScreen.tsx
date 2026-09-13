@@ -7,6 +7,7 @@ import { Button } from '../../component/ui/Button';
 import { useCompleteCheckInTask } from '../../control/useCarePlanControl';
 import { useEscalationPreview } from '../../control/useCheckInControl';
 import type { PlanoTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 import { parseDoseRange } from '../../model/careRules';
 
@@ -19,6 +20,7 @@ type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInResult'>;
 export function CheckInResultScreen({ route }: Props) {
   const { petId, result } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
+  const insets = useSafeAreaInsets();
   const completeTask = useCompleteCheckInTask(petId);
   const escalationPreview = useEscalationPreview();
 
@@ -43,7 +45,7 @@ export function CheckInResultScreen({ route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <CheckInTopBar title="Dose de hoje" subtitle={result.doseRangeLabel} stepLabel="3 / 3" />
 
       <View style={styles.doseCard}>

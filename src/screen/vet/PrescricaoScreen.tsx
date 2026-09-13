@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { NarrativeInput } from '../../component/checkin/NarrativeInput';
@@ -12,6 +12,7 @@ import { usePrescricaoDraftControl, useDraftPrescription } from '../../control/u
 import { usePet } from '../../control/usePetsControl';
 import { usePatients } from '../../control/usePatientsControl';
 import type { PacientesTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 const ACAO_LABEL: Record<string, string> = {
@@ -26,6 +27,7 @@ type Props = NativeStackScreenProps<PacientesTabParamList, 'Prescricao'>;
 export function PrescricaoScreen({ route }: Props) {
   const { animalId, registroAtendimentoId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
+  const insets = useSafeAreaInsets();
   const { data: pet } = usePet(animalId);
   const { data: patients } = usePatients();
   const tutorName = patients?.find((p) => p.petId === animalId)?.tutorName;
@@ -45,6 +47,14 @@ export function PrescricaoScreen({ route }: Props) {
     erros,
     validar,
   } = usePrescricaoDraftControl({ animalId, registroAtendimentoId });
+
+  // Recebe regra de volta da NovaRegraScreen via merge params
+  useEffect(() => {
+    if (route.params?.novaRegra) {
+      setRegras((prev) => [...prev, route.params.novaRegra!]);
+      navigation.setParams({ novaRegra: undefined });
+    }
+  }, [route.params?.novaRegra]);
 
   // Envia narrativa para a IA, preenche campos e carrega regras propostas
   const handleGerarIA = async () => {
@@ -83,7 +93,7 @@ export function PrescricaoScreen({ route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <CheckInTopBar
         title="Prescrição"
         subtitle={pet ? `${pet.nome}${tutorName ? ` · ${tutorName}` : ''}` : undefined}

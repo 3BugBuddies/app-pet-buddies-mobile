@@ -9,12 +9,14 @@ import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useLogoutControl } from '../../control/authControl';
 import { usePet, usePetProfileDetails, usePets } from '../../control/usePetsControl';
 import type { PetTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PetTabParamList, 'PetProfile'>;
 
 export function PetProfileScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<PetTabParamList>>();
+  const insets = useSafeAreaInsets();
   const { sair } = useLogoutControl();
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
   const petId = route.params?.petId ?? pets?.[0]?.id ?? '';
@@ -31,7 +33,7 @@ export function PetProfileScreen({ route }: Props) {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <Text style={styles.allPetsLink} onPress={() => navigation.navigate('MeusPets')}>
         Ver todos os pets
       </Text>

@@ -3,16 +3,18 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { usePet } from '../../control/usePetsControl';
 import type { PlanoTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInEscalation'>;
 
 export function CheckInEscalationScreen({ route }: Props) {
   const { petId, result } = route.params;
+  const insets = useSafeAreaInsets();
   const { data: pet } = usePet(petId);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <CheckInTopBar title="Check-in" dark />
 
       <View style={styles.alertBlock}>

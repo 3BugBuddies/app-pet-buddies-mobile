@@ -3,6 +3,7 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { Button } from '../../component/ui/Button';
 import type { PlanoTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInNoRule'>;
@@ -10,9 +11,10 @@ type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInNoRule'>;
 export function CheckInNoRuleScreen({ route }: Props) {
   const { petId, narrative, result } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
+  const insets = useSafeAreaInsets();
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <Text style={styles.label}>Sem regra correspondente</Text>
       <Text style={styles.title}>Sua vet vai revisar esse relato</Text>
       <Text style={styles.body}>

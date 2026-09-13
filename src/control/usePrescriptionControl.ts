@@ -118,7 +118,7 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft) => {
           dataInicio: hojeIso(),
           orientacao: draft.orientacao || undefined,
           animalId: draft.animalId,
-          veterinarioId: session?.usuarioId ?? '',
+          veterinarioId: session?.veterinarioId ? String(session.veterinarioId) : (session?.usuarioId ?? ''),
           registroAtendimentoId: draft.registroAtendimentoId,
         },
         { abortEarly: false }

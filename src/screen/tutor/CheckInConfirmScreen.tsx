@@ -6,6 +6,7 @@ import { ConfirmedFieldsCard, type ConfirmedField } from '../../component/checki
 import { Button } from '../../component/ui/Button';
 import { useConfirmCheckIn } from '../../control/useCheckInControl';
 import type { PlanoTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInConfirm'>;
@@ -13,6 +14,7 @@ type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInConfirm'>;
 export function CheckInConfirmScreen({ route }: Props) {
   const { petId, extracaoResponse } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
+  const insets = useSafeAreaInsets();
   const confirmCheckIn = useConfirmCheckIn();
 
   // Monta os campos de revisão a partir do que a IA extraiu da narrativa
@@ -59,7 +61,7 @@ export function CheckInConfirmScreen({ route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <CheckInTopBar title="Confirmar" subtitle="Confira as informações" stepLabel="2 / 3" />
 
       <View style={styles.headline}>

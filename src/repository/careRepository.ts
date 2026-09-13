@@ -18,7 +18,7 @@ import {
 
 // MANTENHA false para testar a interface.
 // Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = false;
+const USE_API = true;
 
 const getPlan = async (petId: string): Promise<CarePlan> => {
   if (USE_API) {

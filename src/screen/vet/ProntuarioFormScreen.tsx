@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
@@ -19,14 +19,14 @@ const RECORD_TYPES: { key: RecordType; label: string }[] = [
   { key: 'PROCEDIMENTO', label: 'Procedimento' },
 ];
 
-// Atalhos pra ganhar agilidade no atendimento (Fase 4) — 1 toque preenche a
-// anamnese com o texto mais comum, sem precisar digitar do zero.
 const ANAMNESE_CHIPS = [
   'Sem alterações',
   'Consulta de rotina',
   'Tutor relata melhora',
   'Retorno de acompanhamento',
 ];
+
+const DIAGNOSTICO_CHIPS = ['Saudável', 'Otite', 'Dermatite', 'Gastroenterite'];
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'ProntuarioForm'>;
 
@@ -37,26 +37,17 @@ export function ProntuarioFormScreen({ route }: Props) {
   const [recordType, setRecordType] = useState<RecordType>('CONSULTA');
 
   const {
-    anamnese,
-    setAnamnese,
-    diagnostico,
-    setDiagnostico,
-    tratamento,
-    setTratamento,
-    observacao,
-    setObservacao,
-    weight,
-    setWeight,
-    homeInstructionOn,
-    setHomeInstructionOn,
-    homeInstructionText,
-    setHomeInstructionText,
+    anamnese, setAnamnese,
+    diagnostico, setDiagnostico,
+    observacao, setObservacao,
+    weight, setWeight,
     diagnosticoErro,
-    tratamentoErro,
     isSaving,
     salvar,
-  } = useMedicalRecordControl(petId, (registro) =>
-    navigation.navigate('Prescricao', { animalId: petId, registroAtendimentoId: registro.id! })
+  } = useMedicalRecordControl(
+    petId,
+    (registro) => navigation.navigate('Prescricao', { animalId: petId, registroAtendimentoId: registro.id! }),
+    () => navigation.goBack(),
   );
 
   return (
@@ -64,10 +55,8 @@ export function ProntuarioFormScreen({ route }: Props) {
       <Text style={styles.title}>O que aconteceu?</Text>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]} showsVerticalScrollIndicator={false}>
+
           <View style={styles.typeGrid}>
             {RECORD_TYPES.map((type) => {
               const active = type.key === recordType;
@@ -96,8 +85,8 @@ export function ProntuarioFormScreen({ route }: Props) {
           />
           <View style={styles.chipsRow}>
             {ANAMNESE_CHIPS.map((chip) => (
-              <Pressable key={chip} onPress={() => setAnamnese(chip)} style={styles.anamneseChip}>
-                <Text style={styles.anamneseChipText}>{chip}</Text>
+              <Pressable key={chip} onPress={() => setAnamnese(chip)} style={styles.chip}>
+                <Text style={styles.chipText}>{chip}</Text>
               </Pressable>
             ))}
           </View>
@@ -109,16 +98,14 @@ export function ProntuarioFormScreen({ route }: Props) {
             onChangeText={setDiagnostico}
             hasError={!!diagnosticoErro}
           />
+          <View style={styles.chipsRow}>
+            {DIAGNOSTICO_CHIPS.map((chip) => (
+              <Pressable key={chip} onPress={() => setDiagnostico(chip)} style={styles.chip}>
+                <Text style={styles.chipText}>{chip}</Text>
+              </Pressable>
+            ))}
+          </View>
           <FieldError message={diagnosticoErro ?? undefined} />
-
-          <Input
-            label="Tratamento"
-            placeholder="ex.: Gotas antibióticas por 7 dias"
-            value={tratamento}
-            onChangeText={setTratamento}
-            hasError={!!tratamentoErro}
-          />
-          <FieldError message={tratamentoErro ?? undefined} />
 
           <Input
             label="Peso (kg)"
@@ -127,37 +114,35 @@ export function ProntuarioFormScreen({ route }: Props) {
             onChangeText={setWeight}
             keyboardType="decimal-pad"
           />
-        <Button label="Avançar para Prescrição" loading={isSaving} onPress={salvar} />
+
           <Input
             label="Observações (opcional)"
             placeholder="ex.: Retorno em 10 dias"
             value={observacao}
             onChangeText={setObservacao}
             multiline
-            numberOfLines={4}
+            numberOfLines={3}
             style={styles.notesInput}
           />
 
-          {/* <View style={styles.homeCard}>
-            <View style={styles.homeHeader}>
-              <Text style={styles.homeLabel}>Orientação para casa</Text>
-              <Switch
-                value={homeInstructionOn}
-                onValueChange={setHomeInstructionOn}
-                trackColor={{ true: colors.warning, false: colors.borderStrong }}
+          <View style={styles.actionRow}>
+            <View style={styles.actionHalf}>
+              <Button
+                variant="secondary"
+                label="Apenas Salvar"
+                loading={isSaving}
+                onPress={() => salvar(false)}
               />
             </View>
-            {homeInstructionOn ? (
-              <Input
-                label="O que a tutora deve fazer"
-                placeholder="ex.: Observar reação no local por 48h"
-                value={homeInstructionText}
-                onChangeText={setHomeInstructionText}
+            <View style={styles.actionHalf}>
+              <Button
+                label="Salvar e Prescrever"
+                loading={isSaving}
+                onPress={() => salvar(true)}
               />
-            ) : null}
-          </View> */}
+            </View>
+          </View>
 
-  
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -214,7 +199,7 @@ const styles = StyleSheet.create({
     color: colors.textLight,
   },
   notesInput: {
-    minHeight: 96,
+    minHeight: 80,
     textAlignVertical: 'top',
   },
   chipsRow: {
@@ -223,34 +208,23 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     marginTop: -spacing.xs,
   },
-  anamneseChip: {
+  chip: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 6,
     borderRadius: radii.pill,
     backgroundColor: colors.cardChia,
   },
-  anamneseChipText: {
+  chipText: {
     fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
   },
-  homeCard: {
-    backgroundColor: colors.cardMax,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.sm,
-    marginVertical: spacing.sm,
-  },
-  homeHeader: {
+  actionRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  homeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: colors.textPrimary,
+  actionHalf: {
+    flex: 1,
   },
 });

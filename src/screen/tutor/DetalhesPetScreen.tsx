@@ -1,13 +1,16 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { VaccineListCard } from '../../component/pet-profile/VaccineListCard';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import useMedicalRecordControl from '../../control/useMedicalRecordControl';
 import { usePet, usePetProfileDetails } from '../../control/usePetsControl';
+import { useProcedures } from '../../control/useProcedureControl';
+import type { PetVaccine } from '../../model/care';
 import type { PacientesTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'DetalhesPet'>;
@@ -21,15 +24,56 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'PLANO', label: 'Plano' },
 ];
 
+function formatDataBR(dataISO?: string | null): string {
+  if (!dataISO) return '—';
+  const [ano, mes, dia] = dataISO.slice(0, 10).split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
+function calcIdadeLabel(dataNascimento?: string | null): string {
+  if (!dataNascimento) return 'Idade desconhecida';
+  const nascimento = new Date(dataNascimento);
+  if (isNaN(nascimento.getTime())) return 'Idade desconhecida';
+  const hoje = new Date();
+  const anos = hoje.getFullYear() - nascimento.getFullYear();
+  const ajuste = hoje.getMonth() < nascimento.getMonth() ||
+    (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() < nascimento.getDate()) ? 1 : 0;
+  const idadeAnos = anos - ajuste;
+  if (idadeAnos < 1) {
+    const meses = (hoje.getFullYear() - nascimento.getFullYear()) * 12 +
+      (hoje.getMonth() - nascimento.getMonth());
+    return `${meses} ${meses === 1 ? 'mês' : 'meses'}`;
+  }
+  return `${idadeAnos} ${idadeAnos === 1 ? 'ano' : 'anos'}`;
+}
+
 export function DetalhesPetScreen({ route }: Props) {
   const { petId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
+  const insets = useSafeAreaInsets();
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
   const { data: profile } = usePetProfileDetails(petId);
+  const { data: procedimentos, isLoading: isLoadingProcedimentos } = useProcedures(petId);
   const { registros: records, carregandoRegistros: isLoadingRecords } = useMedicalRecordControl(petId);
   const [activeTab, setActiveTab] = useState<TabKey>('HISTORICO');
 
-  if (isLoadingPet) {
+  const vaccinesList = useMemo((): PetVaccine[] => {
+    if (!procedimentos) return [];
+    return procedimentos
+      .filter((p) => p.tipo === 'VACINACAO')
+      .map((p) => {
+        const aplicada = p.status === 'REALIZADO';
+        const dataFormatada = formatDataBR(p.dataPrevistaInicio);
+        return {
+          id: p.id.toString(),
+          name: p.nome,
+          status: aplicada ? 'APPLIED' : 'SCHEDULED',
+          dateLabel: `${dataFormatada} · ${aplicada ? 'aplicada' : 'agendada'}`,
+        };
+      });
+  }, [procedimentos]);
+
+  if (isLoadingPet || isLoadingProcedimentos) {
     return <LoadingIndicator label="Carregando o pet..." />;
   }
 
@@ -37,8 +81,13 @@ export function DetalhesPetScreen({ route }: Props) {
     return <LoadingIndicator label="Não foi possível carregar o pet." />;
   }
 
+  const pesoLabel = pet.peso ? `${pet.peso.toString().replace('.', ',')} kg` : null;
+  const idadeLabel = calcIdadeLabel(pet.dataNascimento);
+  const castradoLabel = pet.castrado ? 'Sim' : 'Não';
+  const breedLabel = `${pet.raca || pet.especie} · ${pet.sexo}`;
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <View style={styles.hero}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{pet.nome.charAt(0).toUpperCase()}</Text>
@@ -46,8 +95,8 @@ export function DetalhesPetScreen({ route }: Props) {
         <View style={styles.heroText}>
           <Text style={styles.name}>{pet.nome}</Text>
           <Text style={styles.detail}>
-            {pet.raca} · {profile?.sexLabel ?? pet.especie} · {profile?.ageLabel ?? '—'}
-            {profile?.weightLabel ? ` · ${profile.weightLabel}` : ''}
+            {breedLabel} · {idadeLabel}
+            {pesoLabel ? ` · ${pesoLabel}` : ''}
           </Text>
         </View>
         {profile ? (
@@ -59,17 +108,19 @@ export function DetalhesPetScreen({ route }: Props) {
 
       <View style={styles.statsRow}>
         <View style={styles.statTile}>
-          <Text style={styles.statLabel}>Alergia</Text>
-          <Text style={styles.statValue}>{profile?.allergy ?? '—'}</Text>
+          <Text style={styles.statLabel}>Idade</Text>
+          <Text style={styles.statValue}>{idadeLabel}</Text>
         </View>
         <View style={styles.statTile}>
-          <Text style={styles.statLabel}>Última consulta</Text>
-          <Text style={styles.statValue}>{records?.[0]?.dataAtendimento ?? '—'}</Text>
+          <Text style={styles.statLabel}>Castrado</Text>
+          <Text style={styles.statValue}>{castradoLabel}</Text>
         </View>
+        {/* Sprint 4: reativar Adesão quando a API fornecer a métrica
         <View style={styles.statTile}>
           <Text style={[styles.statValue, styles.statValueSuccess]}>—</Text>
           <Text style={styles.statLabel}>Adesão</Text>
         </View>
+        */}
       </View>
 
       <View style={styles.tabs}>
@@ -113,8 +164,8 @@ export function DetalhesPetScreen({ route }: Props) {
       ) : null}
 
       {activeTab === 'VACINAS' ? (
-        profile ? (
-          <VaccineListCard vaccines={profile.vaccines} />
+        vaccinesList.length > 0 ? (
+          <VaccineListCard vaccines={vaccinesList} />
         ) : (
           <Text style={styles.emptyText}>Nenhuma vacina registrada.</Text>
         )

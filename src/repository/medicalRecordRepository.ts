@@ -4,7 +4,7 @@ import { addFakeRecord, getFakeRecordsByPetId } from './fakeData';
 
 // MANTENHA false para testar a interface.
 // Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = false;
+const USE_API = true;
 
 const getRecordsByPetId = async (animalId: string): Promise<MedicalRecord[]> => {
   if (USE_API) {

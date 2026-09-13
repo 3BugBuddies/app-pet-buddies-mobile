@@ -6,12 +6,14 @@ import { StatsGrid } from '../../component/score/StatsGrid';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useBadges, useScore } from '../../control/useScoreControl';
 import type { HomeTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<HomeTabParamList, 'Score'>;
 
 export function ScoreScreen({ route }: Props) {
   const { petId } = route.params;
+  const insets = useSafeAreaInsets();
   const { data: score, isLoading: isLoadingScore, isError: isScoreError } = useScore(petId);
   const { data: badges, isLoading: isLoadingBadges, isError: isBadgesError } = useBadges(petId);
 
@@ -26,7 +28,7 @@ export function ScoreScreen({ route }: Props) {
   const unlockedCount = badges.filter((badge) => badge.unlocked).length;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <PointsHeroCard
         totalPoints={score.totalPoints}
         pointsToday={score.pointsToday}

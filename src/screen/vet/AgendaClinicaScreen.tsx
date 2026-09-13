@@ -15,6 +15,7 @@ import { useLogoutControl } from '../../control/authControl';
 import { useClinicPets } from '../../control/usePetsControl';
 // import { usePatients } from '../../control/usePatientsControl'; // Sprint 4: rota /pacientes-clinica não existe no Java v2.3.1
 import type { HojeTabParamList, VetTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '../../styles/theme';
 import { formatAppointmentDate } from '../../model/formatDate';
 
@@ -25,6 +26,7 @@ type AgendaClinicaNavigationProp = CompositeNavigationProp<
 
 export function AgendaClinicaScreen() {
   const navigation = useNavigation<AgendaClinicaNavigationProp>();
+  const insets = useSafeAreaInsets();
   const { session } = useContext(AuthContext);
   const { sair } = useLogoutControl();
   const { data: appointments, isLoading: isLoadingAppts, isError: isApptsError } = useAppointments();
@@ -76,7 +78,7 @@ export function AgendaClinicaScreen() {
   }).format(new Date());
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 130 }]}>
       <View style={styles.header}>
         <View>
           <Text style={styles.dateLabel}>{dateLabel}</Text>

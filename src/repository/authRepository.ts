@@ -6,7 +6,7 @@ import { AuthSession } from '../model/session';
 
 // MANTENHA false para testar a interface. 
 // Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = false;
+const USE_API = true;
 
 const SESSION_KEY = 'SESSION';
 const USUARIOS_KEY = 'USUARIOS';
@@ -46,7 +46,11 @@ const fakeTokenFor = (usuarioId: string): string => `local-token.${usuarioId}`;
 const login = async (credenciais: LoginFormValues): Promise<AuthSession> => {
   if (USE_API) {
     try {
-      const resposta = await apiJava.post('/auth/login', credenciais);
+      // Java espera "login" em vez de "email" (contrato auth)
+      const resposta = await apiJava.post('/auth/login', {
+        login: credenciais.email,
+        senha: credenciais.senha,
+      });
       return resposta.data;
     } catch (err: any) {
       console.log('Erro ao entrar na API: ' + err.message);

@@ -5,6 +5,7 @@ import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
 import { useNovaRegraControl } from '../../control/usePrescriptionControl';
 import type { PacientesTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 const ACAO_LABEL: Record<string, string> = {
@@ -19,16 +20,17 @@ type Props = NativeStackScreenProps<PacientesTabParamList, 'NovaRegra'>;
 export function NovaRegraScreen({ route }: Props) {
   const { draft } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
+  const insets = useSafeAreaInsets();
   const { condicoes, acoes, condicaoClinicaId, setCondicaoClinicaId, acao, setAcao, construirRegra } =
     useNovaRegraControl();
 
   const handleAdd = () => {
     const regra = construirRegra();
-    navigation.navigate('AssinarPrescricao', { draft: { ...draft, regras: [...draft.regras, regra] } });
+    navigation.navigate({ name: 'Prescricao', params: { novaRegra: regra }, merge: true });
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <CheckInTopBar title="Nova regra" subtitle="Se → então" />
 
       <Text style={styles.sectionLabel}>Se o tutor relatar</Text>

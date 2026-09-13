@@ -3,10 +3,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Card } from '../../component/ui/Card';
+import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 // import { usePatients } from '../../control/usePatientsControl'; // Sprint 4: /pacientes-clinica não existe no Java v2.3.1
 import { useClinicPets } from '../../control/usePetsControl';
 import type { PacientesTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
 const ESPECIE_LABEL: Record<string, string> = {
@@ -20,7 +22,8 @@ const ESPECIE_LABEL: Record<string, string> = {
 
 export function PacientesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
-  const { data: pets, isLoading, isError } = useClinicPets();
+  const insets = useSafeAreaInsets();
+  const { data: pets, isLoading, isError, refetch } = useClinicPets();
   const [busca, setBusca] = useState('');
 
   const filtered = useMemo(() => {
@@ -38,12 +41,10 @@ export function PacientesScreen() {
     return <LoadingIndicator label="Carregando pacientes..." />;
   }
 
-  if (isError || !pets) {
-    return <LoadingIndicator label="Não foi possível carregar os pacientes." />;
-  }
+  if (isError || !pets) return <ErrorState type="500" message="Não foi possível carregar seus pacientes no momento." onRetry={() => refetch()} />;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 130 }]}>
       {/* Sprint 4: reativar quando /pacientes-clinica estiver disponível
       <Text style={styles.subtitle}>
         {patients.length} planos ativos · {averageAdherence}% de adesão

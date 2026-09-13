@@ -1,10 +1,12 @@
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useProtocols } from '../../control/useProtocolsControl';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 import { CONDITION_SIGNAL_LABEL, GLOBAL_ALARM_SIGNALS } from '../../model/legacyPrescription';
 
 export function ClinicaScreen() {
+  const insets = useSafeAreaInsets();
   const { data: protocols, isLoading, isError } = useProtocols();
 
   if (isLoading) {
@@ -16,7 +18,7 @@ export function ClinicaScreen() {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 130 }]}>
       <Text style={styles.subtitle}>
         Um protocolo é faixa + regras. Ao prescrever, você parte dele e ajusta por paciente.
       </Text>

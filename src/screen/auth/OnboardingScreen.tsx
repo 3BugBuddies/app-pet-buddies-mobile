@@ -27,7 +27,7 @@ export default function OnboardingScreen() {
       style={styles.root}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + spacing.md },
+        { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom + 80 },
       ]}
       showsVerticalScrollIndicator={false}
     >

@@ -4,12 +4,14 @@ import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { usePet } from '../../control/usePetsControl';
 import type { PacientesTabParamList } from '../navigation/types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'PlanoPaciente'>;
 
 export function PlanoPacienteScreen({ route }: Props) {
   const { petId } = route.params;
+  const insets = useSafeAreaInsets();
   const { data: pet, isLoading: isLoadingPet } = usePet(petId);
   const { data: plan, isLoading: isLoadingPlan, isError } = useCarePlan(petId);
 
@@ -26,7 +28,7 @@ export function PlanoPacienteScreen({ route }: Props) {
   const weeks = Array.from({ length: totalWeeks }, (_, i) => i < currentWeek);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <View style={styles.hero}>
         <Text style={styles.heroLabel}>Plano vivo · controle de peso</Text>
         <View style={styles.heroRow}>

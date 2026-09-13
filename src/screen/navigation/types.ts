@@ -7,6 +7,7 @@ import type {
   CheckInNoRuleResult,
 } from '../../model/care';
 import type { PrescricaoDraft } from '../../model/prescription';
+import type { RegraDraft } from '../../model/prescriptionRule';
 
 
 export type AuthStackParamList = {
@@ -63,9 +64,10 @@ export type PacientesTabParamList = {
   DetalhesPet: { petId: string };
   ProntuarioForm: { petId: string };
   PlanoPaciente: { petId: string };
-  // Tunel do veterinario (Fase 4): Prescricao -> NovaRegra -> AssinarPrescricao,
-  // sem aba "Planos" — o rascunho viaja pelos params ate a assinatura final.
-  Prescricao: { animalId: string; registroAtendimentoId: string };
+  // Tunel do veterinario (Fase 4): Prescricao <-> NovaRegra -> AssinarPrescricao.
+  // novaRegra viaja de volta via merge params para que o vet possa adicionar
+  // múltiplas regras antes de assinar.
+  Prescricao: { animalId: string; registroAtendimentoId: string; novaRegra?: RegraDraft };
   NovaRegra: { draft: PrescricaoDraft };
   AssinarPrescricao: { draft: PrescricaoDraft };
 };
