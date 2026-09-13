@@ -2,7 +2,7 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useContext, useMemo } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,35 +32,52 @@ export function HomeTutorScreen() {
   const insets = useSafeAreaInsets();
   const { session } = useContext(AuthContext);
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
-  const pet = pets?.[0];
 
-  // Hooks dependentes devem ficar no topo — regra do React, nunca dentro de if
-  const { data: appointments, isLoading: isLoadingAppointments } = useAppointments(pet?.id ?? undefined);
-  const { data: plan, isLoading: isLoadingPlan, isError: isPlanError, refetch: refetchPlan } = useCarePlan(pet?.id ?? '');
-  const toggleTask = useToggleCareTask(pet?.id ?? '');
+  // UX: Context Selector — pet ativo no carrossel
+  const [activePetId, setActivePetId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (pets && pets.length > 0 && !activePetId) {
+      setActivePetId(String(pets[0].id));
+    }
+  }, [pets, activePetId]);
+
+  const activePet = useMemo(
+    () => pets?.find((p) => String(p.id) === activePetId) ?? pets?.[0],
+    [pets, activePetId],
+  );
+
+  // Hooks reativos ao pet selecionado — sempre no topo, sem condicionais
+  const { data: appointments, isLoading: isLoadingAppointments } = useAppointments(activePet?.id ?? undefined);
+  const { data: plan, isLoading: isLoadingPlan, isError: isPlanError, refetch: refetchPlan } = useCarePlan(activePet?.id ?? '');
+  const toggleTask = useToggleCareTask(activePet?.id ?? '');
+
+  const handleStartCheckIn = () => {
+    if (activePet?.id) {
+      navigation.navigate('PlanoTab', { screen: 'CheckInEntry', params: { petId: activePet.id! } });
+    }
+  };
 
   const nextAppointment = useMemo(() => {
-    if (!appointments || !pet) return undefined;
-
+    if (!appointments || !activePet) return undefined;
     const hoje = new Date().toISOString().slice(0, 10);
-
     return appointments
       .filter(
-        (appointment) =>
-          appointment.petId === String(pet.id) &&
-          appointment.date?.slice(0, 10) >= hoje &&
-          appointment.status !== 'CANCELED' &&
-          appointment.status !== 'COMPLETED'
+        (a) =>
+          a.petId === String(activePet.id) &&
+          a.date?.slice(0, 10) >= hoje &&
+          a.status !== 'CANCELED' &&
+          a.status !== 'COMPLETED',
       )
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-  }, [appointments, pet]);
+  }, [appointments, activePet]);
 
   // 1. Aguarda lista de pets
   if (isLoadingPets) {
     return <LoadingIndicator label="Carregando sua home..." />;
   }
 
-  // 2. Tutor recém-cadastrado sem pets — guia para o onboarding
+  // 2. Tutor recém-cadastrado sem pets
   const temPets = pets && pets.length > 0;
   if (!temPets) {
     return (
@@ -90,12 +107,12 @@ export function HomeTutorScreen() {
     );
   }
 
-  // 3. Aguarda hooks dependentes (só roda quando há pelo menos 1 pet)
+  // 3. Aguarda hooks dependentes
   if (isLoadingAppointments || isLoadingPlan) {
     return <LoadingIndicator label="Carregando sua home..." />;
   }
 
-  if (isPetsError || !pet) {
+  if (isPetsError || !activePet) {
     return (
       <ErrorState
         type="500"
@@ -107,14 +124,10 @@ export function HomeTutorScreen() {
     );
   }
 
-  // Degradação graciosa: se não há plano (404 ou vazio), a Home renderiza normalmente
   const hasPlan = !isPlanError && plan && plan.tasks && plan.tasks.length > 0;
   const doneCount = hasPlan ? plan.tasks.filter((task) => task.completed).length : 0;
   const totalCount = hasPlan ? plan.tasks.length : 0;
   const tasks = hasPlan ? plan.tasks : [];
-
-  const petNames =
-    pets.length > 1 ? pets.map((p) => p.nome).join(' & ') : pet.nome;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
@@ -124,21 +137,50 @@ export function HomeTutorScreen() {
       >
         <GreetingHeader
           greeting={`${greetingForNow()},`}
-          petName={pet.nome}
+          petName={activePet.nome}
           userName={session?.nome?.split(' ')[0] ?? 'Tutor'}
           onAvatarPress={() =>
-            navigation.navigate('PetTab', { screen: 'PetProfile', params: { petId: pet.id! } })
+            navigation.navigate('PetTab', { screen: 'PetProfile', params: { petId: activePet.id! } })
           }
         />
 
+        {/* Context Selector: carrossel só aparece quando há mais de 1 pet */}
+        {pets.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.petSelectorRow}
+          >
+            {pets.map((p) => {
+              const isSelected = String(p.id) === activePetId;
+              return (
+                <Pressable
+                  key={p.id}
+                  style={[styles.petSelectorChip, isSelected && styles.petSelectorChipActive]}
+                  onPress={() => setActivePetId(String(p.id))}
+                >
+                  <View style={[styles.petSelectorAvatar, isSelected && styles.petSelectorAvatarActive]}>
+                    <Text style={[styles.petSelectorAvatarText, isSelected && styles.petSelectorAvatarTextActive]}>
+                      {p.nome.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={[styles.petSelectorName, isSelected && styles.petSelectorNameActive]}>
+                    {p.nome}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
         <View style={styles.bento}>
-          <HeroPetCard petNames={petNames} />
+          <HeroPetCard petNames={activePet.nome} />
 
           {hasPlan ? (
             <>
               <Pressable
                 onPress={() =>
-                  navigation.navigate('PlanoTab', { screen: 'CarePlan', params: { petId: pet.id! } })
+                  navigation.navigate('PlanoTab', { screen: 'CarePlan', params: { petId: activePet.id! } })
                 }
               >
                 <PlanProgressCard
@@ -157,10 +199,17 @@ export function HomeTutorScreen() {
                 }))}
                 onToggle={(id) => toggleTask.mutate(id)}
               />
+              {tasks.length > 0 && (
+                <Button
+                  label={doneCount === totalCount ? 'Check-in concluído ✓' : 'Check-in do cuidado'}
+                  backgroundColor={doneCount === totalCount ? colors.success : colors.warning}
+                  textColor={colors.textLight}
+                  onPress={handleStartCheckIn}
+                />
+              )}
             </>
           ) : (
             <>
-              {/* UX/PO: Upsell / Prevenção */}
               <Pressable
                 onPress={() => navigation.navigate('AgendaTab', { screen: 'AgendamentoTutor' })}
               >
@@ -176,14 +225,13 @@ export function HomeTutorScreen() {
                 </View>
               </Pressable>
 
-              {/* UX/PO: Engajamento / Dica de Ouro */}
               <View style={[styles.fallbackCard, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
                 <View style={styles.fallbackHeader}>
                   <Text style={styles.fallbackTitle}>Dica de ouro</Text>
                   <Ionicons name="water" size={20} color={colors.primary} />
                 </View>
                 <Text style={styles.fallbackSub}>
-                  A hidratação é fundamental! Mantenha os potes de água sempre limpos e frescos, espalhados pela casa para incentivar {pet.nome} a beber mais.
+                  A hidratação é fundamental! Mantenha os potes de água sempre limpos e frescos, espalhados pela casa para incentivar {activePet.nome} a beber mais.
                 </Text>
               </View>
             </>
@@ -202,10 +250,9 @@ export function HomeTutorScreen() {
               )}
             </View>
             <View style={styles.half}>
-              {/* Painted Door — Pata Segura chega na próxima Sprint */}
               <Pressable
                 style={styles.half}
-                onPress={() => navigation.navigate('Score', { petId: pet.id! })}
+                onPress={() => navigation.navigate('Score', { petId: activePet.id! })}
               >
                 <View style={[styles.fallbackCard, { backgroundColor: colors.cardMax, flex: 1, minHeight: 160 }]}>
                   <View style={styles.fallbackHeader}>
@@ -305,5 +352,53 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.primary,
     marginTop: spacing.sm,
+  },
+  // Context Selector styles
+  petSelectorRow: {
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  petSelectorChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  petSelectorChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  petSelectorAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: radii.pill,
+    backgroundColor: colors.cardChia,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  petSelectorAvatarActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  petSelectorAvatarText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  petSelectorAvatarTextActive: {
+    color: colors.textLight,
+  },
+  petSelectorName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  petSelectorNameActive: {
+    color: colors.textLight,
   },
 });

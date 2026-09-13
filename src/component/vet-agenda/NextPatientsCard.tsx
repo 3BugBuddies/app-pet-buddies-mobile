@@ -4,6 +4,7 @@ import { colors, radii, spacing } from '../../styles/theme';
 export interface NextPatientItem {
   id: string;
   petId: string;
+  dateLabel: string;
   time: string;
   petName: string;
   reason: string;
@@ -28,7 +29,10 @@ export function NextPatientsCard({ items, onOpenPatient, onToggle }: NextPatient
 
       {items.map((item) => (
         <Pressable key={item.id} style={styles.row} onPress={() => onOpenPatient(item.petId)}>
-          <Text style={styles.time}>{item.time}</Text>
+          <View style={styles.dateTimeCol}>
+            <Text style={styles.dateText}>{item.dateLabel}</Text>
+            <Text style={styles.timeText}>{item.time}</Text>
+          </View>
           <View style={[styles.avatar, item.seen && styles.avatarSeen]}>
             <Text style={[styles.avatarText, item.seen && styles.avatarTextSeen]}>
               {item.petName.charAt(0).toUpperCase()}
@@ -91,9 +95,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  time: {
-    width: 44,
-    fontSize: 13,
+  dateTimeCol: {
+    width: 52,
+    alignItems: 'center',
+    gap: 2,
+  },
+  dateText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  timeText: {
+    fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
   },

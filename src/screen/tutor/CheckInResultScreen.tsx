@@ -4,16 +4,11 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { DoseTrack } from '../../component/checkin/DoseTrack';
 import { Button } from '../../component/ui/Button';
-import { useCompleteCheckInTask } from '../../control/useCarePlanControl';
 import { useEscalationPreview } from '../../control/useCheckInControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 import { parseDoseRange } from '../../model/careRules';
-
-// Único item do mock com faixa de dose — o check-in narrado sempre resolve
-// pra ele (mesma tarefa que careService.ts usa em confirmCheckIn).
-const DOSE_RANGE_TASK_ID = 'lactulona';
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInResult'>;
 
@@ -21,12 +16,13 @@ export function CheckInResultScreen({ route }: Props) {
   const { petId, result } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
-  const completeTask = useCompleteCheckInTask(petId);
   const escalationPreview = useEscalationPreview();
 
-  // Fallbacks de segurança caso o backend omita as propriedades no JSON
+  // Fallbacks de segurança absolutos para evitar "undefined" ou "NaN" quebrando a UI
   const safeVetName = result.vetName || 'Clínica Veterinária';
   const safeDoseRangeLabel = result.doseRangeLabel || 'Dose padrão';
+  const safeDoseLabel = result.doseLabel || 'Dose recomendada';
+  const safePoints = result.pointsEarned || 0;
 
   const vetInitial =
     safeVetName
@@ -36,11 +32,14 @@ export function CheckInResultScreen({ route }: Props) {
       .toUpperCase() ?? safeVetName.charAt(0).toUpperCase();
 
   const range = parseDoseRange(safeDoseRangeLabel);
-  const fillPct = range.max > range.min ? ((Number.parseFloat(result.doseLabel) - range.min) / (range.max - range.min)) * 100 : 50;
+  // Previne divisão por zero ou NaN caso parseDoseRange retorne zeros
+  const fillPct =
+    range.max > range.min && range.min > 0
+      ? ((Number.parseFloat(safeDoseLabel) - range.min) / (range.max - range.min)) * 100
+      : 50;
 
-  const handleComplete = async () => {
-    await completeTask.mutateAsync(DOSE_RANGE_TASK_ID);
-    navigation.navigate('CarePlan', { petId });
+  const handleFinish = () => {
+    navigation.navigate('CarePlan', { petId }); // Home já está travada — apenas retorna
   };
 
   const handlePreviewEscalation = async () => {
@@ -55,7 +54,7 @@ export function CheckInResultScreen({ route }: Props) {
       <View style={styles.doseCard}>
         <Text style={styles.doseLabel}>Dose de hoje</Text>
         <View style={styles.doseRow}>
-          <Text style={styles.doseValue}>{result.doseLabel}</Text>
+          <Text style={styles.doseValue}>{safeDoseLabel}</Text>
           <Text style={styles.doseRange}>da faixa {safeDoseRangeLabel}</Text>
         </View>
         <DoseTrack
@@ -86,25 +85,23 @@ export function CheckInResultScreen({ route }: Props) {
       <View style={styles.recordRow}>
         <View style={styles.recordDot} />
         <Text style={styles.recordText}>
-          Registrado no prontuário · +{result.pointsEarned} pts
+          Registrado no prontuário · +{safePoints} pts
         </Text>
       </View>
 
       <View style={styles.actions}>
         <Button
-          label={`Marquei: dei ${result.doseLabel}`}
           backgroundColor={colors.warning}
+          label="Entendi, voltar para Home"
+          onPress={handleFinish}
           textColor={colors.textLight}
-          loading={completeTask.isPending}
-          onPress={handleComplete}
         />
         <Button
           label="Ver o que muda se piorar"
-          variant="secondary"
           loading={escalationPreview.isPending}
           onPress={handlePreviewEscalation}
+          variant="secondary"
         />
-        <Button label="Voltar/Cancelar" variant="secondary" onPress={() => navigation.goBack()} />
       </View>
     </ScrollView>
   );

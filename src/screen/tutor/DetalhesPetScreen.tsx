@@ -1,7 +1,9 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useAppointments, useDeleteAppointment } from '../../control/useAppointmentsControl';
+import { formatAppointmentDate } from '../../model/formatDate';
 import { VaccineListCard } from '../../component/pet-profile/VaccineListCard';
 import { Button } from '../../component/ui/Button';
 import { ErrorState } from '../../component/ui/ErrorState';
@@ -16,10 +18,11 @@ import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'DetalhesPet'>;
 
-type TabKey = 'HISTORICO' | 'VACINAS' | 'EXAMES' | 'PLANO';
+type TabKey = 'HISTORICO' | 'AGENDAMENTOS' | 'VACINAS' | 'EXAMES' | 'PLANO';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'HISTORICO', label: 'Histórico' },
+  { key: 'AGENDAMENTOS', label: 'Agenda' },
   { key: 'VACINAS', label: 'Vacinas' },
   { key: 'EXAMES', label: 'Exames' },
   { key: 'PLANO', label: 'Plano' },
@@ -56,7 +59,16 @@ export function DetalhesPetScreen({ route }: Props) {
   const { data: profile } = usePetProfileDetails(petId);
   const { data: procedimentos, isLoading: isLoadingProcedimentos } = useProcedures(petId);
   const { registros: records, carregandoRegistros: isLoadingRecords } = useMedicalRecordControl(petId);
+  const { data: appointments, isLoading: isLoadingAppts } = useAppointments(petId);
+  const deleteAppointment = useDeleteAppointment();
   const [activeTab, setActiveTab] = useState<TabKey>('HISTORICO');
+
+  const handleDeleteAppt = (id: string) => {
+    Alert.alert('Apagar', 'Tem certeza que deseja apagar este agendamento?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Apagar', style: 'destructive', onPress: () => deleteAppointment.mutate(id) },
+    ]);
+  };
 
   const vaccinesList = useMemo((): PetVaccine[] => {
     if (!procedimentos) return [];
@@ -171,6 +183,41 @@ export function DetalhesPetScreen({ route }: Props) {
         )
       ) : null}
 
+      {activeTab === 'AGENDAMENTOS' ? (
+        isLoadingAppts ? (
+          <LoadingIndicator label="Carregando agenda..." />
+        ) : !appointments || appointments.length === 0 ? (
+          <Text style={styles.emptyText}>Nenhum agendamento encontrado para este pet.</Text>
+        ) : (
+          <View style={{ gap: spacing.sm }}>
+            {appointments.map((appt) => (
+              <View key={appt.id} style={styles.timelineCard}>
+                <Text style={styles.timelineDate}>
+                  {formatAppointmentDate(appt.date).dayLabel} às {formatAppointmentDate(appt.date).timeLabel}
+                </Text>
+                <Text style={styles.timelineTitle}>{appt.reason}</Text>
+                <Text style={styles.timelineBody}>Status: {appt.status}</Text>
+                <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
+                  <Button
+                    label="Editar"
+                    variant="secondary"
+                    onPress={() => Alert.alert('Em breve', 'A tela de edição de agendamentos pelo Veterinário estará disponível na próxima versão.')}
+                    style={{ flex: 1, minHeight: 40 }}
+                  />
+                  <Button
+                    label="Apagar"
+                    variant="secondary"
+                    textColor={colors.error}
+                    onPress={() => handleDeleteAppt(appt.id)}
+                    style={{ flex: 1, minHeight: 40 }}
+                  />
+                </View>
+              </View>
+            ))}
+          </View>
+        )
+      ) : null}
+
       {activeTab === 'VACINAS' ? (
         vaccinesList.length > 0 ? (
           <VaccineListCard vaccines={vaccinesList} />
@@ -194,10 +241,19 @@ export function DetalhesPetScreen({ route }: Props) {
         </View>
       ) : null}
 
-      <Button
-        label="Iniciar atendimento"
-        onPress={() => navigation.navigate('ProntuarioForm', { petId })}
-      />
+      <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
+        <Button
+          label="Ver Plano"
+          variant="secondary"
+          onPress={() => navigation.navigate('PlanoPaciente', { petId })}
+          style={{ flex: 1 }}
+        />
+        <Button
+          label="Atendimento"
+          onPress={() => navigation.navigate('ProntuarioForm', { petId })}
+          style={{ flex: 1 }}
+        />
+      </View>
     </ScrollView>
   );
 }

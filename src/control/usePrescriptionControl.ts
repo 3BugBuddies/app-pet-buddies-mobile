@@ -1,4 +1,5 @@
 import { useContext, useState } from 'react';
+import { Alert } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
 import { prescriptionSchema, type NarrativaPrescricaoRequest, type PrescricaoDraft } from '../model/prescription';
@@ -76,9 +77,7 @@ const usePrescricaoDraftControl = ({ animalId, registroAtendimentoId }: UsePresc
 };
 
 const useNovaRegraControl = () => {
-  const [condicaoClinicaId, setCondicaoClinicaId] = useState<(typeof CONDICOES_CLINICAS)[number]['id']>(
-    CONDICOES_CLINICAS[0].id
-  );
+  const [condicaoClinicaId, setCondicaoClinicaId] = useState<number>(CONDICOES_CLINICAS[0].id);
   const [acao, setAcao] = useState<(typeof TP_ACAO)[number]>('DOSE_MIN');
 
   const construirRegra = (): RegraDraft => {
@@ -108,7 +107,7 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft) => {
     mutationFn: async () => {
       const prescricao = await prescriptionSchema.validate(
         {
-          id: `presc-${Date.now()}`,
+          id: null,
           medicamento: draft.medicamento,
           doseMin: draft.doseMin,
           doseMax: draft.doseMax,
@@ -119,7 +118,9 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft) => {
           orientacao: draft.orientacao || undefined,
           animalId: draft.animalId,
           veterinarioId: session?.veterinarioId ? String(session.veterinarioId) : (session?.usuarioId ?? ''),
-          registroAtendimentoId: draft.registroAtendimentoId,
+          registroAtendimentoId: draft.registroAtendimentoId || null,
+          materialOrigemId: null,
+          versaoOrigem: null,
         },
         { abortEarly: false }
       );
@@ -128,15 +129,24 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft) => {
 
       for (const [indice, regra] of draft.regras.entries()) {
         await createRule({
-          id: `regra-${prescricaoSalva.id}-${indice}`,
+          id: null,
           prescricaoId: prescricaoSalva.id!,
           condicaoClinicaId: regra.condicaoClinicaId,
           rotuloCongelado: regra.rotuloCongelado,
           acao: regra.acao,
+          ordem: indice + 1,
         });
       }
 
       return prescricaoSalva;
+    },
+    onError: (error: any) => {
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        error?.message ||
+        'Erro desconhecido';
+      Alert.alert('Erro ao assinar prescrição', `O servidor recusou a solicitação.\n\nDetalhe: ${apiMessage}`);
     },
   });
 

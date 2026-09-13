@@ -39,8 +39,24 @@ const getPrescriptionsByAnimalId = async (animalId: string): Promise<Prescriptio
 const createPrescription = async (prescription: Prescription): Promise<Prescription> => {
   if (USE_API) {
     // Backend exige wrapper: { "prescricoes": [...] }
+    // id NÃO é enviado — Java auto-gera; IDs precisam ser Number (Java Long)
+    const payload = {
+      medicamento: prescription.medicamento,
+      doseMin: prescription.doseMin,
+      doseMax: prescription.doseMax,
+      unidade: prescription.unidade,
+      frequenciaDia: prescription.frequenciaDia,
+      duracaoDias: prescription.duracaoDias,
+      dataInicio: prescription.dataInicio,
+      orientacao: prescription.orientacao ?? undefined,
+      animalId: Number(prescription.animalId),
+      veterinarioId: Number(prescription.veterinarioId),
+      registroAtendimentoId: prescription.registroAtendimentoId
+        ? Number(prescription.registroAtendimentoId)
+        : undefined,
+    };
     // Retorna lista HATEOAS — pega o primeiro item criado
-    const response = await apiJava.post('/prescricao', { prescricoes: [prescription] });
+    const response = await apiJava.post('/prescricao', { prescricoes: [payload] });
     const list = response.data._embedded?.prescricaoResponseList ?? [];
     return list.length > 0 ? mapPrescription(list[0]) : prescription;
   }

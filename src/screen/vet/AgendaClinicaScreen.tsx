@@ -46,6 +46,7 @@ export function AgendaClinicaScreen() {
         return {
           id: appointment.id,
           petId: appointment.petId,
+          dateLabel: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(appointment.date)),
           time: formatAppointmentDate(appointment.date).timeLabel,
           petName: pet?.nome ?? 'Paciente',
           reason: appointment.reason,

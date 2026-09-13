@@ -10,8 +10,10 @@ const USE_API = true;
 const getAllPets = async (): Promise<Pet[]> => {
   if (USE_API) {
     const response = await apiJava.get('/animal');
-    // HATEOAS: coleção vazia não traz _embedded (contrato seção 5)
-    return response.data._embedded?.animalResponseList ?? [];
+    const list: any[] = response.data._embedded?.animalResponseList ?? [];
+    // Normaliza id para String — backend retorna Number (Java Long),
+    // mas toda a camada de controle compara com appointment.petId (String)
+    return list.map((p) => ({ ...p, id: p.id?.toString() ?? '' }));
   }
   return FAKE_PETS;
 };
@@ -27,7 +29,8 @@ const getPetById = async (id: string): Promise<Pet | undefined> => {
 const getPetsByResponsavelId = async (responsavelId: string): Promise<Pet[]> => {
   if (USE_API) {
     const response = await apiJava.get(`/animal?responsavelId=${responsavelId}`);
-    return response.data._embedded?.animalResponseList ?? [];
+    const list: any[] = response.data._embedded?.animalResponseList ?? [];
+    return list.map((p) => ({ ...p, id: p.id?.toString() ?? '' }));
   }
   return FAKE_PETS.filter((pet) => pet.responsavelId === responsavelId);
 };

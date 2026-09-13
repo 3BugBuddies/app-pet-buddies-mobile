@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radii } from '../../styles/theme';
 import { HojeTabStack } from './vet-tabs/HojeTabStack';
 import { PacientesTabStack } from './vet-tabs/PacientesTabStack';
-import { ClinicaTabStack } from './vet-tabs/ClinicaTabStack';
 import type { VetTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<VetTabParamList>();
@@ -38,16 +37,6 @@ export function VetTabs() {
           tabBarLabel: 'Pacientes',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'people' : 'people-outline'} size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="ClinicaTab"
-        component={ClinicaTabStack}
-        options={{
-          tabBarLabel: 'Protocolos',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'document-text' : 'document-text-outline'} size={size} color={color} />
           ),
         }}
       />

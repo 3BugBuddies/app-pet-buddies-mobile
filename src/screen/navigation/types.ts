@@ -73,13 +73,7 @@ export type PacientesTabParamList = {
 };
 
 
-export type ClinicaTabParamList = {
-  Clinica: undefined;
-};
-
-
 export type VetTabParamList = {
   HojeTab: NavigatorScreenParams<HojeTabParamList>;
   PacientesTab: NavigatorScreenParams<PacientesTabParamList>;
-  ClinicaTab: NavigatorScreenParams<ClinicaTabParamList>;
 };

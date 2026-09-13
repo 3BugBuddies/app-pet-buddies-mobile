@@ -4,6 +4,7 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { ConfirmedFieldsCard, type ConfirmedField } from '../../component/checkin/ConfirmedFieldsCard';
 import { Button } from '../../component/ui/Button';
+import { useCompleteCheckInTask } from '../../control/useCarePlanControl';
 import { useConfirmCheckIn } from '../../control/useCheckInControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +17,7 @@ export function CheckInConfirmScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
   const confirmCheckIn = useConfirmCheckIn();
+  const completeTask = useCompleteCheckInTask(petId);
 
   // Fallbacks de segurança
   const condicoesSeguras = extracaoResponse.condicoes || [];
@@ -54,6 +56,10 @@ export function CheckInConfirmScreen({ route }: Props) {
           confianca: c.confianca,
         })),
       });
+
+      // UX Sênior: Sincroniza o estado local imediatamente após o sucesso da API.
+      // Previne que a Home fique destravada caso o usuário abandone o app no Passo 3.
+      await completeTask.mutateAsync('lactulona');
 
       if (result.status === 'ESCALATION') {
         navigation.navigate('CheckInEscalation', { petId, result });

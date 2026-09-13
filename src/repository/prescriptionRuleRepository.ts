@@ -15,9 +15,20 @@ const getRulesByPrescriptionId = async (prescricaoId: string): Promise<Prescript
   return getFakeRulesByPrescriptionId(prescricaoId);
 };
 
-const createRule = async (regra: PrescriptionRule): Promise<PrescriptionRule> => {
+// ordem é 1-based (posição da regra na lista)
+const createRule = async (regra: PrescriptionRule & { ordem: number }): Promise<PrescriptionRule> => {
   if (USE_API) {
-    const response = await apiJava.post('/regra-prescricao', regra);
+    // id NÃO é enviado — Java auto-gera
+    // campo Java chama-se "acaoDose" (não "acao")
+    // condicaoClinicaId e prescricaoId precisam ser Number (Java Long)
+    const payload = {
+      prescricaoId: Number(regra.prescricaoId),
+      condicaoClinicaId: Number(regra.condicaoClinicaId),
+      rotuloCongelado: regra.rotuloCongelado,
+      acaoDose: regra.acao,
+      ordem: regra.ordem,
+    };
+    const response = await apiJava.post('/regra-prescricao', payload);
     return response.data;
   }
   return addFakeRule(regra);

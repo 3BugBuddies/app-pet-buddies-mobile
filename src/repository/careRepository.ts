@@ -22,14 +22,61 @@ const USE_API = true;
 
 const getPlan = async (petId: string): Promise<CarePlan> => {
   if (USE_API) {
-    // Recurso correto: /motor/plano/{animalId} (contrato seção 7)
     const response = await apiJava.get(`/motor/plano/${petId}`);
     const data = response.data;
-    // Spring HATEOAS: itens do plano vêm em /eventos — acessa separado se necessário
-    if (data._embedded?.tasks) {
-      return { ...data, tasks: data._embedded.tasks };
-    }
-    return data;
+
+    const eventos: any[] = data.eventos || [];
+    const hoje = new Date().toISOString().slice(0, 10);
+
+    // tasks = eventos de hoje, cada evento vira um CareTask
+    const tasks = eventos
+      .filter((e: any) => e.dataAlvo === hoje)
+      .map((e: any) => ({
+        id: String(e.id),
+        title: e.nome,
+        description: e.tipo === 'MEDICACAO' ? 'Medicação prescrita' : e.tipo,
+        time: 'conforme prescrição',
+        points: 10,
+        completed: e.status === 'CONCLUIDO',
+      }));
+
+    // weekDays = próximos 7 dias a partir de hoje com dot se houver evento
+    const diasComEvento = new Set(eventos.map((e: any) => e.dataAlvo));
+    const DIAS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const weekDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      const iso = d.toISOString().slice(0, 10);
+      return {
+        label: DIAS_PT[d.getDay()],
+        dayNumber: d.getDate(),
+        isActive: iso === hoje,
+        dotColor: (diasComEvento.has(iso) ? 'CUIDADO' : 'NONE') as 'CUIDADO' | 'NONE',
+      };
+    });
+
+    // semana: conta quantas semanas desde instanciadoEm
+    const instancia = data.instanciadoEm ? new Date(data.instanciadoEm) : new Date();
+    const diffDias = Math.floor((Date.now() - instancia.getTime()) / 86400000);
+    const currentWeekNumber = Math.max(1, Math.ceil((diffDias + 1) / 7));
+
+    // total de semanas = span de datas nos eventos
+    const datas = eventos.map((e: any) => e.dataAlvo).sort();
+    const totalWeeks = datas.length > 0
+      ? Math.max(1, Math.ceil(
+          (new Date(datas[datas.length - 1]).getTime() - new Date(datas[0]).getTime()) / 86400000 / 7
+        ) + 1)
+      : 1;
+
+    return {
+      petId,
+      weekLabel: `Semana ${currentWeekNumber}`,
+      weekDays,
+      tasks,
+      currentWeekNumber,
+      totalWeeks,
+      milestones: [],
+    };
   }
   return getFakeCarePlan(petId);
 };

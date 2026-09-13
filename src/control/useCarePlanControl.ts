@@ -16,8 +16,25 @@ export function useToggleCareTask(petId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (taskId: string) => toggleTask(petId, taskId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: carePlanKey(petId) });
+    onMutate: async (taskId: string) => {
+      // Cancela re-fetch pendente para não sobrescrever o optimistic update
+      await queryClient.cancelQueries({ queryKey: carePlanKey(petId) });
+      const previous = queryClient.getQueryData(carePlanKey(petId));
+      // Flip imediato no cache — backend não tem endpoint de toggle
+      queryClient.setQueryData(carePlanKey(petId), (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          tasks: (old.tasks ?? []).map((t: any) =>
+            t.id === taskId ? { ...t, completed: !t.completed } : t
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err: any, _taskId: string, context: any) => {
+      // Reverte se der erro
+      if (context?.previous) queryClient.setQueryData(carePlanKey(petId), context.previous);
     },
   });
 }

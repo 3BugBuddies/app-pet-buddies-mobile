@@ -86,7 +86,7 @@ export function PrescricaoScreen({ route }: Props) {
       const regrasSeguras = rascunho.regrasPropostas || [];
       setRegras(
         regrasSeguras.map((r: any) => ({
-          condicaoClinicaId: r.condicaoClinicaId,
+          condicaoClinicaId: Number(r.condicaoClinicaId),
           rotuloCongelado: r.rotuloCongelado,
           acao: r.acao,
         }))
