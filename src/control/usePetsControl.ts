@@ -1,0 +1,108 @@
+import { useContext } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AuthContext } from '../context/authContext';
+import type { Pet } from '../model/pet';
+import {
+  createPet,
+  deletePet,
+  getAllPets,
+  getPetById,
+  getPetProfileDetails,
+  getPetsByResponsavelId,
+  updatePet,
+} from '../repository/petRepository';
+
+const PETS_KEY = ['pets'];
+
+// "Meus pets" do tutor logado — usa responsavelId (vínculo da tabela T_PB_RESPONSAVEL),
+// não usuarioId, pois a API Java filtra por /animal?responsavelId=.
+export function usePets() {
+  const { session } = useContext(AuthContext);
+  // Fallback: se a API não retornar responsavelId, usamos o usuarioId genérico
+  const responsavelId = session?.responsavelId || session?.usuarioId;
+  return useQuery({
+    queryKey: [...PETS_KEY, responsavelId],
+    queryFn: () => getPetsByResponsavelId(String(responsavelId ?? '')),
+    enabled: !!responsavelId,
+    retry: false,
+  });
+}
+
+// Todos os pets da clínica, sem filtro por dono — usado pelo lado vet pra
+// resolver nome/raça de qualquer paciente (Agenda, Pacientes, Prontuário).
+export function useClinicPets() {
+  return useQuery({
+    queryKey: [...PETS_KEY, 'clinic'],
+    queryFn: getAllPets,
+  });
+}
+
+export function usePet(id: string) {
+  return useQuery({
+    queryKey: [...PETS_KEY, id],
+    queryFn: () => getPetById(id),
+    enabled: !!id,
+  });
+}
+
+export function usePetProfileDetails(petId: string) {
+  return useQuery({
+    queryKey: ['petProfile', petId],
+    queryFn: () => getPetProfileDetails(petId),
+    enabled: !!petId,
+    retry: false,
+  });
+}
+
+export function useCreatePet() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pet: Pet) => createPet(pet),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PETS_KEY });
+    },
+  });
+}
+
+export function useUpdatePet() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (pet: Pet) => updatePet(pet),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: PETS_KEY });
+      queryClient.invalidateQueries({ queryKey: [...PETS_KEY, variables.id] });
+    },
+  });
+}
+
+export function useDeletePet() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deletePet(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: PETS_KEY });
+    },
+  });
+}
+
+// Estado global do pet ativo — compartilhado entre todas as abas via React Query cache.
+// Ao trocar o pet no carrossel da Home, todas as telas reativas (Plano, Perfil, Agenda)
+// respondem automaticamente sem precisar de navegação com params.
+export function useActivePetId() {
+  const queryClient = useQueryClient();
+  const { data: pets } = usePets();
+
+  const { data: activeId } = useQuery({
+    queryKey: ['activePetIdLocal'],
+    queryFn: () => null as string | null,
+    staleTime: Infinity,
+  });
+
+  const resolvedId = activeId || (pets && pets.length > 0 ? String(pets[0].id) : null);
+
+  const setActivePetId = (id: string) => {
+    queryClient.setQueryData(['activePetIdLocal'], id);
+  };
+
+  return { activePetId: resolvedId, setActivePetId };
+}
