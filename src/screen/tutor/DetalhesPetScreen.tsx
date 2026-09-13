@@ -63,11 +63,30 @@ export function DetalhesPetScreen({ route }: Props) {
   const deleteAppointment = useDeleteAppointment();
   const [activeTab, setActiveTab] = useState<TabKey>('HISTORICO');
 
-  const handleDeleteAppt = (id: string) => {
-    Alert.alert('Apagar', 'Tem certeza que deseja apagar este agendamento?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Apagar', style: 'destructive', onPress: () => deleteAppointment.mutate(id) },
-    ]);
+  const handleCancelAppt = (id: string) => {
+    Alert.alert(
+      'Cancelar Consulta',
+      'Tem certeza que deseja cancelar esta consulta? O horário será liberado na sua agenda.',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Sim, Cancelar', style: 'destructive', onPress: () => deleteAppointment.mutate(id) },
+      ]
+    );
+  };
+
+  const handleRescheduleAppt = (id: string) => {
+    Alert.alert(
+      'Reagendar Consulta',
+      'Isso irá cancelar o horário atual e liberar a agenda. O tutor deverá marcar uma nova data pelo aplicativo dele. Deseja prosseguir?',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Cancelar e Avisar Tutor',
+          style: 'default',
+          onPress: () => deleteAppointment.mutate(id),
+        },
+      ]
+    );
   };
 
   const vaccinesList = useMemo((): PetVaccine[] => {
@@ -199,16 +218,16 @@ export function DetalhesPetScreen({ route }: Props) {
                 <Text style={styles.timelineBody}>Status: {appt.status}</Text>
                 <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
                   <Button
-                    label="Editar"
+                    label="Reagendar"
                     variant="secondary"
-                    onPress={() => Alert.alert('Em breve', 'A tela de edição de agendamentos pelo Veterinário estará disponível na próxima versão.')}
+                    onPress={() => handleRescheduleAppt(appt.id)}
                     style={{ flex: 1, minHeight: 40 }}
                   />
                   <Button
-                    label="Apagar"
+                    label="Cancelar"
                     variant="secondary"
                     textColor={colors.error}
-                    onPress={() => handleDeleteAppt(appt.id)}
+                    onPress={() => handleCancelAppt(appt.id)}
                     style={{ flex: 1, minHeight: 40 }}
                   />
                 </View>

@@ -47,6 +47,15 @@ export interface ClinicalMilestone {
   done: boolean;
 }
 
+export interface CareHistoryItem {
+  id: string;
+  dateIso: string;
+  dateLabel: string;
+  dayLabel: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface CarePlan {
   petId: string;
   weekLabel: string;
@@ -57,6 +66,7 @@ export interface CarePlan {
   currentWeekNumber?: number;
   totalWeeks?: number;
   milestones?: ClinicalMilestone[];
+  history?: CareHistoryItem[];
 }
 
 export interface CheckInInterpretation {

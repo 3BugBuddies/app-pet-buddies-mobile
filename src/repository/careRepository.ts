@@ -2,6 +2,7 @@ import { apiJava } from './apiClient';
 import type {
   Badge,
   CarePlan,
+  CareHistoryItem,
   CareScore,
   CheckInEscalationResult,
   CheckInExtracaoRequest,
@@ -68,6 +69,25 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
         ) + 1)
       : 1;
 
+    // Mapeia o histórico diário
+    const history: CareHistoryItem[] = eventos
+      .filter((e: any) => e.dataAlvo <= hoje)
+      .sort((a: any, b: any) => b.dataAlvo.localeCompare(a.dataAlvo))
+      .map((e: any) => {
+        const [ano, mes, dia] = e.dataAlvo.split('-');
+        const dataAlvo = new Date(`${e.dataAlvo}T00:00:00`);
+        const diffDias = Math.floor((dataAlvo.getTime() - instancia.getTime()) / 86400000) + 1;
+
+        return {
+          id: String(e.id),
+          dateIso: e.dataAlvo,
+          dateLabel: `${dia}/${mes}`,
+          dayLabel: `Dia ${Math.max(1, diffDias)}`,
+          title: e.nome,
+          completed: e.status === 'CONCLUIDO' || e.status === 'REALIZADO',
+        };
+      });
+
     return {
       petId,
       weekLabel: `Semana ${currentWeekNumber}`,
@@ -76,6 +96,7 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
       currentWeekNumber,
       totalWeeks,
       milestones: [],
+      history,
     };
   }
   return getFakeCarePlan(petId);

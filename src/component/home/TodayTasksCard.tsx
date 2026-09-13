@@ -12,7 +12,6 @@ export interface HomeTask {
 interface TodayTasksCardProps {
   tasks: HomeTask[];
   onToggle: (id: string) => void;
-  onViewAll?: () => void;
 }
 
 function taskIconName(title: string): React.ComponentProps<typeof Ionicons>['name'] {
@@ -24,14 +23,11 @@ function taskIconName(title: string): React.ComponentProps<typeof Ionicons>['nam
   return 'paw-outline';
 }
 
-export function TodayTasksCard({ tasks, onToggle, onViewAll }: TodayTasksCardProps) {
+export function TodayTasksCard({ tasks, onToggle }: TodayTasksCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.title}>Hoje em casa</Text>
-        <Pressable onPress={onViewAll} hitSlop={8} accessibilityRole="button">
-          <Text style={styles.viewAll}>Ver tudo {'>'}</Text>
-        </Pressable>
       </View>
 
       {tasks.slice(0, 4).map((task) => (
@@ -87,11 +83,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.textPrimary,
-  },
-  viewAll: {
-    fontFamily: 'Inter',
-    fontSize: 13,
-    color: colors.textSecondary,
   },
   taskRow: {
     flexDirection: 'row',

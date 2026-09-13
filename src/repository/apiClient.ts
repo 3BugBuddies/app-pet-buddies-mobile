@@ -24,7 +24,7 @@ const addAuthInterceptor = (instance: ReturnType<typeof axios.create>) => {
 // Todos os recursos do app vão para a API Java (Spring HATEOAS)
 // .NET é back-office da clínica e não é chamado diretamente pelo app
 const apiJava = axios.create({
-  baseURL: 'http://petbuddies-java-rm563925.mexicocentral.azurecontainer.io:8080/api',
+  baseURL: 'http://petbuddies-java-rm563925.eastus.azurecontainer.io:8080/api',
 });
 addAuthInterceptor(apiJava);
 

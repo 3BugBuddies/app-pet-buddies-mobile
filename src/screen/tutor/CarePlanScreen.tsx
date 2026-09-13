@@ -8,7 +8,6 @@ import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { usePets } from '../../control/usePetsControl';
-import useMedicalRecordControl from '../../control/useMedicalRecordControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
@@ -20,11 +19,10 @@ export function CarePlanScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
 
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError } = useCarePlan(petId);
-  const { registros, carregandoRegistros } = useMedicalRecordControl(petId);
 
   const insets = useSafeAreaInsets();
 
-  if (isLoadingPets || isLoadingPlan || carregandoRegistros) {
+  if (isLoadingPets || isLoadingPlan) {
     return <LoadingIndicator label="Carregando evolução..." />;
   }
 
@@ -57,25 +55,31 @@ export function CarePlanScreen({ route }: Props) {
       >
         <ProgressBarCard doneCount={doneCount} totalCount={tasks.length} pointsToday={pointsToday} />
 
-        <Text style={styles.sectionLabel}>Histórico Clínico</Text>
+        <Text style={styles.sectionLabel}>Histórico do Tratamento</Text>
 
-        {!registros || registros.length === 0 ? (
+        {!plan.history || plan.history.length === 0 ? (
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>Nenhum prontuário registrado ainda.</Text>
+            <Text style={styles.emptyText}>Nenhuma tarefa de cuidado registrada ainda.</Text>
           </View>
         ) : (
           <View style={styles.timeline}>
-            {registros.map((record) => (
-              <View key={record.id} style={styles.timelineRow}>
+            {plan.history.map((item) => (
+              <View key={item.id} style={styles.historyRow}>
+                <View style={styles.historyDateCol}>
+                  <Text style={styles.historyDay}>{item.dayLabel}</Text>
+                  <Text style={styles.historyDate}>{item.dateLabel}</Text>
+                </View>
                 <View style={styles.timelineDotCol}>
-                  <View style={styles.timelineDot} />
+                  <View style={[styles.timelineDot, item.completed && styles.timelineDotDone]} />
                   <View style={styles.timelineLine} />
                 </View>
-                <View style={styles.timelineCard}>
-                  <Text style={styles.timelineDate}>{record.dataAtendimento}</Text>
-                  <Text style={styles.timelineTitle}>{record.diagnostico}</Text>
-                  <Text style={styles.timelineBody}>{record.tratamento}</Text>
-                  {record.observacao ? <Text style={styles.timelineBody}>{record.observacao}</Text> : null}
+                <View style={[styles.timelineCard, item.completed && styles.timelineCardDone]}>
+                  <Text style={[styles.timelineTitle, item.completed && styles.timelineTitleDone]}>
+                    {item.title}
+                  </Text>
+                  <Text style={item.completed ? styles.timelineBodyDone : styles.timelineBody}>
+                    {item.completed ? 'Check-in realizado ✓' : 'Pendente'}
+                  </Text>
                 </View>
               </View>
             ))}
@@ -109,22 +113,19 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   emptyText: { color: colors.textSecondary, textAlign: 'center' },
-  timeline: { gap: 0 },
-  timelineRow: { flexDirection: 'row', gap: spacing.md },
-  timelineDotCol: { alignItems: 'center', width: 12 },
-  timelineDot: { width: 12, height: 12, borderRadius: radii.pill, backgroundColor: colors.primary },
-  timelineLine: { flex: 1, width: 2, backgroundColor: colors.borderStrong },
-  timelineCard: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    padding: spacing.md,
-    marginBottom: spacing.md,
-    gap: 4,
-  },
-  timelineDate: { fontSize: 13, fontWeight: '600', color: colors.primary },
-  timelineTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
-  timelineBody: { fontSize: 14, color: colors.textSecondary },
+  timeline: { gap: 0, marginTop: spacing.xs },
+  historyRow: { flexDirection: 'row', gap: spacing.sm },
+  historyDateCol: { width: 44, alignItems: 'flex-end', paddingTop: 12 },
+  historyDay: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
+  historyDate: { fontSize: 12, color: colors.textSecondary },
+  timelineDotCol: { alignItems: 'center', width: 16 },
+  timelineDot: { width: 12, height: 12, borderRadius: radii.pill, backgroundColor: colors.borderStrong, marginTop: 14, borderWidth: 2, borderColor: colors.background },
+  timelineDotDone: { backgroundColor: colors.success },
+  timelineLine: { flex: 1, width: 2, backgroundColor: colors.border, marginTop: 4, marginBottom: 4 },
+  timelineCard: { flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.md, marginBottom: spacing.md, gap: 4 },
+  timelineCardDone: { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0 },
+  timelineTitle: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+  timelineTitleDone: { color: colors.textSecondary },
+  timelineBody: { fontSize: 13, color: colors.warning, fontWeight: '600' },
+  timelineBodyDone: { fontSize: 13, color: colors.success, fontWeight: '600' },
 });

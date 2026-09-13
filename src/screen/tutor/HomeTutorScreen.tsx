@@ -128,6 +128,7 @@ export function HomeTutorScreen() {
   const doneCount = hasPlan ? plan.tasks.filter((task) => task.completed).length : 0;
   const totalCount = hasPlan ? plan.tasks.length : 0;
   const tasks = hasPlan ? plan.tasks : [];
+  const isCheckInDone = tasks.some((task) => task.completed);
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
@@ -201,10 +202,11 @@ export function HomeTutorScreen() {
               />
               {tasks.length > 0 && (
                 <Button
-                  label={doneCount === totalCount ? 'Check-in concluído ✓' : 'Check-in do cuidado'}
-                  backgroundColor={doneCount === totalCount ? colors.success : colors.warning}
+                  label={isCheckInDone ? 'Check-in concluído ✓' : 'Check-in do cuidado'}
+                  backgroundColor={isCheckInDone ? colors.success : colors.warning}
                   textColor={colors.textLight}
                   onPress={handleStartCheckIn}
+                  disabled={isCheckInDone}
                 />
               )}
             </>
@@ -239,15 +241,20 @@ export function HomeTutorScreen() {
 
           <View style={styles.row}>
             <View style={styles.half}>
-              {nextAppointment ? (
-                <ClinicCard
-                  title={nextAppointment.reason}
-                  dayLabel={formatAppointmentDate(nextAppointment.date).dayLabel}
-                  timeLabel={formatAppointmentDate(nextAppointment.date).timeLabel}
-                />
-              ) : (
-                <ClinicCard title="Sem consultas agendadas" />
-              )}
+              <Pressable
+                style={styles.half}
+                onPress={() => navigation.navigate('AgendaTab', { screen: 'AgendamentoTutor' })}
+              >
+                {nextAppointment ? (
+                  <ClinicCard
+                    title={nextAppointment.reason}
+                    dayLabel={formatAppointmentDate(nextAppointment.date).dayLabel}
+                    timeLabel={formatAppointmentDate(nextAppointment.date).timeLabel}
+                  />
+                ) : (
+                  <ClinicCard title="Sem consultas agendadas" />
+                )}
+              </Pressable>
             </View>
             <View style={styles.half}>
               <Pressable
