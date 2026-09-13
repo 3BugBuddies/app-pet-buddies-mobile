@@ -4,6 +4,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useContext, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ActivePlansCard } from '../../component/vet-agenda/ActivePlansCard';
 import { AgendaHeroCard } from '../../component/vet-agenda/AgendaHeroCard';
 import { HomePendingCard } from '../../component/vet-agenda/HomePendingCard';
@@ -85,11 +86,14 @@ export function AgendaClinicaScreen() {
           <Text style={styles.dateLabel}>{dateLabel}</Text>
           <Text style={styles.vetName}>Dra. {session?.nome ?? 'vet'}</Text>
         </View>
-        <Pressable onPress={sair}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{(session?.nome ?? 'V').charAt(0).toUpperCase()}</Text>
           </View>
-        </Pressable>
+          <Pressable accessibilityRole="button" onPress={sair} style={{ padding: 4 }}>
+            <Ionicons name="log-out-outline" size={28} color={colors.textSecondary} />
+          </Pressable>
+        </View>
       </View>
 
       <AgendaHeroCard

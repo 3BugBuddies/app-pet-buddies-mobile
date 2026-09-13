@@ -16,6 +16,7 @@ import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { AuthContext } from '../../context/authContext';
 import { useAppointments } from '../../control/useAppointmentsControl';
+import { useLogoutControl } from '../../control/authControl';
 import { useCarePlan, useToggleCareTask } from '../../control/useCarePlanControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
@@ -31,6 +32,7 @@ export function HomeTutorScreen() {
   const navigation = useNavigation<HomeTutorNavigationProp>();
   const insets = useSafeAreaInsets();
   const { session } = useContext(AuthContext);
+  const { sair } = useLogoutControl();
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
 
   // UX: Context Selector — pet ativo sincronizado globalmente entre as abas
@@ -137,6 +139,7 @@ export function HomeTutorScreen() {
           onAvatarPress={() =>
             navigation.navigate('PetTab', { screen: 'PetProfile', params: { petId: activePet.id! } })
           }
+          onLogout={sair}
         />
 
         {/* Context Selector: carrossel só aparece quando há mais de 1 pet */}

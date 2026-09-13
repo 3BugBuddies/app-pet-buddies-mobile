@@ -1,28 +1,37 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { colors, radii, spacing } from '../../styles/theme';
 
 interface GreetingHeaderProps {
-  greeting: string; // Ex: "Bom dia,"
-  userName: string; // Ex: "Mari"
-  petName?: string; // Ex: "Buddy"
+  greeting: string;
+  userName: string;
+  petName?: string;
   onAvatarPress?: () => void;
+  onLogout?: () => void;
 }
 
-export function GreetingHeader({ greeting, userName, onAvatarPress }: GreetingHeaderProps) {
+export function GreetingHeader({ greeting, userName, onAvatarPress, onLogout }: GreetingHeaderProps) {
   return (
     <View style={styles.row}>
       <View style={styles.textContainer}>
         <Text style={styles.greeting}>{greeting}</Text>
         <View style={styles.nameRow}>
           <Text style={styles.name}>{userName}</Text>
-          <Text style={styles.sunIcon}>☀️</Text>
+          <Text style={styles.sunIcon}>✨</Text>
         </View>
         <Text style={styles.subtitle}>QUE BOM TE VER POR AQUI!</Text>
       </View>
 
-      <Pressable accessibilityRole="button" onPress={onAvatarPress} style={styles.avatar}>
-        <Text style={styles.avatarLetter}>{userName.charAt(0).toUpperCase()}</Text>
-      </Pressable>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        <Pressable accessibilityRole="button" onPress={onAvatarPress} style={styles.avatar}>
+          <Text style={styles.avatarLetter}>{userName.charAt(0).toUpperCase()}</Text>
+        </Pressable>
+        {onLogout && (
+          <Pressable accessibilityRole="button" onPress={onLogout} style={{ padding: 4 }}>
+            <Ionicons name="log-out-outline" size={28} color={colors.textSecondary} />
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }

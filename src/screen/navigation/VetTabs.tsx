@@ -1,6 +1,7 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii } from '../../styles/theme';
 import { HojeTabStack } from './vet-tabs/HojeTabStack';
 import { PacientesTabStack } from './vet-tabs/PacientesTabStack';
@@ -9,13 +10,15 @@ import type { VetTabParamList } from './types';
 const Tab = createBottomTabNavigator<VetTabParamList>();
 
 export function VetTabs() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary, // Azul Marinho ativado
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [styles.tabBar, { bottom: Math.max(insets.bottom, 16) }],
         tabBarItemStyle: styles.tabItem,
         tabBarLabelStyle: styles.tabLabel,
       }}

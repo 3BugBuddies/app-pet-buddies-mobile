@@ -105,6 +105,7 @@ const useMedicalRecordControl = (
     },
     onSuccess: ({ registro, precisaPrescrever }) => {
       queryClient.invalidateQueries({ queryKey: registrosQueryKey(animalId) });
+      Alert.alert('Sucesso', 'O prontuário foi salvo corretamente.');
       if (precisaPrescrever) {
         onSaved?.(registro);
       } else {

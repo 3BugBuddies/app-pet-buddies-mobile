@@ -86,6 +86,7 @@ export function useDeleteAppointment() {
     mutationFn: (id: string) => deleteAppointment(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
+      Alert.alert('Sucesso', 'A consulta foi cancelada com sucesso.');
     },
     onError: (error: any) => {
       const status = error?.response?.status;

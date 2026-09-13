@@ -55,7 +55,7 @@ export function ProntuarioFormScreen({ route }: Props) {
       <Text style={styles.title}>O que aconteceu?</Text>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
 
           <View style={styles.typeGrid}>
             {RECORD_TYPES.map((type) => {
