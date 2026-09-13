@@ -47,7 +47,7 @@ export function HomeTutorScreen() {
     return appointments
       .filter(
         (appointment) =>
-          appointment.petId === pet.id &&
+          appointment.petId === String(pet.id) &&
           appointment.date?.slice(0, 10) >= hoje &&
           appointment.status !== 'CANCELED' &&
           appointment.status !== 'COMPLETED'

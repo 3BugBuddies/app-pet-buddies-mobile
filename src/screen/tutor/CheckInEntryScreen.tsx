@@ -1,7 +1,7 @@
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { NarrativeInput } from '../../component/checkin/NarrativeInput';
@@ -35,13 +35,20 @@ export function CheckInEntryScreen({ route }: Props) {
   }
 
   const handleContinue = async () => {
-    const today = new Date().toISOString().slice(0, 10);
-    const extracaoResponse = await extractCheckIn.mutateAsync({
-      animalId: petId,
-      dataReferencia: today,
-      narrativa: narrative,
-    });
-    navigation.navigate('CheckInConfirm', { petId, extracaoResponse });
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const extracaoResponse = await extractCheckIn.mutateAsync({
+        animalId: petId,
+        dataReferencia: today,
+        narrativa: narrative,
+      });
+      navigation.navigate('CheckInConfirm', { petId, extracaoResponse });
+    } catch (error: any) {
+      const msg = error?.response?.status === 409
+        ? 'Você já registrou os cuidados deste pet hoje!'
+        : 'Não foi possível analisar o seu relato. Tente novamente.';
+      Alert.alert('Aviso', msg);
+    }
   };
 
   const appendChip = (text: string) => {

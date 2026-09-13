@@ -26,9 +26,12 @@ export function NovaRegraScreen({ route }: Props) {
 
   const handleAdd = () => {
     const regra = construirRegra();
-    navigation.navigate({ name: 'Prescricao', params: { novaRegra: regra }, merge: true });
+    navigation.navigate('Prescricao', {
+      animalId: route.params.draft.animalId,
+      registroAtendimentoId: route.params.draft.registroAtendimentoId,
+      novaRegra: regra,
+    });
   };
-
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <CheckInTopBar title="Nova regra" subtitle="Se → então" />

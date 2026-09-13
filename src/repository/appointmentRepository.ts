@@ -43,9 +43,9 @@ const getAllAppointments = async (
     const response = await apiJava.get(url);
     const list = response.data._embedded?.consultaResponseList ?? [];
     return list.map((c: any) => ({
-      id: c.id.toString(),
-      petId: c.animalId.toString(),
-      vetId: c.veterinarioId.toString(),
+      id: c.id?.toString() ?? '',
+      petId: c.animalId?.toString() ?? '',
+      vetId: c.veterinarioId?.toString() ?? '',
       date: c.dataHora,
       reason: c.motivo || '',
       status: mapStatus(c.status),

@@ -51,15 +51,27 @@ export function AssinarPrescricaoScreen({ route }: Props) {
     }
   };
 
-  const handleSign = () => {
-    Alert.alert(
-      'Assinatura Digital',
-      'Confirme com biometria ou PIN de 4 dígitos para assinar a prescrição.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Confirmar', onPress: executarAssinatura },
-      ]
-    );
+  const handleSign = async () => {
+    try {
+      await assinar();
+      Alert.alert(
+        'Sucesso!',
+        'Prescrição assinada e salva no prontuário do paciente.',
+        [
+          {
+            text: 'Compartilhar via WhatsApp',
+            onPress: () => navigation.navigate('HojeTab', { screen: 'AgendaClinica' }),
+          },
+          {
+            text: 'Voltar para Agenda',
+            style: 'cancel',
+            onPress: () => navigation.navigate('HojeTab', { screen: 'AgendaClinica' }),
+          },
+        ]
+      );
+    } catch {
+      // erro já fica visível via `erro` (estado da mutation).
+    }
   };
 
   return (

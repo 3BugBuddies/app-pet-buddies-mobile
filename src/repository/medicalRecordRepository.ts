@@ -32,8 +32,11 @@ const getRecordsByPetId = async (animalId: string): Promise<MedicalRecord[]> => 
 const createRecord = async (record: MedicalRecord): Promise<MedicalRecord> => {
   if (USE_API) {
     // dataAtendimento: backend exige LocalDateTime ("AAAA-MM-DDTHH:MM:SS")
+    // IDs são convertidos para Number para satisfazer o DTO do Java
     const payload = {
       ...record,
+      animalId: Number(record.animalId),
+      consultaId: record.consultaId ? Number(record.consultaId) : null,
       dataAtendimento: toDatetime(record.dataAtendimento),
     };
     const response = await apiJava.post('/registro-atendimento', payload);

@@ -1,10 +1,10 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
-import { NarrativeInput } from '../../component/checkin/NarrativeInput';
-import { DoseStepper } from '../../component/prescricao/DoseStepper';
 import { Button } from '../../component/ui/Button';
 import { FieldError } from '../../component/forms/FieldError';
 import { Input } from '../../component/ui/Input';
@@ -28,10 +28,11 @@ export function PrescricaoScreen({ route }: Props) {
   const { animalId, registroAtendimentoId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
+  
   const { data: pet } = usePet(animalId);
   const { data: patients } = usePatients();
   const tutorName = patients?.find((p) => p.petId === animalId)?.tutorName;
-
+  
   const [narrativaIA, setNarrativaIA] = useState('');
   const draftPrescription = useDraftPrescription();
 
@@ -48,7 +49,6 @@ export function PrescricaoScreen({ route }: Props) {
     validar,
   } = usePrescricaoDraftControl({ animalId, registroAtendimentoId });
 
-  // Recebe regra de volta da NovaRegraScreen via merge params
   useEffect(() => {
     if (route.params?.novaRegra) {
       setRegras((prev) => [...prev, route.params.novaRegra!]);
@@ -56,30 +56,48 @@ export function PrescricaoScreen({ route }: Props) {
     }
   }, [route.params?.novaRegra]);
 
-  // Envia narrativa para a IA, preenche campos e carrega regras propostas
   const handleGerarIA = async () => {
-    const rascunho = await draftPrescription.mutateAsync({
-      animalId,
-      registroAtendimentoId,
-      narrativa: narrativaIA,
-    });
-    // Prescrição agora vem no objeto aninhado rascunho.prescricao
-    const { prescricao } = rascunho;
-    setMedicamento(prescricao.medicamento);
-    setDoseMin(prescricao.doseMin);
-    setDoseMax(prescricao.doseMax);
-    setUnidade(prescricao.unidade);
-    setFrequenciaDia(prescricao.frequenciaDia);
-    setDuracaoDias(prescricao.duracaoDias);
-    if (prescricao.orientacao) setOrientacao(prescricao.orientacao);
-    // Mapeia regrasPropostas (contrato) → RegraDraft (estado local)
-    setRegras(
-      rascunho.regrasPropostas.map((r) => ({
-        condicaoClinicaId: r.condicaoClinicaId,
-        rotuloCongelado: r.rotuloCongelado,
-        acao: r.acao,
-      }))
-    );
+    try {
+      const rascunho = await draftPrescription.mutateAsync({
+        animalId,
+        registroAtendimentoId,
+        narrativa: narrativaIA,
+      });
+
+      // Modelo de IA indisponível — orienta preenchimento manual
+      if (!rascunho.extracaoDisponivel) {
+        Alert.alert(
+          'IA indisponível',
+          rascunho.motivoDegradacao ?? 'Preencha a prescrição manualmente.',
+        );
+        return;
+      }
+
+      const prescricao = rascunho.prescricao;
+      setMedicamento(prescricao.medicamento ?? '');
+      setDoseMin(prescricao.doseMin ?? 0);
+      setDoseMax(prescricao.doseMax ?? 0);
+      setUnidade(prescricao.unidade ?? 'mg');
+      setFrequenciaDia(prescricao.frequenciaDia ?? 1);
+      setDuracaoDias(prescricao.duracaoDias ?? 7);
+      if (prescricao.orientacao) setOrientacao(prescricao.orientacao);
+
+      // Fallback de segurança HATEOAS
+      const regrasSeguras = rascunho.regrasPropostas || [];
+      setRegras(
+        regrasSeguras.map((r: any) => ({
+          condicaoClinicaId: r.condicaoClinicaId,
+          rotuloCongelado: r.rotuloCongelado,
+          acao: r.acao,
+        }))
+      );
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const detalhe = error?.response?.data
+        ? JSON.stringify(error.response.data, null, 2)
+        : error?.message ?? 'Erro desconhecido';
+      Alert.alert(`Erro ${status ?? ''} ao chamar IA`, detalhe);
+    }
   };
 
   const irParaRegra = async () => {
@@ -93,23 +111,32 @@ export function PrescricaoScreen({ route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]} keyboardShouldPersistTaps="handled">
       <CheckInTopBar
         title="Prescrição"
-        subtitle={pet ? `${pet.nome}${tutorName ? ` · ${tutorName}` : ''}` : undefined}
+        subtitle={pet ? `${pet.nome}${tutorName ? ` • ${tutorName}` : ''}` : undefined}
         stepLabel="rascunho"
       />
 
-      {/* Bloco de IA: o veterinário dita a conduta e a IA preenche o formulário */}
-      <View style={styles.iaSection}>
-        <Text style={styles.iaSectionLabel}>Ditar ou digitar conduta (IA)</Text>
-        <NarrativeInput
+      {/* UX Otimizada: Bloco da IA como assistente de digitação (sem falsas promessas de áudio) */}
+      <View style={styles.iaCard}>
+        <View style={styles.iaHeader}>
+          <Ionicons name="sparkles" size={20} color={colors.accent} />
+          <Text style={styles.iaTitle}>Assistente de Prescrição</Text>
+        </View>
+        <Text style={styles.iaSub}>
+          Digite a conduta médica de forma natural. A IA preencherá as doses e regras automaticamente.
+        </Text>
+        <TextInput
           value={narrativaIA}
           onChangeText={setNarrativaIA}
-          placeholder="ex.: amoxicilina 500mg 2x ao dia por 7 dias, administrar com alimento"
+          placeholder="Ex: Amoxicilina 500mg 2x ao dia por 7 dias. Administrar com alimento."
+          placeholderTextColor={colors.textMuted}
+          multiline
+          style={styles.iaInput}
         />
         <Button
-          label="Gerar prescrição com IA"
+          label="Preencher formulário mágico"
           variant="secondary"
           disabled={!narrativaIA.trim()}
           loading={draftPrescription.isPending}
@@ -119,89 +146,97 @@ export function PrescricaoScreen({ route }: Props) {
 
       <View style={styles.dividerRow}>
         <View style={styles.divider} />
-        <Text style={styles.dividerLabel}>ou preencha manualmente</Text>
+        <Text style={styles.dividerLabel}>ou digite os campos abaixo</Text>
         <View style={styles.divider} />
       </View>
 
+      {/* UX Otimizada: Formulário Limpo, Agrupamento Lógico e Inputs Numéricos Livres */}
       <View style={styles.medCard}>
-        <Text style={styles.medLabel}>Medicamento</Text>
+        <Text style={styles.sectionLabel}>Dados do Medicamento</Text>
+        
         <Input
-          label=""
-          placeholder="ex.: Amoxicilina"
+          label="Nome do Medicamento"
+          placeholder="medicamento genérico ou comercial"
           value={medicamento}
           onChangeText={setMedicamento}
           hasError={!!erros.medicamento}
-          style={styles.medInput}
         />
         <FieldError message={erros.medicamento} />
 
+        {/* Linha de Dosagem e Unidade agrupadas */}
         <View style={styles.row}>
-          <Input
-            label="Unidade"
-            placeholder="ex.: mg, ml"
-            value={unidade}
-            onChangeText={setUnidade}
-            hasError={!!erros.unidade}
-            style={styles.narrowInput}
-          />
-          <Input
-            label="Vezes ao dia"
-            keyboardType="number-pad"
-            value={String(frequenciaDia)}
-            onChangeText={(v) => setFrequenciaDia(Number(v) || 0)}
-            hasError={!!erros.frequenciaDia}
-            style={styles.narrowInput}
-          />
-          <Input
-            label="Dias de tratamento"
-            keyboardType="number-pad"
-            value={String(duracaoDias)}
-            onChangeText={(v) => setDuracaoDias(Number(v) || 0)}
-            hasError={!!erros.duracaoDias}
-            style={styles.narrowInput}
-          />
-        </View>
-
-        <View style={styles.stepperRow}>
-          <DoseStepper
-            label="Mínima"
-            value={doseMin}
-            unit={unidade}
-            max={doseMax - 0.5}
-            onChange={setDoseMin}
-          />
-          <DoseStepper
-            label="Máxima"
-            value={doseMax}
-            unit={unidade}
-            min={doseMin + 0.5}
-            onChange={setDoseMax}
-          />
+          <View style={styles.flex2}>
+            <Input
+              label="Dose Mínima"
+              keyboardType="decimal-pad"
+              placeholder="0.0"
+              value={doseMin ? String(doseMin) : ''}
+              onChangeText={(v) => setDoseMin(Number(v.replace(',', '.')) || 0)}
+              hasError={!!erros.doseMin}
+            />
+          </View>
+          <View style={styles.flex2}>
+            <Input
+              label="Dose Máxima"
+              keyboardType="decimal-pad"
+              placeholder="0.0"
+              value={doseMax ? String(doseMax) : ''}
+              onChangeText={(v) => setDoseMax(Number(v.replace(',', '.')) || 0)}
+              hasError={!!erros.doseMax}
+            />
+          </View>
+          <View style={styles.flex1}>
+            <Input
+              label="Unid."
+              placeholder="mg, ml, g..."
+              value={unidade}
+              onChangeText={setUnidade}
+              hasError={!!erros.unidade}
+            />
+          </View>
         </View>
         <FieldError message={erros.doseMax} />
+
+        {/* Linha de Posologia agrupada */}
+        <View style={styles.row}>
+          <View style={styles.flex1}>
+            <Input
+              label="Vezes ao dia"
+              keyboardType="number-pad"
+              placeholder=""
+              value={String(frequenciaDia || '')}
+              onChangeText={(v) => setFrequenciaDia(Number(v) || 0)}
+              hasError={!!erros.frequenciaDia}
+            />
+          </View>
+          <View style={styles.flex1}>
+            <Input
+              label="Dias de tratamento"
+              keyboardType="number-pad"
+              placeholder=""
+              value={String(duracaoDias || '')}
+              onChangeText={(v) => setDuracaoDias(Number(v) || 0)}
+              hasError={!!erros.duracaoDias}
+            />
+          </View>
+        </View>
+
+        <Input
+          label="Orientação para o Tutor (opcional)"
+          placeholder=""
+          value={orientacao}
+          onChangeText={setOrientacao}
+          multiline
+          numberOfLines={3}
+          style={styles.notesInput}
+        />
       </View>
 
-      <Input
-        label="Orientação (opcional)"
-        placeholder="ex.: Administrar junto com a refeição"
-        value={orientacao}
-        onChangeText={setOrientacao}
-        multiline
-        numberOfLines={3}
-        style={styles.notesInput}
-      />
-
-      <View style={styles.noteRow}>
-        <View style={styles.noteDot} />
-        <Text style={styles.noteText}>
-          A IA só interpreta o relato do tutor. Toda dose vem desta faixa e destas regras —
-          assinadas por você.
-        </Text>
-      </View>
-
-      {/* Seção de regras condicionais — SE → ENTÃO */}
       <View style={styles.regrasSection}>
-        <Text style={styles.sectionLabel}>Regras — SE → ENTÃO</Text>
+        <Text style={styles.sectionLabel}>Regras Condicionais (SE • ENTÃO)</Text>
+        <Text style={styles.noteText}>
+          Opcional. Adicione regras para que o app adapte a dose conforme os sintomas relatados pelo tutor no check-in.
+        </Text>
 
         {regras.length === 0 ? (
           <Text style={styles.regrasVazias}>Nenhuma regra adicionada</Text>
@@ -210,26 +245,24 @@ export function PrescricaoScreen({ route }: Props) {
             <View key={index} style={styles.regraRow}>
               <View style={styles.regraDot} />
               <Text style={styles.regraText} numberOfLines={2}>
-                {regra.rotuloCongelado}{' '}
-                <Text style={styles.regraArrow}>→</Text>{' '}
+                Se <Text style={styles.regraBold}>{regra.rotuloCongelado.toLowerCase()}</Text>
+                <Text style={styles.regraArrow}> → </Text>
                 {ACAO_LABEL[regra.acao] ?? regra.acao.toLowerCase()}
               </Text>
               <Pressable
                 onPress={() => removerRegra(index)}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={`Remover regra ${regra.rotuloCongelado}`}
               >
                 <Text style={styles.removerText}>remover</Text>
               </Pressable>
             </View>
           ))
         )}
-
-        <Button label="Adicionar regra condicional" variant="secondary" onPress={irParaRegra} />
+        <Button label="+ Adicionar regra condicional" variant="secondary" onPress={irParaRegra} />
       </View>
 
-      <Button label="Assinar prescrição" onPress={irParaAssinatura} />
+      <Button label="Revisar e Assinar Prescrição" onPress={irParaAssinatura} style={{ marginTop: spacing.md }} />
     </ScrollView>
   );
 }
@@ -241,85 +274,114 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.lg,
     paddingBottom: spacing.xl,
   },
-  medCard: {
-    backgroundColor: colors.primary,
+  
+  // UX: Clean IA Card
+  iaCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     borderRadius: radii.lg,
     padding: spacing.lg,
     gap: spacing.sm,
   },
-  medLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: colors.textLight,
-    opacity: 0.85,
+  iaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
-  medInput: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
+  iaTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  iaSub: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: spacing.xs,
+  },
+  iaInput: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    padding: spacing.md,
+    fontSize: 16,
+    color: colors.textPrimary,
+    minHeight: 100,
+    textAlignVertical: 'top',
+  },
+
+  // Divider
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.borderStrong,
+  },
+  dividerLabel: {
+    fontSize: 12,
+    color: colors.textMuted,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+
+  // UX: Clean Form Card
+  medCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
   },
   row: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  narrowInput: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
-  },
-  stepperRow: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-    paddingTop: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.16)',
-  },
+  flex1: { flex: 1 },
+  flex2: { flex: 2 },
+  
   notesInput: {
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  noteRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.xs,
-  },
-  noteDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primary,
-    marginTop: 6,
-  },
-  noteText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
-  },
+
+  // Rules Section
   sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginLeft: spacing.xs,
   },
   regrasSection: {
     gap: spacing.sm,
   },
+  noteText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
   regrasVazias: {
     fontSize: 14,
     color: colors.textMuted,
-    paddingLeft: spacing.sm,
     fontStyle: 'italic',
   },
   regraRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
     backgroundColor: colors.surface,
     borderRadius: radii.md,
     borderWidth: 1,
@@ -338,39 +400,18 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.textPrimary,
   },
+  regraBold: {
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
   regraArrow: {
     color: colors.primary,
     fontWeight: '700',
   },
   removerText: {
     fontSize: 12,
-    color: colors.textMuted,
+    color: colors.error,
     textDecorationLine: 'underline',
     flexShrink: 0,
-  },
-  iaSection: {
-    gap: spacing.sm,
-  },
-  iaSectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginLeft: spacing.xs,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerLabel: {
-    fontSize: 12,
-    color: colors.textMuted,
   },
 });

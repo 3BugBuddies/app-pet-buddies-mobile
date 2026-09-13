@@ -27,6 +27,10 @@ export function PlanoPacienteScreen({ route }: Props) {
   const totalWeeks = plan.totalWeeks ?? currentWeek;
   const weeks = Array.from({ length: totalWeeks }, (_, i) => i < currentWeek);
 
+  // Fallbacks de segurança contra listas omitidas pela API
+  const tasks = plan.tasks || [];
+  const milestones = plan.milestones || [];
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <View style={styles.hero}>
@@ -44,7 +48,7 @@ export function PlanoPacienteScreen({ route }: Props) {
 
       <Text style={styles.sectionLabel}>Em casa · o tutor marca</Text>
       <View style={styles.card}>
-        {plan.tasks.map((task, index) => (
+        {tasks.map((task, index) => (
           <View key={task.id}>
             <View style={styles.row}>
               <View style={styles.dot} />
@@ -56,16 +60,16 @@ export function PlanoPacienteScreen({ route }: Props) {
                 </Text>
               </View>
             </View>
-            {index < plan.tasks.length - 1 ? <View style={styles.divider} /> : null}
+            {index < tasks.length - 1 ? <View style={styles.divider} /> : null}
           </View>
         ))}
       </View>
 
-      {plan.milestones && plan.milestones.length > 0 ? (
+      {milestones.length > 0 ? (
         <>
           <Text style={styles.sectionLabel}>Clínica · marcos do plano</Text>
           <View style={styles.card}>
-            {plan.milestones.map((milestone, index) => (
+            {milestones.map((milestone, index) => (
               <View key={milestone.title}>
                 <View style={styles.row}>
                   <View style={[styles.dot, styles.dotClinica]} />
@@ -79,7 +83,7 @@ export function PlanoPacienteScreen({ route }: Props) {
                     </View>
                   ) : null}
                 </View>
-                {index < plan.milestones!.length - 1 ? <View style={styles.divider} /> : null}
+                {index < milestones.length - 1 ? <View style={styles.divider} /> : null}
               </View>
             ))}
           </View>

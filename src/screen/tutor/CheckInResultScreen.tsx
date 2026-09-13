@@ -24,14 +24,18 @@ export function CheckInResultScreen({ route }: Props) {
   const completeTask = useCompleteCheckInTask(petId);
   const escalationPreview = useEscalationPreview();
 
+  // Fallbacks de segurança caso o backend omita as propriedades no JSON
+  const safeVetName = result.vetName || 'Clínica Veterinária';
+  const safeDoseRangeLabel = result.doseRangeLabel || 'Dose padrão';
+
   const vetInitial =
-    result.vetName
+    safeVetName
       .split(' ')
       .find((part) => !/^(dr|dra)\.?$/i.test(part))
       ?.charAt(0)
-      .toUpperCase() ?? result.vetName.charAt(0).toUpperCase();
+      .toUpperCase() ?? safeVetName.charAt(0).toUpperCase();
 
-  const range = parseDoseRange(result.doseRangeLabel);
+  const range = parseDoseRange(safeDoseRangeLabel);
   const fillPct = range.max > range.min ? ((Number.parseFloat(result.doseLabel) - range.min) / (range.max - range.min)) * 100 : 50;
 
   const handleComplete = async () => {
@@ -46,13 +50,13 @@ export function CheckInResultScreen({ route }: Props) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
-      <CheckInTopBar title="Dose de hoje" subtitle={result.doseRangeLabel} stepLabel="3 / 3" />
+      <CheckInTopBar title="Dose de hoje" subtitle={safeDoseRangeLabel} stepLabel="3 / 3" />
 
       <View style={styles.doseCard}>
         <Text style={styles.doseLabel}>Dose de hoje</Text>
         <View style={styles.doseRow}>
           <Text style={styles.doseValue}>{result.doseLabel}</Text>
-          <Text style={styles.doseRange}>da faixa {result.doseRangeLabel}</Text>
+          <Text style={styles.doseRange}>da faixa {safeDoseRangeLabel}</Text>
         </View>
         <DoseTrack
           minLabel={`${range.min} ${range.unit} · menor`}
@@ -71,7 +75,7 @@ export function CheckInResultScreen({ route }: Props) {
             <Text style={styles.vetAvatarText}>{vetInitial}</Text>
           </View>
           <View>
-            <Text style={styles.vetName}>{result.vetName}</Text>
+            <Text style={styles.vetName}>{safeVetName}</Text>
             <Text style={styles.vetCrmv}>
               {result.vetCrmv} · prescrição de {result.prescriptionDateLabel}
             </Text>

@@ -51,7 +51,13 @@ const createPrescription = async (prescription: Prescription): Promise<Prescript
 // Exige perfil VET (única rota com restrição de perfil — contrato seção 2).
 const draftPrescription = async (data: NarrativaPrescricaoRequest): Promise<RascunhoPrescricaoResponse> => {
   if (USE_API) {
-    const response = await apiJava.post('/prescricao/rascunho', data);
+    // IDs convertidos para Number para satisfazer o DTO do Java
+    const payload = {
+      ...data,
+      animalId: Number(data.animalId),
+      registroAtendimentoId: data.registroAtendimentoId ? Number(data.registroAtendimentoId) : undefined,
+    };
+    const response = await apiJava.post('/prescricao/rascunho', payload);
     return response.data;
   }
   // Mock: estrutura completa do RascunhoPrescricaoResponse do Java

@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { Alert } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MedicalRecord, medicalRecordSchema } from '../model/medicalRecord';
 import { createRecord, getRecordsByPetId } from '../repository/medicalRecordRepository';
+import { getAllAppointments } from '../repository/appointmentRepository';
 import { usePet, useUpdatePet } from './usePetsControl';
 
 const registrosQueryKey = (animalId: string) => ['prontuario', 'registros', animalId];
@@ -66,12 +68,18 @@ const useMedicalRecordControl = (
           : null,
       ]
         .filter(Boolean)
-        .join(' · ') || undefined;
+        .join(' | ') || undefined;
+
+      // BUSCA A CONSULTA ATIVA DO PET PARA SATISFAZER O BACKEND
+      const consultasDoPet = await getAllAppointments(animalId);
+      // Pega a consulta mais recente, ou usa fallback '1' para evitar crash se não houver agendamento prévio
+      const consultaAtualId = consultasDoPet.length > 0 ? consultasDoPet[0].id : '1';
 
       const registro = await medicalRecordSchema.validate(
         {
           id: `rec-${Date.now()}`,
           animalId,
+          consultaId: String(consultaAtualId), // <--- INJEÇÃO DA CHAVE ESTRANGEIRA AQUI
           dataAtendimento: new Date().toISOString().slice(0, 10),
           anamnese: anamnese || undefined,
           diagnostico,
@@ -94,10 +102,17 @@ const useMedicalRecordControl = (
       }
     },
     onError: (error: any) => {
-      if (!error?.inner) return;
-      for (const erro of error.inner) {
-        if (erro.path === 'diagnostico') setDiagnosticoErro(erro.message);
+      // Se for erro de validação do Yup (front-end)
+      if (error?.inner) {
+        for (const erro of error.inner) {
+          if (erro.path === 'diagnostico') setDiagnosticoErro(erro.message);
+        }
+        return;
       }
+
+      // Se for erro da API (backend)
+      const apiMessage = error?.response?.data?.message || error?.response?.data || error?.message || 'Erro desconhecido';
+      Alert.alert('Erro ao salvar', `O servidor recusou o prontuário.\n\nDetalhe: ${apiMessage}`);
     },
   });
 

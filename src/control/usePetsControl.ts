@@ -18,10 +18,13 @@ const PETS_KEY = ['pets'];
 // não usuarioId, pois a API Java filtra por /animal?responsavelId=.
 export function usePets() {
   const { session } = useContext(AuthContext);
+  // Fallback: se a API não retornar responsavelId, usamos o usuarioId genérico
+  const responsavelId = session?.responsavelId || session?.usuarioId;
   return useQuery({
-    queryKey: [...PETS_KEY, session?.responsavelId],
-    queryFn: () => getPetsByResponsavelId(String(session?.responsavelId ?? '')),
-    enabled: !!session?.responsavelId,
+    queryKey: [...PETS_KEY, responsavelId],
+    queryFn: () => getPetsByResponsavelId(String(responsavelId ?? '')),
+    enabled: !!responsavelId,
+    retry: false,
   });
 }
 

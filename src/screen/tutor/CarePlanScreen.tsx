@@ -51,8 +51,12 @@ export function CarePlanScreen({ route }: Props) {
     );
   }
 
-  const doneCount = plan.tasks.filter((task) => task.completed).length;
-  const pointsToday = plan.tasks.reduce(
+  // Fallback seguro contra ausência de arrays no JSON da API
+  const tasks = plan.tasks || [];
+  const weekDays = plan.weekDays || [];
+
+  const doneCount = tasks.filter((task) => task.completed).length;
+  const pointsToday = tasks.reduce(
     (sum, task) => (task.completed ? sum + task.points : sum),
     0
   );
@@ -73,12 +77,12 @@ export function CarePlanScreen({ route }: Props) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
       >
-        <WeekStrip days={plan.weekDays} />
+        <WeekStrip days={weekDays} />
 
-        <ProgressBarCard doneCount={doneCount} totalCount={plan.tasks.length} pointsToday={pointsToday} />
+        <ProgressBarCard doneCount={doneCount} totalCount={tasks.length} pointsToday={pointsToday} />
 
         <Text style={styles.sectionLabel}>Cuidados de hoje</Text>
-        <TaskListCard tasks={plan.tasks} onToggle={(id) => toggleTask.mutate(id)}>
+        <TaskListCard tasks={tasks} onToggle={(id) => toggleTask.mutate(id)}>
           <Button
             label="Check-in do cuidado"
             backgroundColor={colors.warning}

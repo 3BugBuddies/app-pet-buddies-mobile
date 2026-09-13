@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { ConfirmedFieldsCard, type ConfirmedField } from '../../component/checkin/ConfirmedFieldsCard';
 import { Button } from '../../component/ui/Button';
@@ -17,6 +17,10 @@ export function CheckInConfirmScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const confirmCheckIn = useConfirmCheckIn();
 
+  // Fallbacks de segurança
+  const condicoesSeguras = extracaoResponse.condicoes || [];
+  const redFlagsSeguras = extracaoResponse.redFlags || [];
+
   // Monta os campos de revisão a partir do que a IA extraiu da narrativa
   const fields: ConfirmedField[] = [
     {
@@ -26,12 +30,12 @@ export function CheckInConfirmScreen({ route }: Props) {
     },
     {
       label: 'Condições identificadas',
-      value: extracaoResponse.condicoes.length > 0
-        ? `${extracaoResponse.condicoes.length} condição(ões) detectada(s)`
+      value: condicoesSeguras.length > 0
+        ? `${condicoesSeguras.length} condição(ões) detectada(s)`
         : 'Nenhuma condição detectada',
       flagged: false,
     },
-    ...extracaoResponse.redFlags.map((flag) => ({
+    ...redFlagsSeguras.map((flag) => ({
       label: 'Alerta',
       value: flag,
       flagged: true,
@@ -39,24 +43,30 @@ export function CheckInConfirmScreen({ route }: Props) {
   ];
 
   const handleConfirm = async () => {
-    // Constrói o payload do contrato (seção 7) a partir do que a IA extraiu e o
-    // tutor confirmou. As condições voltam ao Java no mesmo formato que vieram.
-    const result = await confirmCheckIn.mutateAsync({
-      animalId: extracaoResponse.animalId,
-      narrativa: extracaoResponse.narrativa,
-      condicoes: extracaoResponse.condicoes.map((c) => ({
-        condicaoClinicaId: c.condicaoClinicaId,
-        valorBooleano: c.valorBooleano,
-        valorNumerico: c.valorNumerico,
-        confianca: c.confianca,
-      })),
-    });
-    if (result.status === 'ESCALATION') {
-      navigation.navigate('CheckInEscalation', { petId, result });
-    } else if (result.status === 'NO_RULE') {
-      navigation.navigate('CheckInNoRule', { petId, result, narrative: extracaoResponse.narrativa });
-    } else {
-      navigation.navigate('CheckInResult', { petId, result });
+    try {
+      const result = await confirmCheckIn.mutateAsync({
+        animalId: extracaoResponse.animalId,
+        narrativa: extracaoResponse.narrativa,
+        condicoes: condicoesSeguras.map((c) => ({
+          condicaoClinicaId: c.condicaoClinicaId,
+          valorBooleano: c.valorBooleano,
+          valorNumerico: c.valorNumerico,
+          confianca: c.confianca,
+        })),
+      });
+
+      if (result.status === 'ESCALATION') {
+        navigation.navigate('CheckInEscalation', { petId, result });
+      } else if (result.status === 'NO_RULE') {
+        navigation.navigate('CheckInNoRule', { petId, result, narrative: extracaoResponse.narrativa });
+      } else {
+        navigation.navigate('CheckInResult', { petId, result });
+      }
+    } catch (error: any) {
+      const msg = error?.response?.status === 409
+        ? 'Você já registrou os cuidados deste pet hoje!'
+        : 'Não foi possível confirmar o check-in. Tente novamente.';
+      Alert.alert('Aviso', msg);
     }
   };
 
