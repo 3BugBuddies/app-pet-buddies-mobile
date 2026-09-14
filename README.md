@@ -17,7 +17,7 @@ Aplicativo mobile desenvolvido em React Native / Expo para a plataforma **Clyvo 
 
 ## Vídeo de Apresentação
 
-▶️ [Assista no YouTube](<!-- inserir link aqui -->)
+▶️ [Assista no YouTube]( https://youtu.be/LHx-mDUD38M )
 
 ---
 
