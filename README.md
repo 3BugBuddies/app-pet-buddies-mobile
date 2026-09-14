@@ -17,7 +17,8 @@ Aplicativo mobile desenvolvido em React Native / Expo para a plataforma **Clyvo 
 
 ## Vídeo de Apresentação
 
-▶️ [Assista no YouTube]( https://youtu.be/LHx-mDUD38M )
+▶️ [Assista no YouTube]( https://youtu.be/EoOUXdXF3Ow )
+
 
 ---
 
@@ -156,7 +157,7 @@ Com o servidor rodando:
 |------|-----|
 | vet_teste@email.com | 123456 |
 | tutor_teste@email.com | 123456 |
-
+- ▶️ [Assista no YouTube]( https://youtu.be/LHx-mDUD38M )
 ---
 
 ## Observações Técnicas
