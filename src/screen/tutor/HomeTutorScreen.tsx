@@ -124,7 +124,7 @@ export function HomeTutorScreen() {
   const doneCount = hasPlan ? plan.tasks.filter((task) => task.completed).length : 0;
   const totalCount = hasPlan ? plan.tasks.length : 0;
   const tasks = hasPlan ? plan.tasks : [];
-  const isCheckInDone = tasks.some((task) => task.completed);
+  const isCheckInDone = tasks.length > 0 && tasks.every((task) => task.completed);
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
@@ -198,13 +198,12 @@ export function HomeTutorScreen() {
                 onToggle={(id) => toggleTask.mutate(id)}
                 isLocked={isCheckInDone}
               />
-              {tasks.length > 0 && (
+              {tasks.length > 0 && !isCheckInDone && (
                 <Button
-                  label={isCheckInDone ? 'Check-in concluído ✓' : 'Check-in do cuidado'}
-                  backgroundColor={isCheckInDone ? colors.success : colors.warning}
+                  label="Fazer check-in do dia"
+                  backgroundColor={colors.warning}
                   textColor={colors.textLight}
                   onPress={handleStartCheckIn}
-                  disabled={isCheckInDone}
                 />
               )}
             </>

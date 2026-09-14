@@ -52,7 +52,6 @@ export function TutorTabs() {
         })}
         options={{
           tabBarLabel: 'Evolucao',
-          unmountOnBlur: true,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'time' : 'time-outline'} size={size} color={color} />
           ),

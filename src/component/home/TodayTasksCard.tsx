@@ -37,7 +37,7 @@ export function TodayTasksCard({ tasks, onToggle, isLocked }: TodayTasksCardProp
           accessibilityRole="checkbox"
           accessibilityState={{ checked: task.done }}
           style={styles.taskRow}
-          disabled={isLocked || task.done}
+          disabled={isLocked}
           onPress={() => onToggle(task.id)}
         >
           <View style={[styles.checkbox, task.done && styles.checkboxDone]}>

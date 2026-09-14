@@ -84,7 +84,7 @@ export function CarePlanScreen({ route }: Props) {
                     {item.title}
                   </Text>
                   <Text style={item.completed ? styles.timelineBodyDone : styles.timelineBody}>
-                    {item.completed ? 'Check-in realizado ✓' : 'Pendente'}
+                    {item.completed ? 'Check-in realizado ✓' : 'Check-in feito'}
                   </Text>
                 </View>
               </View>
