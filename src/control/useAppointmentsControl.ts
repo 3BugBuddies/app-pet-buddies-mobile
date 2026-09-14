@@ -1,5 +1,6 @@
 import { useContext } from 'react';
 import { Alert } from 'react-native';
+import { buildApiErrorMessage } from './apiErrorHelper';
 import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
 import {
@@ -89,9 +90,7 @@ export function useDeleteAppointment() {
       Alert.alert('Sucesso', 'A consulta foi cancelada com sucesso.');
     },
     onError: (error: any) => {
-      const status = error?.response?.status;
-      const detail = error?.response?.data?.message ?? error?.message ?? 'Erro desconhecido';
-      Alert.alert(`Erro ${status ?? ''} ao cancelar`, detail);
+      Alert.alert('Erro ao cancelar consulta', buildApiErrorMessage(error));
     },
   });
 }

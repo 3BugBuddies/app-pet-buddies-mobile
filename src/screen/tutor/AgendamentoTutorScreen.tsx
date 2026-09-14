@@ -2,6 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
@@ -78,15 +79,7 @@ export function AgendamentoTutorScreen({ route }: Props) {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error: any) {
-      const apiMessage =
-        error?.response?.data?.message ||
-        error?.response?.data ||
-        error?.message ||
-        'Erro desconhecido';
-      Alert.alert(
-        'Não foi possível agendar',
-        `Tente novamente ou entre em contato com a clínica.\n\n${apiMessage}`
-      );
+      Alert.alert('Não foi possível agendar', buildApiErrorMessage(error, 'Tente novamente ou entre em contato com a clínica.'));
     }
   };
 

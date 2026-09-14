@@ -1,11 +1,10 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ProgressBarCard } from '../../component/care-plan/ProgressBarCard';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { PlanoTabParamList } from '../navigation/types';
@@ -44,10 +43,16 @@ export function CarePlanScreen({ route }: Props) {
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
-      <LogoHeader size="large" />
-      <View style={styles.header}>
-        <Text style={styles.weekLabel}>{plan.weekLabel}</Text>
-        <Text style={styles.title}>Evolução</Text>
+      <View style={styles.headerCard}>
+        <View style={styles.headerTexts}>
+          <Text style={styles.headerTitle}>Evolucao</Text>
+          <Text style={styles.headerSubtitle}>{plan.weekLabel}</Text>
+        </View>
+        <Image
+          source={require('../../../assets/images/logo-header-principal-trasparente.png')}
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
       </View>
 
       <ScrollView
@@ -93,9 +98,24 @@ export function CarePlanScreen({ route }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  header: { gap: 2, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
-  weekLabel: { fontSize: 15, fontWeight: '600', color: colors.success },
-  title: { fontSize: 34, fontWeight: '700', letterSpacing: -0.5, color: colors.textPrimary },
+  headerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.xs,
+    marginHorizontal: spacing.lg,
+    shadowColor: colors.surfaceDark,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  headerTexts: { flex: 1 },
+  headerTitle: { fontFamily: 'Sora', fontSize: 24, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
+  headerSubtitle: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: colors.success, marginTop: 2 },
+  headerLogo: { width: 80, height: 40 },
   content: { padding: spacing.lg, gap: spacing.md },
   sectionLabel: {
     fontSize: 13,

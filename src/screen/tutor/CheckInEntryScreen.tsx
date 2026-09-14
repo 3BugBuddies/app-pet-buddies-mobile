@@ -2,6 +2,7 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { useNavigation } from '@react-navigation/native';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { NarrativeInput } from '../../component/checkin/NarrativeInput';
@@ -46,7 +47,7 @@ export function CheckInEntryScreen({ route }: Props) {
     } catch (error: any) {
       const msg = error?.response?.status === 409
         ? 'Você já registrou os cuidados deste pet hoje!'
-        : 'Não foi possível analisar o seu relato. Tente novamente.';
+        : buildApiErrorMessage(error, 'Não foi possível analisar o seu relato. Tente novamente.');
       Alert.alert('Aviso', msg);
     }
   };

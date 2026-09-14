@@ -2,6 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { Ionicons } from '@expo/vector-icons';
 
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
@@ -92,11 +93,7 @@ export function PrescricaoScreen({ route }: Props) {
         }))
       );
     } catch (error: any) {
-      const status = error?.response?.status;
-      const detalhe = error?.response?.data
-        ? JSON.stringify(error.response.data, null, 2)
-        : error?.message ?? 'Erro desconhecido';
-      Alert.alert(`Erro ${status ?? ''} ao chamar IA`, detalhe);
+      Alert.alert('Erro ao chamar IA', buildApiErrorMessage(error));
     }
   };
 

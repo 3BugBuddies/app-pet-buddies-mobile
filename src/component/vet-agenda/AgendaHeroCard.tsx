@@ -22,7 +22,7 @@ export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: A
   return (
     <View style={styles.card}>
       <View style={styles.textBlock}>
-        <Text style={styles.label}>Agenda de hoje</Text>
+        <Text style={styles.label}>PET BUDDIES VET</Text>
         <Text style={styles.value}>{remaining} consultas restantes</Text>
         <Text style={styles.sub}>
           {seenCount} atendidas{nextTime ? ` · próxima às ${nextTime}` : ''}

@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { AuthContext } from '../context/authContext';
 import { useCreatePet, usePet, useUpdatePet } from './usePetsControl';
 import { petSchema, ESPECIES, PORTES, SEXOS } from '../model/pet';
+import { buildApiErrorMessage } from './apiErrorHelper';
 
 // Aplica máscara DD/MM/AAAA enquanto o usuário digita
 function aplicarMascaraData(text: string): string {
@@ -126,10 +127,7 @@ export function usePetFormControl(onSuccess: (petId: string) => void, petId?: st
         });
         setErros(errosAtuais);
       } else {
-        Alert.alert(
-          'Tropeçamos na coleira',
-          'Não foi possível salvar as informações no momento. Tente novamente.'
-        );
+        Alert.alert('Erro ao salvar', buildApiErrorMessage(error, 'Não foi possível salvar as informações no momento. Tente novamente.'));
       }
     }
   };

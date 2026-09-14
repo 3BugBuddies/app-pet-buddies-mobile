@@ -1,6 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { ConfirmedFieldsCard, type ConfirmedField } from '../../component/checkin/ConfirmedFieldsCard';
 import { Button } from '../../component/ui/Button';
@@ -22,23 +24,24 @@ export function CheckInConfirmScreen({ route }: Props) {
   // Fallbacks de segurança
   const condicoesSeguras = extracaoResponse.condicoes || [];
   const redFlagsSeguras = extracaoResponse.redFlags || [];
+  const isEscalation = extracaoResponse.degradado || redFlagsSeguras.length > 0;
 
   // Monta os campos de revisão a partir do que a IA extraiu da narrativa
   const fields: ConfirmedField[] = [
     {
       label: 'Estado geral',
-      value: extracaoResponse.degradado ? 'Degradado' : 'Estável',
-      flagged: extracaoResponse.degradado,
+      value: isEscalation ? 'Instável' : 'Estável',
+      flagged: isEscalation,
     },
     {
-      label: 'Condições identificadas',
+      label: 'Sintomas relatados',
       value: condicoesSeguras.length > 0
-        ? `${condicoesSeguras.length} condição(ões) detectada(s)`
-        : 'Nenhuma condição detectada',
+        ? `${condicoesSeguras.length} condição(ões) identificada(s)`
+        : 'Nenhum sintoma específico',
       flagged: false,
     },
     ...redFlagsSeguras.map((flag) => ({
-      label: 'Alerta',
+      label: 'Sinal de alerta',
       value: flag,
       flagged: true,
     })),
@@ -71,7 +74,7 @@ export function CheckInConfirmScreen({ route }: Props) {
     } catch (error: any) {
       const msg = error?.response?.status === 409
         ? 'Você já registrou os cuidados deste pet hoje!'
-        : 'Não foi possível confirmar o check-in. Tente novamente.';
+        : buildApiErrorMessage(error, 'Não foi possível confirmar o check-in. Tente novamente.');
       Alert.alert('Aviso', msg);
     }
   };
@@ -89,20 +92,47 @@ export function CheckInConfirmScreen({ route }: Props) {
 
       <Text style={styles.quote}>"{extracaoResponse.narrativa}"</Text>
 
+      {isEscalation && (
+        <View style={styles.escalationBanner}>
+          <View style={styles.escalationHeader}>
+            <Ionicons name="warning" size={20} color={colors.error} />
+            <Text style={styles.escalationTitle}>Sinal de alerta detectado</Text>
+          </View>
+          <Text style={styles.escalationBody}>
+            Nossa Inteligência Artificial analisou o relato e cruzou com a prescrição do veterinário.
+            {'\n\n'}
+            Foi identificado um sinal que requer atenção. Se você confirmar, o plano de cuidados será
+            <Text style={styles.escalationBold}> interrompido</Text> e você receberá orientação para
+            retornar à clínica.
+          </Text>
+          {redFlagsSeguras.length > 0 && (
+            <View style={styles.flagsList}>
+              {redFlagsSeguras.map((flag, i) => (
+                <View key={i} style={styles.flagRow}>
+                  <View style={styles.flagDot} />
+                  <Text style={styles.flagText}>{flag}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+      )}
+
       <ConfirmedFieldsCard fields={fields} />
 
       <View style={styles.noteRow}>
         <View style={styles.noteDot} />
         <Text style={styles.noteText}>
-          A interpretação é automática. A confirmação é sua — sem ela, nada é registrado nem
-          calculado.
+          {isEscalation
+            ? 'A IA identificou um sinal de alerta na prescrição do veterinário. Confirme somente se o relato estiver correto.'
+            : 'A interpretação é automática. A confirmação é sua — sem ela, nada é registrado nem calculado.'}
         </Text>
       </View>
 
       <View style={styles.actions}>
         <Button
-          label="Confirmo, está certo"
-          backgroundColor={colors.textPrimary}
+          label={isEscalation ? 'Confirmo, foi isso que aconteceu' : 'Confirmo, está certo'}
+          backgroundColor={isEscalation ? colors.error : colors.textPrimary}
           textColor={colors.textLight}
           loading={confirmCheckIn.isPending}
           onPress={handleConfirm}
@@ -171,5 +201,54 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: spacing.md,
     gap: spacing.sm,
+  },
+  escalationBanner: {
+    backgroundColor: '#FFF0F0',
+    borderWidth: 1.5,
+    borderColor: colors.error,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  escalationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  escalationTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.error,
+  },
+  escalationBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    color: colors.textPrimary,
+  },
+  escalationBold: {
+    fontWeight: '700',
+    color: colors.error,
+  },
+  flagsList: {
+    marginTop: spacing.xs,
+    gap: spacing.xs,
+  },
+  flagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  flagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: radii.pill,
+    backgroundColor: colors.error,
+    flexShrink: 0,
+  },
+  flagText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.error,
   },
 });

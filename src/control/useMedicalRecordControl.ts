@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
+import { buildApiErrorMessage } from './apiErrorHelper';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MedicalRecord, medicalRecordSchema } from '../model/medicalRecord';
 import { createRecord, getRecordsByPetId } from '../repository/medicalRecordRepository';
@@ -121,9 +122,7 @@ const useMedicalRecordControl = (
         return;
       }
 
-      // Se for erro da API (backend)
-      const apiMessage = error?.response?.data?.message || error?.response?.data || error?.message || 'Erro desconhecido';
-      Alert.alert('Erro ao salvar', `O servidor recusou o prontuário.\n\nDetalhe: ${apiMessage}`);
+      Alert.alert('Erro ao salvar', buildApiErrorMessage(error));
     },
   });
 

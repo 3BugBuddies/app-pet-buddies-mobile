@@ -1,6 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { HeroCard } from '../../component/pet-profile/HeroCard';
 import { InfoTintCard } from '../../component/pet-profile/InfoTintCard';
 import { StatsRow } from '../../component/pet-profile/StatsRow';
@@ -72,13 +73,7 @@ export function PetProfileScreen({ route }: Props) {
               await deletePet.mutateAsync(petId);
               navigation.navigate('MeusPets');
             } catch (error: any) {
-              const status = error?.response?.status;
-              const msg =
-                error?.response?.data?.message ||
-                JSON.stringify(error?.response?.data) ||
-                error?.message ||
-                'Erro desconhecido';
-              Alert.alert(`Erro ${status ?? ''}`, msg);
+              Alert.alert('Erro ao excluir pet', buildApiErrorMessage(error));
             }
           },
         },

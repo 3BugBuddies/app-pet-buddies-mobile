@@ -37,16 +37,21 @@ const getPetsByResponsavelId = async (responsavelId: string): Promise<Pet[]> => 
 
 const createPet = async (pet: Pet): Promise<Pet> => {
   if (USE_API) {
-    const response = await apiJava.post('/animal', pet);
-    return response.data;
+    // Omite `id` no POST (gerado pelo banco) e converte responsavelId para número
+    // pois o Java deserializa como Long — string causa 400 Bad Request.
+    const { id: _id, ...body } = pet;
+    const payload = { ...body, responsavelId: Number(pet.responsavelId) };
+    const response = await apiJava.post('/animal', payload);
+    return { ...response.data, id: response.data.id?.toString() ?? '' };
   }
   return pet;
 };
 
 const updatePet = async (pet: Pet): Promise<Pet> => {
   if (USE_API) {
-    const response = await apiJava.put(`/animal/${pet.id}`, pet);
-    return response.data;
+    const payload = { ...pet, responsavelId: Number(pet.responsavelId) };
+    const response = await apiJava.put(`/animal/${pet.id}`, payload);
+    return { ...response.data, id: response.data.id?.toString() ?? '' };
   }
   return pet;
 };

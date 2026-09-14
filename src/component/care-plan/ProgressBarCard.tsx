@@ -13,7 +13,7 @@ export function ProgressBarCard({ doneCount, totalCount }: Omit<ProgressBarCardP
     <View style={styles.card}>
       <View style={styles.textBlock}>
         <Text style={styles.label}>
-          {doneCount} de {totalCount} concluídas
+          {doneCount} de {totalCount} concluidas
         </Text>
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${pct}%` }]} />

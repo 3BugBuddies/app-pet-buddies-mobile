@@ -1,5 +1,6 @@
 import { useContext, useState } from 'react';
 import { Alert } from 'react-native';
+import { buildApiErrorMessage } from './apiErrorHelper';
 import { useMutation } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
 import { prescriptionSchema, type NarrativaPrescricaoRequest, type PrescricaoDraft } from '../model/prescription';
@@ -141,12 +142,7 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft) => {
       return prescricaoSalva;
     },
     onError: (error: any) => {
-      const apiMessage =
-        error?.response?.data?.message ||
-        error?.response?.data ||
-        error?.message ||
-        'Erro desconhecido';
-      Alert.alert('Erro ao assinar prescrição', `O servidor recusou a solicitação.\n\nDetalhe: ${apiMessage}`);
+      Alert.alert('Erro ao assinar prescrição', buildApiErrorMessage(error));
     },
   });
 

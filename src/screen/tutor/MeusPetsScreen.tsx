@@ -1,7 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useContext } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../component/ui/Card';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
@@ -28,14 +29,31 @@ export function MeusPetsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, spacing.lg) }]}>
-        <View>
-          <Text style={styles.greeting}>Olá, {session?.nome ?? 'tutor'} 👋</Text>
-          <Text style={styles.subtitle}>Seus pets</Text>
+      <View style={{ paddingTop: Math.max(insets.top, spacing.lg), paddingHorizontal: spacing.lg, paddingBottom: spacing.md }}>
+        <View style={styles.headerCard}>
+          {/* Esquerda — Títulos */}
+          <View style={styles.headerTexts}>
+            <Text style={styles.headerTitle}>Meus Pets</Text>
+            <Image
+              source={require('../../../assets/images/amigos-tranparentes.png')}
+              style={styles.mascote}
+              resizeMode="contain"
+            />
+            <Text style={styles.headerSubtitle}>Seus companheiros</Text>
+          </View>
+
+          {/* Centro — Mascote flutuante */}
+          {/* <Image
+            source={require('../../../assets/images/amigos-tranparentes.png')}
+            style={styles.mascote}
+            resizeMode="contain"
+          /> */}
+
+          {/* Direita — Logout */}
+          <Pressable onPress={sair} style={styles.logoutBtn} accessibilityRole="button" accessibilityLabel="Sair">
+            <Ionicons name="log-out-outline" size={22} color={colors.textSecondary} />
+          </Pressable>
         </View>
-        <Pressable onPress={sair}>
-          <Text style={styles.logout}>Sair</Text>
-        </Pressable>
       </View>
 
       <FlatList
@@ -85,24 +103,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
+  headerCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    overflow: 'hidden',
+    shadowColor: colors.surfaceDark,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+    minHeight: 84,
   },
-  greeting: {
-    ...typography.subtitle,
+  headerTexts: {
+    flex: 1,
+    zIndex: 2,
+  },
+  headerTitle: {
+    fontFamily: 'Sora',
+    fontSize: 20,
+    fontWeight: '700',
     color: colors.textPrimary,
   },
-  subtitle: {
-    ...typography.body,
+  headerSubtitle: {
+    fontFamily: 'Inter',
+    fontSize: 13,
     color: colors.textSecondary,
+    marginTop: 2,
   },
-  logout: {
-    ...typography.body,
-    color: colors.primary,
+  mascote: {
+    position: 'absolute',
+    width: 120,
+    height: 90,
+    alignSelf: 'center',
+    left: '40%',
+    top: -5,
+    zIndex: 1,
+    opacity: 0.95,
+  },
+  logoutBtn: {
+    padding: 4,
+    zIndex: 2,
   },
   listContent: {
     paddingHorizontal: spacing.lg,
