@@ -150,6 +150,15 @@ Com o servidor rodando:
 
 ---
 
+## Perfil teste
+
+| Nome | Senha |
+|------|-----|
+| vet_teste@email.com | 123456 |
+| tutor_teste@email.com | 123456 |
+
+---
+
 ## Observações Técnicas
 
 - **Dados de Score e Badges** são exibidos localmente nesta sprint. Os endpoints `/pontuacao` e `/badges` estão previstos para a Sprint 4 da API Java
