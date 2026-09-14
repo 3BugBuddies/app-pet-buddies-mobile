@@ -44,6 +44,12 @@ export function TutorTabs() {
       <Tab.Screen
         name="PlanoTab"
         component={PlanoTabStack}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('PlanoTab', { screen: 'CarePlan' });
+          },
+        })}
         options={{
           tabBarLabel: 'Evolucao',
           unmountOnBlur: true,
