@@ -22,15 +22,13 @@ const addAuthInterceptor = (instance: ReturnType<typeof axios.create>) => {
         }
       }
     } catch {
-      // sem token — envia a requisição sem cabeçalho de autenticação
     }
     return config;
   });
-};
+}
 
-// .NET é back-office da clínica e não é chamado diretamente pelo app
 const apiJava = axios.create({
-  baseURL: 'http:
+  baseURL: process.env.EXPO_PUBLIC_API_BASE_URL
 });
 addAuthInterceptor(apiJava);
 
