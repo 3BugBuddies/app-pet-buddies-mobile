@@ -131,14 +131,14 @@ export function CheckInConfirmScreen({ route }: Props) {
 
       <View style={styles.actions}>
         <Button
-          label={isEscalation ? 'Confirmo, foi isso que aconteceu' : 'Confirmo, está certo'}
-          backgroundColor={isEscalation ? colors.error : colors.textPrimary}
+          label={isEscalation ? 'Confirmo, foi isso que aconteceu' : 'Confirmo, está tudo correto →'}
+          backgroundColor={isEscalation ? colors.error : colors.action}
           textColor={colors.textLight}
           loading={confirmCheckIn.isPending}
           onPress={handleConfirm}
         />
         <Button
-          label="Reescrever"
+          label="Reescrever Relato"
           variant="secondary"
           onPress={() => navigation.goBack()}
         />
@@ -172,8 +172,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   quote: {
-    backgroundColor: colors.background,
-    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
     padding: spacing.md,
     fontSize: 15,
     lineHeight: 20,
@@ -189,7 +191,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: radii.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.action,
     marginTop: 6,
   },
   noteText: {
@@ -203,7 +205,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   escalationBanner: {
-    backgroundColor: '#FFF0F0',
+    backgroundColor: `${colors.error}15`,
     borderWidth: 1.5,
     borderColor: colors.error,
     borderRadius: radii.lg,

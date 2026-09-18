@@ -6,6 +6,7 @@ import { DoseTrack } from '../../component/checkin/DoseTrack';
 import { Button } from '../../component/ui/Button';
 import { useEscalationPreview } from '../../control/useCheckInControl';
 import type { PlanoTabParamList } from '../navigation/types';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 import { parseDoseRange } from '../../model/careRules';
@@ -49,36 +50,63 @@ export function CheckInResultScreen({ route }: Props) {
     navigation.navigate('CheckInEscalation', { petId, result: preview });
   };
 
+  const isLongText = safeDoseLabel.length > 8;
+  const hasRange = range.max > range.min && range.min > 0;
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
-      <CheckInTopBar title="Dose de hoje" subtitle={safeDoseRangeLabel} stepLabel="3 / 3" />
+      <CheckInTopBar title="Resultado do Check-in" subtitle={safeDoseRangeLabel} stepLabel="3 / 3" />
 
+      {/* Card de Dose / Orientação */}
       <View style={styles.doseCard}>
-        <Text style={styles.doseLabel}>Dose de hoje</Text>
-        <View style={styles.doseRow}>
-          <Text style={styles.doseValue}>{safeDoseLabel}</Text>
-          <Text style={styles.doseRange}>da faixa {safeDoseRangeLabel}</Text>
+        <View style={styles.cardHeaderRow}>
+          <Text style={styles.doseLabel}>DOSE DE HOJE</Text>
+          {safePoints > 0 && (
+            <View style={styles.pointsBadge}>
+              <Text style={styles.pointsBadgeText}>+{safePoints} pts 🏆</Text>
+            </View>
+          )}
         </View>
-        <DoseTrack
-          minLabel={`${range.min} ${range.unit} · menor`}
-          maxLabel={`${range.max} ${range.unit} · maior`}
-          fillPct={Math.max(0, Math.min(100, fillPct))}
-        />
+
+        <View style={styles.doseRow}>
+          <Text style={[styles.doseValue, isLongText && styles.doseValueLong]} numberOfLines={2}>
+            {safeDoseLabel}
+          </Text>
+        </View>
+
+        {hasRange ? (
+          <>
+            <Text style={styles.doseRange}>Faixa recomendada: {safeDoseRangeLabel}</Text>
+            <DoseTrack
+              minLabel={`${range.min} ${range.unit} (Mínima)`}
+              maxLabel={`${range.max} ${range.unit} (Máxima)`}
+              fillPct={Math.max(0, Math.min(100, fillPct))}
+            />
+          </>
+        ) : (
+          <View style={styles.normalStatusBox}>
+            <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
+            <Text style={styles.normalStatusText}>Orientação padrão Mantida. Tudo sob controle!</Text>
+          </View>
+        )}
       </View>
 
+      {/* Card da Regra da Prescrição */}
       <View style={styles.ruleCard}>
-        <Text style={styles.ruleLabel}>Regra da prescrição</Text>
-        <Text style={styles.ruleCode}>{result.ruleDescription}</Text>
-        <Text style={styles.ruleMeta}>{result.ruleConfirmedAtLabel}</Text>
+        <Text style={styles.ruleLabel}>Regra da prescrição ativa</Text>
+        <Text style={styles.ruleCode}>{result.ruleDescription || 'Orientação padrão sem alteração de dosagem'}</Text>
+        {result.ruleConfirmedAtLabel ? <Text style={styles.ruleMeta}>{result.ruleConfirmedAtLabel}</Text> : null}
+        
         <View style={styles.ruleDivider} />
+        
         <View style={styles.vetRow}>
           <View style={styles.vetAvatar}>
             <Text style={styles.vetAvatarText}>{vetInitial}</Text>
           </View>
-          <View>
+          <View style={styles.vetInfo}>
             <Text style={styles.vetName}>{safeVetName}</Text>
             <Text style={styles.vetCrmv}>
-              {result.vetCrmv} · prescrição de {result.prescriptionDateLabel}
+              {result.vetCrmv ? `${result.vetCrmv} · ` : ''}Prescrito em {result.prescriptionDateLabel || 'Atendimento recente'}
             </Text>
           </View>
         </View>
@@ -86,8 +114,8 @@ export function CheckInResultScreen({ route }: Props) {
 
       <View style={styles.actions}>
         <Button
-          backgroundColor={colors.warning}
-          label="Entendi, voltar para Home"
+          backgroundColor={colors.action}
+          label="Concluir Check-in e Ir para Home"
           onPress={handleFinish}
           textColor={colors.textLight}
         />
@@ -120,12 +148,28 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.sm,
   },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  pointsBadge: {
+    backgroundColor: `${colors.action}1A`,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+  },
+  pointsBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.action,
+  },
   doseLabel: {
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    color: colors.warning,
+    color: colors.action,
   },
   doseRow: {
     flexDirection: 'row',
@@ -133,14 +177,37 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   doseValue: {
-    fontSize: 56,
+    fontSize: 42,
     fontWeight: '700',
-    letterSpacing: -1.5,
+    letterSpacing: -1,
     color: colors.textPrimary,
+  },
+  doseValueLong: {
+    fontSize: 26,
+    letterSpacing: -0.5,
+    lineHeight: 32,
   },
   doseRange: {
     fontSize: 15,
     color: colors.textSecondary,
+  },
+  normalStatusBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: `${colors.success}15`,
+    padding: spacing.md,
+    borderRadius: radii.md,
+    marginTop: spacing.xs,
+  },
+  normalStatusText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  vetInfo: {
+    flex: 1,
   },
   ruleCard: {
     backgroundColor: colors.cardChia,
@@ -153,7 +220,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   ruleCode: {
     fontFamily: 'monospace',
@@ -183,7 +250,7 @@ const styles = StyleSheet.create({
   },
   vetAvatarText: {
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   vetName: {
     fontSize: 15,

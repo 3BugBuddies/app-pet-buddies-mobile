@@ -409,9 +409,9 @@ const styles = StyleSheet.create({
     color: colors.success,
   },
   flashContainer: {
-    backgroundColor: '#FEF9C3', // light yellow background
+    backgroundColor: colors.cardAlert,
     borderWidth: 1,
-    borderColor: '#FDE047',
+    borderColor: colors.warning,
     borderRadius: radii.lg,
     padding: spacing.md,
     gap: spacing.sm,
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
   flashTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#854D0E',
+    color: colors.warning,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -438,9 +438,9 @@ const styles = StyleSheet.create({
   },
   flashTile: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: '#FEF08A',
+    borderColor: colors.border,
     borderRadius: radii.sm,
     padding: spacing.sm,
     gap: 2,
@@ -504,12 +504,12 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: radii.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.secondary,
   },
   timelineLine: {
     flex: 1,
     width: 2,
-    backgroundColor: colors.borderStrong,
+    backgroundColor: colors.secondary,
   },
   timelineCard: {
     flex: 1,
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   timelineDate: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   timelineTitle: {
     fontSize: 16,

@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   row: {
     flexDirection: 'row',

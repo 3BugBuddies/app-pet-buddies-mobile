@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   },
   registerText: {
     ...typography.body,
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   eyeIcon: {
     fontSize: 18,

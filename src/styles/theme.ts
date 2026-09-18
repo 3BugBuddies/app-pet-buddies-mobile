@@ -27,45 +27,65 @@ export const primitiveColors = {
   black: '#000000',
 };
 
-import { Appearance } from 'react-native';
-
-const isDark = Appearance.getColorScheme() === 'dark';
+/*
+ * Paleta Dark Mode (Preservada para implementação futura):
+ * const darkPalette = {
+ *   azulPrimario: '#253C96',
+ *   laranjaDestaque: '#FF8A1E',
+ *   azulClaroApoio: '#74B6FF',
+ *   estrelaDourada: '#F7C85A',
+ *   fundoApp: '#0F1424',
+ *   fundoSecundario: '#151C31',
+ *   cardSurface: '#1B2440',
+ *   bordaSutil: '#2B3558',
+ *   overlaySuave: '#0A0F1DCC',
+ *   textoPrimario: '#F6F8FF',
+ *   textoSecundario: '#B7C2E3',
+ *   textoTerciario: '#8A95B8',
+ *   textoDesabilitado: '#626D90',
+ *   sucesso: '#38C793',
+ *   aviso: '#F7C85A',
+ *   erro: '#FF6B6B',
+ *   informacao: '#5AA9FF',
+ * };
+ */
 
 /**
- * 2. PALETA SEMÂNTICA & TOKENS DE DESIGN (Com suporte a Dark Mode)
+ * 2. PALETA SEMÂNTICA & TOKENS DE DESIGN (Modo Claro)
  */
 export const colors = {
   // Fundo e Superfícies
-  background: isDark ? primitiveColors.pbAzulMarinho : primitiveColors.pbCreme, 
-  surface: isDark ? primitiveColors.gray800 : primitiveColors.white,            
+  background: primitiveColors.pbCreme, 
+  surface: primitiveColors.white,            
   surfaceDark: primitiveColors.pbAzulMarinho,     
 
   // Identidade Principal
-  primary: isDark ? primitiveColors.pbCreme : primitiveColors.pbAzulMarinho,
-  secondary: isDark ? primitiveColors.tsSky : primitiveColors.tsElectric,
+  primary: primitiveColors.pbAzulMarinho,
+  secondary: primitiveColors.tsElectric,
   action: primitiveColors.pbLaranja,          
   accent: primitiveColors.pbAmarelo,          
 
   // Textos (Acessibilidade/Contraste)
-  textPrimary: isDark ? primitiveColors.white : primitiveColors.pbAzulMarinho,   
-  textSecondary: isDark ? primitiveColors.gray300 : primitiveColors.gray500,    
-  textMuted: isDark ? primitiveColors.gray500 : primitiveColors.gray400,        
+  textPrimary: primitiveColors.pbAzulMarinho,   
+  textSecondary: primitiveColors.gray500,    
+  textMuted: primitiveColors.gray400,        
   textLight: primitiveColors.white,          
 
   // Estrutura
-  border: isDark ? primitiveColors.gray500 : primitiveColors.gray200,           
-  borderStrong: isDark ? primitiveColors.gray400 : primitiveColors.gray300,   
+  border: primitiveColors.gray200,           
+  borderStrong: primitiveColors.gray300,   
 
-  // Status e Feedbacks (Usando a vibração da Tarsila)
-  success: primitiveColors.tsNeon, // O Neon da Tarsila é perfeito para sucesso/check
+  // Status e Feedbacks
+  success: primitiveColors.tsNeon, 
   error: '#EF4444',
   warning: primitiveColors.tsTangerine,
 
-  cardHome: primitiveColors.pbLaranja, // Cartões Home (Plano, Agenda, Pet)
-  cardProgress: primitiveColors.pbAmarelo, // Cartão Progresso (Plano Vivo)
-  cardProtocol: primitiveColors.tsSky, // Cartão Protocolos (Agenda)
+  // UI Específica
+  cardHome: primitiveColors.pbLaranja, 
+  cardProgress: primitiveColors.pbAmarelo, 
+  cardProtocol: primitiveColors.tsSky, 
 
-  // Cartões Bento UI (Aplicando transparência de ~15% = '26' no HEX para UX suave)
+  // Cartões Bento UI (~15% de opacidade)
   cardMax: `${primitiveColors.pbAmarelo}26`,       
   cardChia: `${primitiveColors.pbAzulCeu}26`,      
   cardAlert: `${primitiveColors.tsTangerine}26`,   

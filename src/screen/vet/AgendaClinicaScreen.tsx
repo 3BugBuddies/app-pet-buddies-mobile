@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   row: {
     flexDirection: 'row',
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontSize: 14,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   walkInButton: {
     backgroundColor: colors.primary,

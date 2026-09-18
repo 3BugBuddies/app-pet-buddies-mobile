@@ -198,13 +198,20 @@ export function HomeTutorScreen() {
                 onToggle={(id) => toggleTask.mutate(id)}
                 isLocked={isCheckInDone}
               />
-              {tasks.length > 0 && !isCheckInDone && (
+              {!isCheckInDone ? (
                 <Button
-                  label="Fazer check-in do dia"
-                  backgroundColor={colors.warning}
+                  label={`Fazer Check-in do ${activePet.nome} →`}
+                  backgroundColor={colors.action}
                   textColor={colors.textLight}
                   onPress={handleStartCheckIn}
                 />
+              ) : (
+                <View style={styles.completedBadgeBox}>
+                  <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+                  <Text style={styles.completedBadgeText}>
+                    Check-in de hoje concluído! 🔥 5 dias seguidos de cuidado com {activePet.nome}
+                  </Text>
+                </View>
               )}
             </>
           ) : (
@@ -354,7 +361,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
     marginTop: spacing.sm,
   },
   // Context Selector styles
@@ -392,7 +399,7 @@ const styles = StyleSheet.create({
   petSelectorAvatarText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   petSelectorAvatarTextActive: {
     color: colors.textLight,
@@ -404,5 +411,23 @@ const styles = StyleSheet.create({
   },
   petSelectorNameActive: {
     color: colors.textLight,
+  },
+  completedBadgeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: `${colors.success}15`,
+    borderWidth: 1,
+    borderColor: `${colors.success}40`,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginTop: spacing.xs,
+  },
+  completedBadgeText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textPrimary,
+    lineHeight: 20,
   },
 });

@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   row: {
     flexDirection: 'row',
@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 12,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   timeText: {
     fontSize: 12,
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontWeight: '700',
     fontSize: 15,
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   avatarTextSeen: {
     color: colors.textMuted,

@@ -133,5 +133,5 @@ const styles = StyleSheet.create({
   buttonSpacing: { marginTop: spacing.sm },
   apiError: { ...typography.caption, color: colors.error, marginBottom: spacing.sm },
   loginLink: { marginTop: spacing.lg, alignItems: 'center' },
-  loginText: { ...typography.body, color: colors.primary, fontWeight: 'bold' },
+  loginText: { ...typography.body, color: colors.textPrimary, fontWeight: 'bold' },
 });

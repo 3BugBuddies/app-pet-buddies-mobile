@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   newOrientation: {
     marginTop: spacing.sm,

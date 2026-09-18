@@ -64,7 +64,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
           {draft.medicamento} · {draft.doseMin}–{draft.doseMax} {draft.unidade}
         </Text>
         <Text style={styles.subtitle}>
-          {draft.frequenciaDia}×/dia · {draft.duracaoDias} dias · {draft.regras.length} regra(s) condicional(is)
+          {draft.frequenciaDia}×/dia · {draft.duracaoDias} dias · {(draft.regras?.length ?? 0)} regra(s) condicional(is)
         </Text>
       </View>
 
@@ -75,10 +75,10 @@ export function AssinarPrescricaoScreen({ route }: Props) {
         </View>
       ) : null}
 
-      {draft.regras.length > 0 ? (
+      {(draft.regras?.length ?? 0) > 0 ? (
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Regras condicionais</Text>
-          {draft.regras.map((regra, index) => (
+          {(draft.regras ?? []).map((regra, index) => (
             <View key={`${regra.condicaoClinicaId}-${index}`}>
               <View style={styles.ruleRow}>
                 <View style={styles.ruleDot} />
@@ -86,7 +86,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
                   {regra.rotuloCongelado.toLowerCase()} → {regra.acao.replace(/_/g, ' ').toLowerCase()}
                 </Text>
               </View>
-              {index < draft.regras.length - 1 ? <View style={styles.divider} /> : null}
+              {index < (draft.regras?.length ?? 0) - 1 ? <View style={styles.divider} /> : null}
             </View>
           ))}
         </View>
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   },
   signAvatarText: {
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   signInfo: {
     flex: 1,

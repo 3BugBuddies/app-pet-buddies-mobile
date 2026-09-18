@@ -75,7 +75,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   noticeTitle: {
     fontSize: 22,

@@ -16,7 +16,7 @@ export function VetTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.secondary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: [styles.tabBar, { bottom: Math.max(insets.bottom, 16) }],
         tabBarItemStyle: styles.tabItem,

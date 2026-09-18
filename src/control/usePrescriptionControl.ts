@@ -1,7 +1,7 @@
 import { useContext, useState } from 'react';
 import { Alert } from 'react-native';
 import { buildApiErrorMessage } from './apiErrorHelper';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
 import { prescriptionSchema, type NarrativaPrescricaoRequest, type PrescricaoDraft } from '../model/prescription';
 import { CONDICOES_CLINICAS, TP_ACAO, type RegraDraft } from '../model/prescriptionRule';
@@ -103,11 +103,18 @@ const useNovaRegraControl = () => {
 // aqui, na assinatura.
 const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, consultaId: string) => {
   const { session } = useContext(AuthContext);
+  const queryClient = useQueryClient();
+
+  const toNumericId = (val: any) => {
+    if (val === null || val === undefined) return undefined;
+    const n = Number(val);
+    return isNaN(n) ? undefined : n;
+  };
 
   const assinarMutation = useMutation({
     mutationFn: async () => {
       let regId: string | number | undefined =
-        draft.registroAtendimentoId && !String(draft.registroAtendimentoId).startsWith('rec-')
+        draft?.registroAtendimentoId && !String(draft.registroAtendimentoId).startsWith('rec-')
           ? draft.registroAtendimentoId
           : prontuario?.id && !String(prontuario.id).startsWith('rec-')
           ? prontuario.id
@@ -116,7 +123,7 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, co
       let activeConsultaId: string | number | undefined =
         consultaId || prontuario?.consultaId || undefined;
 
-      if (!regId) {
+      if (!regId && draft?.animalId) {
         try {
           const { getRecordsByPetId } = await import('../repository/medicalRecordRepository');
           const records = await getRecordsByPetId(draft.animalId);
@@ -132,7 +139,7 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, co
       }
 
       // Se ainda não temos consultaId associada ao animal:
-      if (!activeConsultaId) {
+      if (!activeConsultaId && draft?.animalId) {
         try {
           const { getAllAppointments } = await import('../repository/appointmentRepository');
           const appts = await getAllAppointments(draft.animalId);
@@ -148,19 +155,23 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, co
         }
       }
 
+      const vetIdVal = session?.veterinarioId
+        ? String(session.veterinarioId)
+        : (session?.usuarioId ? String(session.usuarioId) : 'vet-1');
+
       const prescricao = await prescriptionSchema.validate(
         {
           id: null,
-          medicamento: draft.medicamento,
-          doseMin: draft.doseMin,
-          doseMax: draft.doseMax,
-          unidade: draft.unidade,
-          frequenciaDia: draft.frequenciaDia,
-          duracaoDias: draft.duracaoDias,
+          medicamento: draft?.medicamento || 'Medicamento',
+          doseMin: draft?.doseMin ?? 1,
+          doseMax: draft?.doseMax ?? (draft?.doseMin ?? 1),
+          unidade: draft?.unidade || 'mg',
+          frequenciaDia: draft?.frequenciaDia ?? 1,
+          duracaoDias: draft?.duracaoDias ?? 7,
           dataInicio: hojeIso(),
-          orientacao: draft.orientacao || undefined,
-          animalId: draft.animalId,
-          veterinarioId: session?.veterinarioId ? String(session.veterinarioId) : (session?.usuarioId ?? ''),
+          orientacao: draft?.orientacao || undefined,
+          animalId: String(draft?.animalId || '1'),
+          veterinarioId: vetIdVal,
           registroAtendimentoId: regId && !String(regId).startsWith('rec-') ? String(regId) : null,
           materialOrigemId: null,
           versaoOrigem: null,
@@ -169,13 +180,12 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, co
       );
 
       // Constrói o payload atômico com IDs estruturados
-      // Não exigimos regId preexistente, pois o fechamento da consulta cria tudo numa transação.
       const payload = {
         registroAtendimento: {
           ...(prontuario || {}),
-          id: regId && !String(regId).startsWith('rec-') ? Number(regId) : undefined,
-          animalId: Number(draft.animalId),
-          consultaId: activeConsultaId ? Number(activeConsultaId) : undefined,
+          id: toNumericId(regId),
+          animalId: toNumericId(draft?.animalId) ?? 1,
+          consultaId: toNumericId(activeConsultaId),
           dataAtendimento: prontuario?.dataAtendimento || new Date().toISOString().slice(0, 10),
           diagnostico: prontuario?.diagnostico || 'Atendimento Clínico',
           tratamento: prontuario?.tratamento || 'Vide prescrição estruturada',
@@ -183,8 +193,8 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, co
         prescricoes: [
           {
             ...prescricao,
-            registroAtendimentoId: regId && !String(regId).startsWith('rec-') ? Number(regId) : undefined,
-            regrasCondicionais: draft.regras.map((regra, indice) => ({
+            registroAtendimentoId: toNumericId(regId),
+            regrasCondicionais: (draft?.regras || []).map((regra, indice) => ({
               condicaoClinicaId: regra.condicaoClinicaId,
               rotuloCongelado: regra.rotuloCongelado,
               acaoDose: regra.acao,
@@ -203,7 +213,7 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, co
           await fecharAtendimento(String(activeConsultaId), payload);
           assinado = true;
         } catch (fechamentoErr) {
-          console.warn('[useAssinarPrescricaoControl] fecharAtendimento falhou, executando fallback com createPrescription:', fechamentoErr);
+          console.warn('[useAssinarPrescricaoControl] fecharAtendimento falhou, executando fallback:', fechamentoErr);
         }
       }
 
@@ -213,7 +223,7 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, co
           const { createPrescription } = await import('../repository/prescriptionRepository');
           const { createRule } = await import('../repository/prescriptionRuleRepository');
           const prescricaoSalva = await createPrescription(prescricao);
-          for (const [indice, regra] of draft.regras.entries()) {
+          for (const [indice, regra] of (draft?.regras || []).entries()) {
             try {
               await createRule({
                 id: null,
@@ -239,6 +249,20 @@ const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, co
           assinado = true;
         }
       }
+
+      // Atualiza também fake local de consulta para 'COMPLETED' se houver
+      if (activeConsultaId) {
+        try {
+          const { updateFakeAppointment } = await import('../repository/fakeData');
+          updateFakeAppointment(String(activeConsultaId), { status: 'COMPLETED' } as any);
+        } catch {}
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['prontuario'] });
+      queryClient.invalidateQueries({ queryKey: ['prescricao'] });
+      queryClient.invalidateQueries({ queryKey: ['pets'] });
     },
     onError: (error: any) => {
       Alert.alert('Erro ao assinar prescrição', buildApiErrorMessage(error));

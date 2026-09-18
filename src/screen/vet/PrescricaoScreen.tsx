@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
   startRecordingButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   recordingActiveContainer: {
     flexDirection: 'row',
@@ -871,7 +871,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   regraArrow: {
-    color: colors.primary,
+    color: colors.textPrimary,
     fontWeight: '700',
   },
   removerText: {

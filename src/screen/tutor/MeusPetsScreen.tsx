@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   },
   petAvatarLetter: {
     ...typography.title,
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   petName: {
     ...typography.subtitle,
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
   },
   retryText: {
     ...typography.body,
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   emptyText: {
     ...typography.body,

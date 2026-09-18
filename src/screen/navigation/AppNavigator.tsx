@@ -1,6 +1,6 @@
 import { useContext, useEffect } from 'react';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
-import { Appearance, ActivityIndicator, StyleSheet, View } from 'react-native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AuthContext } from '../../context/authContext';
 import { useSessionBootstrap } from '../../control/authControl';
 import { AuthStack } from './AuthStack';
@@ -30,7 +30,7 @@ export function AppNavigator() {
   }
 
   return (
-    <NavigationContainer theme={Appearance.getColorScheme() === 'dark' ? DarkTheme : DefaultTheme}>
+    <NavigationContainer theme={DefaultTheme}>
       {!session ? <AuthStack /> : session.perfil === 'VET' ? <VetTabs /> : <TutorTabs />}
     </NavigationContainer>
   );

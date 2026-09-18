@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora',
     fontSize: 40,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   infoBlock: {
     alignItems: 'center',

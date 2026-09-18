@@ -50,7 +50,7 @@ const getAllAppointments = async (
     }));
   }
   const all = getFakeAppointments();
-  if (petId) return all.filter((a) => a.petId === String(petId));
+  if (animalId) return all.filter((a) => a.petId === String(animalId));
   return all;
 };
 

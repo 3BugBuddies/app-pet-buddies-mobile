@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   petAvatarText: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   petAvatarTextActive: {
     color: colors.textLight,
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   motivoTagText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   diasRow: {
     gap: spacing.sm,

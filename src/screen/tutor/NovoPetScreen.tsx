@@ -426,7 +426,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   sexoTextActive: {
-    color: colors.primary,
+    color: colors.textPrimary,
   },
 
   // Porte
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   porteLabelActive: {
-    color: colors.primary,
+    color: colors.textPrimary,
   },
 
   // Half row (Peso + DataNascimento)

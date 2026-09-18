@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     fontSize: 14,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   tintRow: {
     flexDirection: 'row',
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
   recordDate: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   recordTitle: {
     fontSize: 16,

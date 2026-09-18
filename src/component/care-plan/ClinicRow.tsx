@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
   iconText: {
     fontWeight: '700',
     fontSize: 13,
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   textBlock: {
     flex: 1,
@@ -70,6 +70,6 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
 });

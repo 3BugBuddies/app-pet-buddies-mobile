@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   title: {
     fontSize: 26,

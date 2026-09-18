@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   skip: {
     ...typography.body,
-    color: colors.primary,
+    color: colors.textPrimary,
     fontWeight: '800',
   },
   heroBlob: {
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   },
   loginText: {
     ...typography.body,
-    color: colors.primary,
+    color: colors.textPrimary,
     fontWeight: '700',
   },
   footer: {

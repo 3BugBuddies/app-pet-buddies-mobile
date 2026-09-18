@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora',
     fontSize: 14,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   logoutBtn: {
     padding: 4,
