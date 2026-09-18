@@ -80,7 +80,6 @@ interface ResolveCheckInParams {
 //
 // Persistência (hoje/2 dias/48h/3+) é só metadado exibido na regra; não é
 // aplicada aqui, pois exigiria histórico do sinal ao longo de vários
-// check-ins, que este mock não mantém.
 export function resolveCheckIn({
   prescription,
   signals,

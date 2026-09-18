@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { confirmCheckIn, extractCheckIn, getEscalationPreview } from '../repository/careRepository';
-import type { CheckInExtracaoRequest, CheckInRequest } from '../model/care';
+import type { CheckinExtracaoRequest, CheckInRequest } from '../model/care';
 
 export function useExtractCheckIn() {
   return useMutation({
-    mutationFn: (data: CheckInExtracaoRequest) => extractCheckIn(data),
+    mutationFn: (data: CheckinExtracaoRequest) => extractCheckIn(data),
   });
 }
 

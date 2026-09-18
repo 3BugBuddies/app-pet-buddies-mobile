@@ -18,7 +18,6 @@ export function CheckInResultScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const escalationPreview = useEscalationPreview();
 
-  // Fallbacks de segurança absolutos para evitar "undefined" ou "NaN" quebrando a UI
   const safeVetName = result.vetName || 'Clínica Veterinária';
   const safeDoseRangeLabel = result.doseRangeLabel || 'Dose padrão';
   const safeDoseLabel = result.doseLabel || 'Dose recomendada';

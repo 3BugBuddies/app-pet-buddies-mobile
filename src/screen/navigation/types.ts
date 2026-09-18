@@ -25,11 +25,11 @@ export type HomeTabParamList = {
 
 export type PlanoTabParamList = {
   CarePlan: { petId?: string } | undefined;
-  CheckInEntry: { petId: string };
-  CheckInConfirm: { petId: string; extracaoResponse: CheckinExtracaoResponse };
-  CheckInResult: { petId: string; result: CheckInDoseResult };
-  CheckInEscalation: { petId: string; result: CheckInEscalationResult };
-  CheckInNoRule: { petId: string; result: CheckInNoRuleResult; narrative: string };
+  CheckInEntry: { petId: string; itemPlanoCuidadoId?: number };
+  CheckInConfirm: { petId: string; extracaoResponse: CheckinExtracaoResponse; itemPlanoCuidadoId?: number };
+  CheckInResult: { petId: string; result: CheckInDoseResult; itemPlanoCuidadoId?: number };
+  CheckInEscalation: { petId: string; result: CheckInEscalationResult; itemPlanoCuidadoId?: number };
+  CheckInNoRule: { petId: string; result: CheckInNoRuleResult; narrative: string; itemPlanoCuidadoId?: number };
   AssistantNotice: { petId: string };
 };
 
@@ -61,15 +61,14 @@ export type HojeTabParamList = {
 
 export type PacientesTabParamList = {
   Pacientes: undefined;
-  DetalhesPet: { petId: string };
-  ProntuarioForm: { petId: string };
+  DetalhesPet: { petId: string; consultaId?: string };
+  ProntuarioForm: { petId: string; consultaId?: string };
   PlanoPaciente: { petId: string };
   // Tunel do veterinario (Fase 4): Prescricao <-> NovaRegra -> AssinarPrescricao.
-  // novaRegra viaja de volta via merge params para que o vet possa adicionar
-  // múltiplas regras antes de assinar.
-  Prescricao: { animalId: string; registroAtendimentoId: string; novaRegra?: RegraDraft };
-  NovaRegra: { animalId: string; registroAtendimentoId: string };
-  AssinarPrescricao: { draft: PrescricaoDraft };
+  Prescricao: { animalId: string; consultaId: string; prontuario: any; novaRegra?: RegraDraft };
+  NovaRegra: { animalId: string; consultaId: string; prontuario: any };
+  AssinarPrescricao: { draft: PrescricaoDraft; consultaId: string; prontuario: any };
+  CheckoutAtendimento: { petName: string; resumoPrescricao: string };
 };
 
 

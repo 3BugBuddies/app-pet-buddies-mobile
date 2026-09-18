@@ -60,13 +60,17 @@ function calcIdadeLabel(dataNascimento?: string | null): string {
 }
 
 export function DetalhesPetScreen({ route }: Props) {
-  const { petId } = route.params;
+  const { petId, consultaId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
   const { data: profile } = usePetProfileDetails(petId);
   const { data: patients } = usePatients();
-  const tutorName = patients?.find((p) => p.petId === petId)?.tutorName;
+  const patientData = patients?.find((p) => p.petId === petId);
+  const tutorName = patientData?.tutorName || 'N/A';
+  const tutorAddress = patientData?.endereco;
+  const tutorPhone = patientData?.telefone;
+
   const { data: procedimentos, isLoading: isLoadingProcedimentos } = useProcedures(petId);
   const { registros: records, carregandoRegistros: isLoadingRecords } = useMedicalRecordControl(petId);
   const { data: appointments, isLoading: isLoadingAppts } = useAppointments(petId);
@@ -97,6 +101,18 @@ export function DetalhesPetScreen({ route }: Props) {
         },
       ]
     );
+  };
+
+  const handleOpenMaps = () => {
+    if (!tutorAddress) return;
+    import('react-native').then(({ Linking, Platform }) => {
+      const url = Platform.select({
+        ios: `maps://app?daddr=${encodeURIComponent(tutorAddress)}`,
+        android: `google.navigation:q=${encodeURIComponent(tutorAddress)}`,
+        default: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tutorAddress)}`,
+      });
+      Linking.openURL(url as string);
+    });
   };
 
   const vaccinesList = useMemo((): PetVaccine[] => {
@@ -134,42 +150,64 @@ export function DetalhesPetScreen({ route }: Props) {
   const idadeLabel = calcIdadeLabel(pet.dataNascimento);
   const castradoLabel = pet.castrado ? 'Sim' : 'Não';
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{pet.nome.charAt(0).toUpperCase()}</Text>
+        <View style={styles.heroTopRow}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{pet.nome.charAt(0).toUpperCase()}</Text>
+          </View>
+          <View style={styles.heroText}>
+            <Text style={styles.name}>{pet.nome}</Text>
+            <Text style={styles.detail}>
+              {`${pet.raca || pet.especie} · ${pet.sexo}`}
+            </Text>
+            <Text style={styles.detail}>
+              {`Tutor: ${tutorName} ${tutorPhone ? `· ${tutorPhone}` : ''}`}
+            </Text>
+          </View>
         </View>
-        <View style={styles.heroText}>
-          <Text style={styles.name}>{pet.nome}</Text>
-          <Text style={styles.detail}>
-            {`ID: ${pet.id} · ${pet.raca || pet.especie} · ${pet.sexo}`}
-          </Text>
-          <Text style={styles.detail}>
-            {`Tutor: ${tutorName || 'N/A'}`}
-          </Text>
-        </View>
-        {profile ? (
-          <View style={styles.weekTag}>
-            <Text style={styles.weekTagText}>{profile.planStatusLabel}</Text>
+
+        {tutorAddress ? (
+          <View style={styles.addressBox}>
+            <Text style={styles.addressLabel}>📍 Endereço do Tutor</Text>
+            <Text style={styles.addressText}>{tutorAddress}</Text>
+            <Button
+              variant="secondary"
+              label="Abrir Rota (Maps / Waze)"
+              onPress={handleOpenMaps}
+              style={styles.mapsButton}
+            />
           </View>
         ) : null}
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statTile}>
-          <Text style={styles.statLabel}>Idade</Text>
-          <Text style={styles.statValue}>{idadeLabel}</Text>
+      <View style={styles.flashContainer}>
+        <View style={styles.flashHeader}>
+          <Text style={styles.flashIcon}>⚡</Text>
+          <Text style={styles.flashTitle}>Resumo Rápido (Flash Histórico)</Text>
         </View>
-        <View style={styles.statTile}>
-          <Text style={styles.statLabel}>Castrado</Text>
-          <Text style={styles.statValue}>{castradoLabel}</Text>
+        
+        <View style={styles.flashRow}>
+          <View style={styles.flashTile}>
+            <Text style={styles.flashTileLabel} numberOfLines={1}>⚖️ Peso Atual</Text>
+            <Text style={styles.flashTileValue} numberOfLines={1} adjustsFontSizeToFit>{pesoLabel || '—'}</Text>
+            <Text style={styles.flashTileSub} numberOfLines={1}>há 2 meses</Text>
+          </View>
+          
+          <View style={styles.flashTile}>
+            <Text style={styles.flashTileLabel} numberOfLines={1}>💉 Vacina</Text>
+            <Text style={[styles.flashTileValue, { color: '#B91C1C' }]} numberOfLines={1} adjustsFontSizeToFit>V10 Vence</Text>
+            <Text style={[styles.flashTileSub, { color: '#B91C1C', fontWeight: '600' }]} numberOfLines={1}>em 15 dias!</Text>
+          </View>
+
+          <View style={styles.flashTile}>
+            <Text style={styles.flashTileLabel} numberOfLines={1}>🩺 Último Atend.</Text>
+            <Text style={styles.flashTileValue} numberOfLines={1} adjustsFontSizeToFit>
+              {records && records.length > 0 ? records[0].diagnostico : 'Consulta'}
+            </Text>
+            <Text style={styles.flashTileSub} numberOfLines={1}>há 3 meses</Text>
+          </View>
         </View>
-        {/* Sprint 4: reativar Adesão quando a API fornecer a métrica
-        <View style={styles.statTile}>
-          <Text style={[styles.statValue, styles.statValueSuccess]}>—</Text>
-          <Text style={styles.statLabel}>Adesão</Text>
-        </View>
-        */}
       </View>
 
       <View style={styles.tabs}>
@@ -279,7 +317,7 @@ export function DetalhesPetScreen({ route }: Props) {
         />
         <Button
           label="Atendimento"
-          onPress={() => navigation.navigate('ProntuarioForm', { petId })}
+          onPress={() => navigation.navigate('ProntuarioForm', { petId, consultaId })}
           style={{ flex: 1 }}
         />
       </View>
@@ -303,6 +341,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.lg,
     padding: spacing.lg,
+    gap: spacing.md,
+  },
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -333,6 +374,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
+  addressBox: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: spacing.xs,
+  },
+  addressLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  addressText: {
+    fontSize: 14,
+    color: colors.textPrimary,
+    lineHeight: 20,
+    marginBottom: spacing.xs,
+  },
+  mapsButton: {
+    minHeight: 40,
+  },
   weekTag: {
     alignSelf: 'flex-start',
     paddingHorizontal: spacing.sm,
@@ -345,30 +408,56 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.success,
   },
-  statsRow: {
+  flashContainer: {
+    backgroundColor: '#FEF9C3', // light yellow background
+    borderWidth: 1,
+    borderColor: '#FDE047',
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  flashHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  flashIcon: {
+    fontSize: 16,
+  },
+  flashTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#854D0E',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  flashRow: {
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  statTile: {
+  flashTile: {
     flex: 1,
-    backgroundColor: colors.surface,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#FEF08A',
     borderRadius: radii.sm,
-    padding: spacing.md,
+    padding: spacing.sm,
     gap: 2,
   },
-  statLabel: {
-    fontSize: 12,
+  flashTileLabel: {
+    fontSize: 11,
     color: colors.textSecondary,
+    fontWeight: '600',
   },
-  statValue: {
-    fontSize: 17,
+  flashTileValue: {
+    fontSize: 14,
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  statValueSuccess: {
-    color: colors.success,
+  flashTileSub: {
+    fontSize: 11,
+    color: colors.textMuted,
   },
   tabs: {
     flexDirection: 'row',

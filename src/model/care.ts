@@ -138,7 +138,6 @@ export interface CheckinExtracaoRequest {
 }
 
 // Uma condição clínica que a IA identificou na narrativa do tutor.
-// Espelha o array "condicoes" do CheckinExtracaoResponse do Java.
 export interface CondicaoObservadaExtracao {
   condicaoClinicaId: number;
   valorBooleano?: boolean;
@@ -158,7 +157,6 @@ export interface CheckinExtracaoResponse {
 
 // --- DTOs do fluxo de confirmação: POST /api/checkin ---
 
-// Condição confirmada pelo tutor — mesma forma da extração, remetida de volta ao Java.
 export interface CondicaoConfirmadaRequest {
   condicaoClinicaId: number;
   valorBooleano?: boolean;

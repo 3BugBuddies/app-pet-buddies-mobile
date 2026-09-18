@@ -6,7 +6,6 @@ import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { ConfirmedFieldsCard, type ConfirmedField } from '../../component/checkin/ConfirmedFieldsCard';
 import { Button } from '../../component/ui/Button';
-import { useCompleteCheckInTask } from '../../control/useCarePlanControl';
 import { useConfirmCheckIn } from '../../control/useCheckInControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,9 +18,7 @@ export function CheckInConfirmScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
   const confirmCheckIn = useConfirmCheckIn();
-  const completeTask = useCompleteCheckInTask(petId);
 
-  // Fallbacks de segurança
   const condicoesSeguras = extracaoResponse.condicoes || [];
   const redFlagsSeguras = extracaoResponse.redFlags || [];
   const isEscalation = extracaoResponse.degradado || redFlagsSeguras.length > 0;
@@ -52,6 +49,7 @@ export function CheckInConfirmScreen({ route }: Props) {
       const result = await confirmCheckIn.mutateAsync({
         animalId: extracaoResponse.animalId,
         narrativa: extracaoResponse.narrativa,
+        itemPlanoCuidadoId: route.params.itemPlanoCuidadoId, // Opcional, mas crucial se passado para ligar ao plano
         condicoes: condicoesSeguras.map((c) => ({
           condicaoClinicaId: c.condicaoClinicaId,
           valorBooleano: c.valorBooleano,
@@ -60,15 +58,17 @@ export function CheckInConfirmScreen({ route }: Props) {
         })),
       });
 
-      // UX Sênior: Sincroniza o estado local imediatamente após o sucesso da API.
-      // Previne que a Home fique destravada caso o usuário abandone o app no Passo 3.
-      await completeTask.mutateAsync('lactulona');
+      // Removemos o UX Hack 'lactulona', pois a API gerencia isso.
 
-      if (result.status === 'ESCALATION') {
+      // Navegação baseada no contrato real da API (CheckinResponse)
+      if (result.escalado) {
+        // Se a API escalou para a clínica, navegamos para a tela de alerta
         navigation.navigate('CheckInEscalation', { petId, result });
-      } else if (result.status === 'NO_RULE') {
+      } else if (!result.desfechos || result.desfechos.length === 0) {
+        // Se não houve desfechos, significa que não bateu com nenhuma regra da prescrição
         navigation.navigate('CheckInNoRule', { petId, result, narrative: extracaoResponse.narrativa });
       } else {
+        // Fluxo feliz: calculou a dose
         navigation.navigate('CheckInResult', { petId, result });
       }
     } catch (error: any) {

@@ -5,7 +5,6 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { Card } from '../../component/ui/Card';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-// import { usePatients } from '../../control/usePatientsControl'; // Sprint 4: /pacientes-clinica não existe no Java v2.3.1
 import { useClinicPets } from '../../control/usePetsControl';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

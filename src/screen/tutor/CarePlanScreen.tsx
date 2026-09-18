@@ -59,7 +59,7 @@ export function CarePlanScreen({ route }: Props) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
       >
-        <ProgressBarCard doneCount={doneCount} totalCount={tasks.length} pointsToday={pointsToday} />
+        <ProgressBarCard doneCount={doneCount} totalCount={tasks.length} />
 
         <Text style={styles.sectionLabel}>Histórico do Tratamento</Text>
 

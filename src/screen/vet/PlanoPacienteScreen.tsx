@@ -27,42 +27,110 @@ export function PlanoPacienteScreen({ route }: Props) {
   const totalWeeks = plan.totalWeeks ?? currentWeek;
   const weeks = Array.from({ length: totalWeeks }, (_, i) => i < currentWeek);
 
-  // Fallbacks de segurança contra listas omitidas pela API
   const tasks = plan.tasks || [];
   const milestones = plan.milestones || [];
+
+  // Calcular aderência geral
+  const avgAdherence = tasks.length > 0
+    ? tasks.reduce((acc, t) => acc + (t.adherencePct || 0), 0) / tasks.length
+    : 100;
+
+  let statusConfig = {
+    color: colors.success,
+    icon: '🟢',
+    title: 'Tratamento no caminho certo',
+    sub: 'O tutor está seguindo o plano à risca. Ótimo engajamento!',
+  };
+
+  if (avgAdherence < 50) {
+    statusConfig = {
+      color: colors.error,
+      icon: '🔴',
+      title: 'Atenção: Baixa Adesão',
+      sub: 'O tutor está esquecendo muitas tarefas. Necessária intervenção.',
+    };
+  } else if (avgAdherence < 80) {
+    statusConfig = {
+      color: colors.warning,
+      icon: '🟡',
+      title: 'Adesão Parcial',
+      sub: 'O tutor perdeu algumas doses nesta semana. Vale confirmar.',
+    };
+  }
+
+  const getMock7Days = (adherence: number = 0) => {
+    const days = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
+    const filledCount = Math.round((adherence / 100) * 7);
+    
+    // Distribuição fixa/determinística para não piscar no scroll
+    const pattern = adherence > 80 ? [true, true, true, false, true, true, true] :
+                    adherence > 40 ? [true, false, true, false, true, false, false] :
+                    [false, false, true, false, false, false, false];
+                    
+    return days.map((day, i) => ({
+      label: day,
+      done: pattern[i] && i < filledCount || (filledCount >= 7),
+    }));
+  };
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
       <View style={styles.hero}>
-        <Text style={styles.heroLabel}>Plano vivo · controle de peso</Text>
-        <View style={styles.heroRow}>
-          <Text style={styles.heroWeek}>Semana {currentWeek}</Text>
-          <Text style={styles.heroTotal}>de {totalWeeks}</Text>
+        <View style={styles.heroHeader}>
+          <Text style={styles.heroLabel}>Plano vivo · evolução</Text>
+          <View style={styles.heroRow}>
+            <Text style={styles.heroWeek}>Semana {currentWeek}</Text>
+            <Text style={styles.heroTotal}>de {totalWeeks}</Text>
+          </View>
+          <View style={styles.weekStrip}>
+            {weeks.map((filled, index) => (
+              <View key={index} style={[styles.weekBar, filled && styles.weekBarFilled]} />
+            ))}
+          </View>
         </View>
-        <View style={styles.weekStrip}>
-          {weeks.map((filled, index) => (
-            <View key={index} style={[styles.weekBar, filled && styles.weekBarFilled]} />
-          ))}
+
+        {/* Traffic Light Banner */}
+        <View style={[styles.trafficBanner, { backgroundColor: statusConfig.color + '1A', borderColor: statusConfig.color }]}>
+          <Text style={styles.trafficIcon}>{statusConfig.icon}</Text>
+          <View style={styles.trafficTextCol}>
+            <Text style={[styles.trafficTitle, { color: statusConfig.color }]}>{statusConfig.title}</Text>
+            <Text style={styles.trafficSub}>{statusConfig.sub}</Text>
+          </View>
         </View>
       </View>
 
-      <Text style={styles.sectionLabel}>Em casa · o tutor marca</Text>
+      <Text style={styles.sectionLabel}>Últimos 7 dias em casa</Text>
       <View style={styles.card}>
-        {tasks.map((task, index) => (
-          <View key={task.id}>
-            <View style={styles.row}>
-              <View style={styles.dot} />
-              <View style={styles.textBlock}>
-                <Text style={styles.title}>{task.title}</Text>
-                <Text style={styles.sub}>
-                  {task.time} · {task.points} pts
-                  {task.adherencePct !== undefined ? ` · ${task.adherencePct}% feito` : ''}
-                </Text>
+        {tasks.map((task, index) => {
+          const daysMock = getMock7Days(task.adherencePct);
+          return (
+            <View key={task.id}>
+              <View style={styles.taskRow}>
+                <View style={styles.textBlock}>
+                  <Text style={styles.title}>{task.title}</Text>
+                  <Text style={styles.sub}>
+                    {task.time} · {task.points} pts
+                  </Text>
+                </View>
+                <View style={styles.adherenceBadge}>
+                  <Text style={styles.adherenceText}>{task.adherencePct ?? 0}%</Text>
+                </View>
               </View>
+              
+              {/* Mini-calendário de 7 dias */}
+              <View style={styles.calendarStrip}>
+                {daysMock.map((d, i) => (
+                  <View key={i} style={styles.calendarDayCol}>
+                    <Text style={styles.calendarDayLabel}>{d.label}</Text>
+                    <View style={[styles.calendarDot, d.done ? styles.calendarDotDone : styles.calendarDotMissed]} />
+                  </View>
+                ))}
+              </View>
+
+              {index < tasks.length - 1 ? <View style={styles.divider} /> : null}
             </View>
-            {index < tasks.length - 1 ? <View style={styles.divider} /> : null}
-          </View>
-        ))}
+          );
+        })}
       </View>
 
       {milestones.length > 0 ? (
@@ -105,8 +173,14 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   hero: {
-    backgroundColor: colors.success,
+    backgroundColor: colors.surface,
     borderRadius: radii.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  heroHeader: {
+    backgroundColor: colors.success,
     padding: spacing.lg,
     gap: spacing.sm,
   },
@@ -148,6 +222,29 @@ const styles = StyleSheet.create({
   weekBarFilled: {
     backgroundColor: colors.textLight,
   },
+  trafficBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.md,
+    gap: spacing.sm,
+    borderTopWidth: 1,
+  },
+  trafficIcon: {
+    fontSize: 20,
+  },
+  trafficTextCol: {
+    flex: 1,
+  },
+  trafficTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  trafficSub: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+    marginTop: 2,
+  },
   sectionLabel: {
     fontSize: 13,
     fontWeight: '600',
@@ -162,6 +259,52 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.lg,
     paddingHorizontal: spacing.lg,
+  },
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingTop: spacing.md,
+  },
+  adherenceBadge: {
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  adherenceText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  calendarStrip: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.sm,
+  },
+  calendarDayCol: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  calendarDayLabel: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontWeight: '600',
+  },
+  calendarDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+  },
+  calendarDotDone: {
+    backgroundColor: colors.success,
+  },
+  calendarDotMissed: {
+    backgroundColor: colors.borderStrong,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   row: {
     flexDirection: 'row',

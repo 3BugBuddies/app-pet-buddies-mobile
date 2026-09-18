@@ -5,8 +5,8 @@ import type {
   CareHistoryItem,
   CareScore,
   CheckInEscalationResult,
-  CheckInExtracaoRequest,
-  CheckInExtracaoResponse,
+  CheckinExtracaoRequest,
+  CheckinExtracaoResponse,
   CheckInRequest,
   CheckInResult,
 } from '../model/care';
@@ -115,7 +115,6 @@ const confirmCheckIn = async (payload: CheckInRequest): Promise<CheckInResult> =
     const response = await apiJava.post('/checkin', payload);
     return response.data;
   }
-  // Mock fixo: simula check-in bem-sucedido com dose calculada pela regra da vet
   const hoje = new Date().toLocaleDateString('pt-BR');
   return {
     status: 'DOSE',
@@ -169,7 +168,6 @@ const extractCheckIn = async (data: CheckinExtracaoRequest): Promise<CheckinExtr
     const response = await apiJava.post('/checkin/extracao', data);
     return response.data;
   }
-  // Mock: simula extração bem-sucedida sem red flags
   return {
     animalId: data.animalId,
     dataReferencia: data.dataReferencia,

@@ -5,8 +5,11 @@ export interface ClinicPatient {
   petId: string;
   petName: string;
   tutorName: string;
+  endereco?: string;
+  telefone?: string;
   weekLabel: string;
   adherencePct: number;
   note: string;
   alert: boolean;
 }
+
