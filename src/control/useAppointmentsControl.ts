@@ -10,21 +10,21 @@ import {
   getAppointmentById,
   toggleAttendance,
   updateAppointment,
+  getFreeWindows,
 } from '../repository/appointmentRepository';
 import type { CreateAppointmentInput } from '../model/appointment';
 
 const APPOINTMENTS_KEY = 'appointments';
 
-// Sem petId: busca por veterinarioId (lado vet) ou responsavelId (lado tutor),
-// conforme o perfil da sessão. Com petId: filtra por animal (prontuário).
+// Sem petId: busca a agenda (do Vet logado ou do Tutor logado) via Token Bearer.
+// Com petId: filtra o histórico de consultas daquele animal.
 export function useAppointments(petId?: string) {
   const { session } = useContext(AuthContext);
-  const veterinarioId = session?.veterinarioId || session?.usuarioId;
-  const responsavelId = session?.responsavelId || session?.usuarioId;
   return useQuery({
-    queryKey: [APPOINTMENTS_KEY, petId ?? veterinarioId ?? responsavelId ?? null],
-    queryFn: () => getAllAppointments(petId ?? responsavelId, petId ? undefined : veterinarioId),
+    queryKey: [APPOINTMENTS_KEY, session?.usuarioId, petId],
+    queryFn: () => getAllAppointments(petId),
     retry: false,
+    enabled: !!session?.usuarioId,
   });
 }
 
@@ -92,5 +92,13 @@ export function useDeleteAppointment() {
     onError: (error: any) => {
       Alert.alert('Erro ao cancelar consulta', buildApiErrorMessage(error));
     },
+  });
+}
+
+export function useFreeWindows(veterinarioId?: string | number, dataISO?: string) {
+  return useQuery({
+    queryKey: ['freeWindows', veterinarioId, dataISO],
+    queryFn: () => getFreeWindows(veterinarioId, dataISO),
+    enabled: !!dataISO,
   });
 }

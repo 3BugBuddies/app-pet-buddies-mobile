@@ -33,13 +33,11 @@ function deriveType(reason: string): string {
 }
 
 const getAllAppointments = async (
-  petId?: string | number | null,
-  veterinarioId?: string | number | null
+  animalId?: string | number | null
 ): Promise<Appointment[]> => {
   if (USE_API) {
     let url = '/consulta';
-    if (veterinarioId) url = `/consulta?veterinarioId=${veterinarioId}`;
-    else if (petId) url = `/consulta?animalId=${petId}`;
+    if (animalId) url = `/consulta?animalId=${animalId}`;
     const response = await apiJava.get(url);
     const list = response.data._embedded?.consultaResponseList ?? [];
     return list.map((c: any) => ({
@@ -79,7 +77,7 @@ const createAppointment = async (payload: CreateAppointmentInput): Promise<Appoi
     const response = await apiJava.post('/consulta/agendamento', {
       animalId: Number(payload.petId),
       janelaId: payload.janelaId,
-      motivo: payload.reason,
+      observacao: payload.reason,
       tipo: deriveType(payload.reason),
     });
     const c = response.data;
@@ -116,23 +114,61 @@ const updateAppointment = async (
 };
 
 // Fecha o atendimento via POST /{id}/fechamento (contrato seção 7 — Vet · fechar atendimento)
-const toggleAttendance = async (id: string): Promise<void> => {
+const fecharAtendimento = async (id: string, payload: any): Promise<void> => {
   if (USE_API) {
-    await apiJava.post(`/consulta/${id}/fechamento`, {});
+    await apiJava.post(`/consulta/${id}/fechamento`, payload);
     return;
   }
+  // Fake behavior
   const appt = getFakeAppointments().find((a) => a.id === id);
   if (appt) {
-    updateFakeAppointment(id, { status: appt.status === 'CONFIRMED' ? 'COMPLETED' : 'CONFIRMED' } as any);
+    updateFakeAppointment(id, { status: 'COMPLETED' } as any);
   }
 };
 
-const deleteAppointment = async (id: string): Promise<void> => {
+
+const deleteAppointment = async (id: string, motivo: string = 'Cancelado pelo usuário'): Promise<void> => {
   if (USE_API) {
-    await apiJava.delete(`/consulta/${id}`);
+    // O correto é cancelar, informando o motivo.
+    await apiJava.post(`/consulta/${id}/cancelamento`, { motivo });
     return;
   }
   deleteFakeAppointment(id);
+};
+
+const toggleAttendance = async (id: string): Promise<void> => {
+  return fecharAtendimento(id, {});
+};
+
+export interface JanelaAtendimento {
+  id: number;
+  data: string; // YYYY-MM-DD
+  horaInicio: string; // HH:mm:ss
+  horaFim: string; // HH:mm:ss
+  status: string;
+}
+
+const getFreeWindows = async (veterinarioId?: string | number, dataISO?: string): Promise<JanelaAtendimento[]> => {
+  if (USE_API) {
+    let url = '/janela-atendimento/livres';
+    const params = new URLSearchParams();
+    if (veterinarioId) params.append('veterinarioId', String(veterinarioId));
+    if (dataISO) params.append('data', dataISO);
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    const response = await apiJava.get(url);
+    // Extrai a lista do HATEOAS, ou pega direto se for um array plano
+    return response.data._embedded?.janelaAtendimentoResponseList || response.data || [];
+  }
+  
+  const [ano, mes, dia] = (dataISO || new Date().toISOString().slice(0, 10)).split('-');
+  return [
+    { id: 991, data: dataISO!, horaInicio: '08:00:00', horaFim: '08:30:00', status: 'LIVRE' },
+    { id: 992, data: dataISO!, horaInicio: '10:00:00', horaFim: '10:30:00', status: 'LIVRE' },
+    { id: 993, data: dataISO!, horaInicio: '15:00:00', horaFim: '15:30:00', status: 'LIVRE' }
+  ];
 };
 
 export {
@@ -140,6 +176,8 @@ export {
   getAppointmentById,
   createAppointment,
   updateAppointment,
+  fecharAtendimento,
   toggleAttendance,
   deleteAppointment,
+  getFreeWindows,
 };

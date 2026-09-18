@@ -13,7 +13,7 @@ export interface NextPatientItem {
 
 interface NextPatientsCardProps {
   items: NextPatientItem[];
-  onOpenPatient: (petId: string) => void;
+  onOpenPatient: (petId: string, consultaId?: string) => void;
   onToggle: (id: string) => void;
 }
 
@@ -28,7 +28,7 @@ export function NextPatientsCard({ items, onOpenPatient, onToggle }: NextPatient
       </View>
 
       {items.map((item) => (
-        <Pressable key={item.id} style={styles.row} onPress={() => onOpenPatient(item.petId)}>
+        <Pressable key={item.id} style={styles.row} onPress={() => onOpenPatient(item.petId, item.id)}>
           <View style={styles.dateTimeCol}>
             <Text style={styles.dateText}>{item.dateLabel}</Text>
             <Text style={styles.timeText}>{item.time}</Text>
@@ -44,18 +44,11 @@ export function NextPatientsCard({ items, onOpenPatient, onToggle }: NextPatient
             </Text>
             <Text style={styles.reason}>{item.reason}</Text>
           </View>
-          <Pressable
-            hitSlop={8}
-            onPress={(e) => {
-              e.stopPropagation();
-              onToggle(item.id);
-            }}
-            style={[styles.statusTag, item.seen && styles.statusTagSeen]}
-          >
+          <View style={[styles.statusTag, item.seen && styles.statusTagSeen]}>
             <Text style={[styles.statusText, item.seen && styles.statusTextSeen]}>
               {item.seen ? 'atendida' : 'aguardando'}
             </Text>
-          </Pressable>
+          </View>
         </Pressable>
       ))}
     </View>

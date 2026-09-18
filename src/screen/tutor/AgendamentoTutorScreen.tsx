@@ -7,7 +7,7 @@ import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useAllPetsAppointments, useCreateAppointment } from '../../control/useAppointmentsControl';
+import { useCreateAppointment, useFreeWindows } from '../../control/useAppointmentsControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { AgendaTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,8 +16,6 @@ import { colors, radii, spacing, typography } from '../../styles/theme';
 type Props = NativeStackScreenProps<AgendaTabParamList, 'AgendamentoTutor'>;
 
 const MOTIVOS = ['Consulta de Rotina', 'Vacinação', 'Exames', 'Pet Doente', 'Retorno'];
-
-const HORARIOS = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
 
 function gerarProximosDias(quantidade: number) {
   const dias: { iso: string; diaSemana: string; numeroDia: string }[] = [];
@@ -45,35 +43,26 @@ export function AgendamentoTutorScreen({ route }: Props) {
   const { activePetId, setActivePetId } = useActivePetId();
   const petIdAtivo = activePetId ?? '';
 
-  // Busca agendamentos de todos os pets do tutor para bloquear slots já ocupados
-  // por qualquer animal da família, não apenas pelo pet ativo.
-  const petIds = pets?.map((p) => String(p.id!)) ?? [];
-  const consultas = useAllPetsAppointments(petIds);
-
   const [reason, setReason] = useState('');
   const [selectedDate, setSelectedDate] = useState(DIAS[0].iso);
-  const [selectedTime, setSelectedTime] = useState('');
+  const [selectedJanelaId, setSelectedJanelaId] = useState<number | null>(null);
+
+  // Busca janelas reais na API para a data selecionada
+  // Passando undefined pro veterinarioId, a API deve devolver a grade da clínica
+  const { data: janelasLivres, isLoading: isLoadingJanelas } = useFreeWindows(undefined, selectedDate);
 
   useEffect(() => {
-    setSelectedTime('');
+    setSelectedJanelaId(null);
   }, [selectedDate]);
 
   const handleSave = async () => {
-    if (!petIdAtivo || !reason || !selectedDate || !selectedTime) return;
+    if (!petIdAtivo || !reason || !selectedDate || !selectedJanelaId) return;
     try {
-      // Janelas 41-207 criadas para os 14 dias exibidos na UI (2026-09-13 a 2026-09-26).
-      // Sept 20 às 08:00 usa a janela original #1 (ocupada — UI já filtra esse slot).
-      // Dias 0-6: base 41 sem offset; dias 7-13: -1 pelo gap do #1.
-      const dayIndex = DIAS.findIndex((d) => d.iso === selectedDate);
-      const timeIndex = HORARIOS.indexOf(selectedTime);
-      const slotOffset = dayIndex >= 7 ? dayIndex * 12 + timeIndex - 1 : dayIndex * 12 + timeIndex;
-      const fakeJanelaId = 41 + slotOffset;
-
       await createAppointment.mutateAsync({
         petId: petIdAtivo,
-        date: `${selectedDate}T${selectedTime}:00`,
+        date: selectedDate,
         reason,
-        janelaId: fakeJanelaId,
+        janelaId: selectedJanelaId,
       });
       Alert.alert('Agendado!', 'Sua consulta foi marcada com sucesso.', [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -155,61 +144,35 @@ export function AgendamentoTutorScreen({ route }: Props) {
         {/* Seção 4: Horário */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Horário</Text>
-          {(() => {
-            const agora = new Date();
-            const hojeISO = agora.toISOString().slice(0, 10);
-
-            const horariosVisiveis = HORARIOS.filter((h) => {
-              // Remove slots ocupados por qualquer consulta ativa
-              const dataHora = `${selectedDate}T${h}:00`;
-              const ocupado = consultas?.some(
-                (c) => c.date.slice(0, 16) === dataHora.slice(0, 16) && c.status !== 'CANCELED'
-              );
-              if (ocupado) return false;
-
-              // Para o dia de hoje, remove slots que já passaram
-              if (selectedDate === hojeISO) {
-                const [hora, min] = h.split(':').map(Number);
-                const slotDate = new Date(selectedDate);
-                slotDate.setHours(hora, min, 0, 0);
-                // Exige ao menos 30 min de antecedência
-                if (slotDate.getTime() <= agora.getTime() + 30 * 60 * 1000) return false;
-              }
-
-              return true;
-            });
-
-            if (horariosVisiveis.length === 0) {
-              return (
-                <Text style={styles.emptyText}>
-                  Nenhum horário disponível para esta data. Selecione outro dia.
-                </Text>
-              );
-            }
-
-            return (
-              <View style={styles.horariosGrid}>
-                {horariosVisiveis.map((h) => {
-                  const active = h === selectedTime;
-                  return (
-                    <Pressable
-                      key={h}
-                      onPress={() => setSelectedTime(h)}
-                      style={[styles.horarioBlock, active && styles.horarioBlockActive]}
-                    >
-                      <Text style={[styles.horarioText, active && styles.horarioTextActive]}>{h}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            );
-          })()}
+          {isLoadingJanelas ? (
+            <LoadingIndicator label="Buscando horários..." />
+          ) : !janelasLivres || janelasLivres.length === 0 ? (
+            <Text style={styles.emptyText}>
+              Nenhum horário disponível para esta data. Selecione outro dia.
+            </Text>
+          ) : (
+            <View style={styles.horariosGrid}>
+              {janelasLivres.map((janela) => {
+                const active = janela.id === selectedJanelaId;
+                const horaFormatada = janela.horaInicio.substring(0, 5); // ex: "08:00"
+                return (
+                  <Pressable
+                    key={janela.id}
+                    onPress={() => setSelectedJanelaId(janela.id)}
+                    style={[styles.horarioBlock, active && styles.horarioBlockActive]}
+                  >
+                    <Text style={[styles.horarioText, active && styles.horarioTextActive]}>{horaFormatada}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         <Button
           label="Confirmar Agendamento"
           onPress={handleSave}
-          disabled={!petIdAtivo || !reason || !selectedDate || !selectedTime}
+          disabled={!petIdAtivo || !reason || !selectedDate || !selectedJanelaId}
           loading={createAppointment.isPending}
         />
 
