@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
@@ -23,7 +23,24 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "O Pet Buddies precisa acessar o microfone para ditar condutas e prescrições veterinárias.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icons/bell.png",
+          "color": "#078FE8",
+          "sound": [
+            "./assets/notification.wav"
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {

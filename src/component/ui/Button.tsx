@@ -3,6 +3,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  View,
   type PressableProps,
   type StyleProp,
   type ViewStyle,
@@ -16,6 +17,7 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   backgroundColor?: string;
   textColor?: string;
   style?: StyleProp<ViewStyle>;
+  icon?: React.ReactNode;
 }
 
 export function Button({
@@ -26,6 +28,7 @@ export function Button({
   textColor,
   disabled,
   style,
+  icon,
   ...rest
 }: ButtonProps) {
   const isPrimary = variant === 'primary';
@@ -48,7 +51,10 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={resolvedTextColor} />
       ) : (
-        <Text style={[styles.label, { color: resolvedTextColor }]}>{label}</Text>
+        <View style={styles.contentRow}>
+          {icon}
+          <Text style={[styles.label, { color: resolvedTextColor }]}>{label}</Text>
+        </View>
       )}
     </Pressable>
   );
@@ -61,6 +67,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
+  },
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   primary: {
     backgroundColor: colors.primary,

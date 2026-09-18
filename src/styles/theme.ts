@@ -27,30 +27,34 @@ export const primitiveColors = {
   black: '#000000',
 };
 
+import { Appearance } from 'react-native';
+
+const isDark = Appearance.getColorScheme() === 'dark';
+
 /**
- * 2. PALETA SEMÂNTICA & TOKENS DE DESIGN
+ * 2. PALETA SEMÂNTICA & TOKENS DE DESIGN (Com suporte a Dark Mode)
  */
 export const colors = {
   // Fundo e Superfícies
-  background: primitiveColors.pbCreme, 
-  surface: primitiveColors.white,            
+  background: isDark ? primitiveColors.pbAzulMarinho : primitiveColors.pbCreme, 
+  surface: isDark ? primitiveColors.gray800 : primitiveColors.white,            
   surfaceDark: primitiveColors.pbAzulMarinho,     
 
   // Identidade Principal
-  primary: primitiveColors.pbAzulMarinho,     // Elementos âncora, TopBar, Textos fortes
-  secondary: primitiveColors.tsElectric,      // Acentos profundos Tarsila
-  action: primitiveColors.pbLaranja,          // Call to Action (Botões primários)
-  accent: primitiveColors.pbAmarelo,          // Recompensas, Estrelas, Badges
+  primary: isDark ? primitiveColors.pbCreme : primitiveColors.pbAzulMarinho,
+  secondary: isDark ? primitiveColors.tsSky : primitiveColors.tsElectric,
+  action: primitiveColors.pbLaranja,          
+  accent: primitiveColors.pbAmarelo,          
 
   // Textos (Acessibilidade/Contraste)
-  textPrimary: primitiveColors.pbAzulMarinho,   
-  textSecondary: primitiveColors.gray500,    
-  textMuted: primitiveColors.gray400,        
+  textPrimary: isDark ? primitiveColors.white : primitiveColors.pbAzulMarinho,   
+  textSecondary: isDark ? primitiveColors.gray300 : primitiveColors.gray500,    
+  textMuted: isDark ? primitiveColors.gray500 : primitiveColors.gray400,        
   textLight: primitiveColors.white,          
 
   // Estrutura
-  border: primitiveColors.gray200,           
-  borderStrong: primitiveColors.gray300,   
+  border: isDark ? primitiveColors.gray500 : primitiveColors.gray200,           
+  borderStrong: isDark ? primitiveColors.gray400 : primitiveColors.gray300,   
 
   // Status e Feedbacks (Usando a vibração da Tarsila)
   success: primitiveColors.tsNeon, // O Neon da Tarsila é perfeito para sucesso/check

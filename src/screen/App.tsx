@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './navigation/AppNavigator';
 import { AuthContext } from '../context/authContext';
 import type { AuthSession } from '../model/session';
+import { SessionExpiredModal } from '../component/auth/SessionExpiredModal';
 
 const queryClient = new QueryClient();
 
@@ -22,7 +23,9 @@ export default function App() {
           }}
         >
           <AppNavigator />
+          <SessionExpiredModal />
           <StatusBar style="auto" />
+
         </AuthContext.Provider>
       </QueryClientProvider>
     </SafeAreaProvider>
