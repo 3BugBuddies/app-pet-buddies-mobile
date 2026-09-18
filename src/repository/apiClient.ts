@@ -1,13 +1,20 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
-import { Alert } from 'react-native';
 
 const SESSION_KEY = 'SESSION';
+
+type Listener = () => void;
+const listeners = new Set<Listener>();
+
+export const onSessionExpired = (listener: Listener) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
 
 const addAuthInterceptor = (instance: ReturnType<typeof axios.create>) => {
   instance.interceptors.request.use(async (config) => {
     try {
-      const raw = await AsyncStorage.getItem(SESSION_KEY);
+      const raw = await SecureStore.getItemAsync(SESSION_KEY);
       if (raw != null) {
         const session = JSON.parse(raw);
         if (session?.token) {
@@ -21,21 +28,21 @@ const addAuthInterceptor = (instance: ReturnType<typeof axios.create>) => {
   });
 };
 
-// Todos os recursos do app vão para a API Java (Spring HATEOAS)
 // .NET é back-office da clínica e não é chamado diretamente pelo app
 const apiJava = axios.create({
-  baseURL: 'http://petbuddies-java-rm563925.eastus.azurecontainer.io:8080/api',
+  baseURL: 'http:
 });
 addAuthInterceptor(apiJava);
 
-// Se o Java devolver 401, o token expirou: limpa a sessão e avisa o usuário.
-// O AuthContext vai detectar a sessão nula no próximo render e redirecionar ao Login.
 apiJava.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      await AsyncStorage.removeItem(SESSION_KEY);
-      Alert.alert('Sessão expirada', 'Faça login novamente para continuar.');
+    if (error.response?.status === 401 && !error.config.url?.endsWith('/auth/login')) {
+      if (listeners.size > 0) {
+        listeners.forEach(l => l());
+      } else {
+        await SecureStore.deleteItemAsync(SESSION_KEY);
+      }
     }
     return Promise.reject(error);
   }

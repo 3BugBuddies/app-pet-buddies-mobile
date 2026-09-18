@@ -1,4 +1,3 @@
-// MOCK DATA — remover quando a API estiver no ar:
 //   1. Apague este arquivo
 //   2. Nos repositórios, remova o bloco `if (!USE_API)` e a constante `USE_API`
 
@@ -233,8 +232,8 @@ export const addFakePrescription = (p: Prescription): Prescription => {
 // ---------------------------------------------------------------------------
 
 let _rules: PrescriptionRule[] = [
-  { id: 'rule-1', prescricaoId: 'presc-1', condicaoClinicaId: 'cond-fezes-moles', rotuloCongelado: 'Fezes moles', acao: 'DOSE_MIN' },
-  { id: 'rule-2', prescricaoId: 'presc-1', condicaoClinicaId: 'cond-sangue-fezes', rotuloCongelado: 'Sangue nas fezes', acao: 'ACIONAR_CLINICA' },
+  { id: 'rule-1', prescricaoId: 'presc-1', condicaoClinicaId: 1, rotuloCongelado: 'Fezes moles', acao: 'DOSE_MIN' },
+  { id: 'rule-2', prescricaoId: 'presc-1', condicaoClinicaId: 5, rotuloCongelado: 'Sangue nas fezes', acao: 'ACIONAR_CLINICA' },
 ];
 
 export const getFakeRulesByPrescriptionId = (prescricaoId: string): PrescriptionRule[] =>
@@ -254,6 +253,8 @@ export const FAKE_CLINIC_PATIENTS: ClinicPatient[] = [
     petId: 'pet-luna',
     petName: 'Luna',
     tutorName: 'Marina',
+    endereco: 'Av. Paulista, 1578 - Bela Vista, São Paulo - SP',
+    telefone: '(11) 98765-4321',
     weekLabel: 'Semana 12 / 24',
     adherencePct: 96,
     note: 'Troca de curativo ok. Adesão excelente.',

@@ -46,7 +46,6 @@ const fakeTokenFor = (usuarioId: string): string => `local-token.${usuarioId}`;
 const login = async (credenciais: LoginFormValues): Promise<AuthSession> => {
   if (USE_API) {
     try {
-      // Java espera "login" em vez de "email" (contrato auth)
       const resposta = await apiJava.post('/auth/login', {
         login: credenciais.email,
         senha: credenciais.senha,
@@ -58,7 +57,6 @@ const login = async (credenciais: LoginFormValues): Promise<AuthSession> => {
     }
   }
 
-  // Fallback (Mock)
   const usuarios = await loadLocalUsuarios();
   const encontrado = usuarios.find(
     (usuario) => usuario.email === credenciais.email && usuario.senha === credenciais.senha
@@ -81,7 +79,6 @@ const login = async (credenciais: LoginFormValues): Promise<AuthSession> => {
 const register = async (dados: RegisterFormValues): Promise<AuthSession> => {
   if (USE_API) {
     try {
-      // Java espera "tipo" em vez de "perfil" (contrato seção 4)
       const payload = {
         tipo: dados.perfil,
         nome: dados.nome,
@@ -98,7 +95,6 @@ const register = async (dados: RegisterFormValues): Promise<AuthSession> => {
     }
   }
 
-  // Fallback (Mock)
   const usuarios = await loadLocalUsuarios();
   if (usuarios.some((usuario) => usuario.email === dados.email)) {
     throw new Error('Já existe uma conta com esse e-mail.');
@@ -128,13 +124,15 @@ const register = async (dados: RegisterFormValues): Promise<AuthSession> => {
 };
 
 // AsyncStorage persiste a sessão entre fechamentos do app - nunca substituir por API.
+import * as SecureStore from 'expo-secure-store';
+
 const saveSession = async (session: AuthSession): Promise<void> => {
-  await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
 };
 
 const getSession = async (): Promise<AuthSession | null> => {
   try {
-    const raw = await AsyncStorage.getItem(SESSION_KEY);
+    const raw = await SecureStore.getItemAsync(SESSION_KEY);
     return raw != null ? JSON.parse(raw) : null;
   } catch (err: any) {
     console.log('Erro ao ler sessão salva: ' + err.message);
@@ -143,7 +141,7 @@ const getSession = async (): Promise<AuthSession | null> => {
 };
 
 const clearSession = async (): Promise<void> => {
-  await AsyncStorage.removeItem(SESSION_KEY);
+  await SecureStore.deleteItemAsync(SESSION_KEY);
 };
 
 export { login, register, saveSession, getSession, clearSession };

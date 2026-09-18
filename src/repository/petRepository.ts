@@ -11,7 +11,6 @@ const getAllPets = async (): Promise<Pet[]> => {
   if (USE_API) {
     const response = await apiJava.get('/animal');
     const list: any[] = response.data._embedded?.animalResponseList ?? [];
-    // Normaliza id para String — backend retorna Number (Java Long),
     // mas toda a camada de controle compara com appointment.petId (String)
     return list.map((p) => ({ ...p, id: p.id?.toString() ?? '' }));
   }
@@ -28,7 +27,8 @@ const getPetById = async (id: string): Promise<Pet | undefined> => {
 
 const getPetsByResponsavelId = async (responsavelId: string): Promise<Pet[]> => {
   if (USE_API) {
-    const response = await apiJava.get(`/animal?responsavelId=${responsavelId}`);
+    // GET /animal sozinho já retorna os pets do tutor logado devido ao escopo de segurança.
+    const response = await apiJava.get(`/animal`);
     const list: any[] = response.data._embedded?.animalResponseList ?? [];
     return list.map((p) => ({ ...p, id: p.id?.toString() ?? '' }));
   }
@@ -38,7 +38,6 @@ const getPetsByResponsavelId = async (responsavelId: string): Promise<Pet[]> => 
 const createPet = async (pet: Pet): Promise<Pet> => {
   if (USE_API) {
     // Omite `id` no POST (gerado pelo banco) e converte responsavelId para número
-    // pois o Java deserializa como Long — string causa 400 Bad Request.
     const { id: _id, ...body } = pet;
     const payload = { ...body, responsavelId: Number(pet.responsavelId) };
     const response = await apiJava.post('/animal', payload);
