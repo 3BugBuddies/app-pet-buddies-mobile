@@ -14,7 +14,7 @@ export interface TranscriptionConfig {
 const DEFAULT_PROVIDER: 'groq' | 'openai' = 'groq';
 
 // NOTA: A chave é lida via variável de ambiente (prefixo EXPO_PUBLIC_ do Expo)
-export const SPEECH_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';
+export const SPEECH_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY ?? '';
 
 /**
  * Transcreve um arquivo de áudio gravado no dispositivo.

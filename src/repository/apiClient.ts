@@ -28,7 +28,7 @@ const addAuthInterceptor = (instance: ReturnType<typeof axios.create>) => {
 }
 
 const apiJava = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_BASE_URL
+  baseURL: process.env.EXPO_PUBLIC_API_BASE_URL || 'http://petbuddies-java-rm563925.eastus.azurecontainer.io:8080/api'
 });
 addAuthInterceptor(apiJava);
 
