@@ -31,23 +31,31 @@ const getRecordsByPetId = async (animalId: string): Promise<MedicalRecord[]> => 
 
 const createRecord = async (record: MedicalRecord): Promise<MedicalRecord> => {
   if (USE_API) {
-    // dataAtendimento: backend exige LocalDateTime ("AAAA-MM-DDTHH:MM:SS")
-    // IDs são convertidos para Number para satisfazer o DTO do Java
+    // Omite `id` no POST (gerado pelo banco de dados) para evitar 400 de type mismatch (Long).
+    const { id: _id, ...rest } = record;
+    const consultaNum = record.consultaId && !isNaN(Number(record.consultaId)) ? Number(record.consultaId) : undefined;
     const payload = {
-      ...record,
+      ...rest,
       animalId: Number(record.animalId),
-      consultaId: record.consultaId ? Number(record.consultaId) : null,
+      consultaId: consultaNum,
       dataAtendimento: toDatetime(record.dataAtendimento),
     };
-    const response = await apiJava.post('/registro-atendimento', payload);
-    const r = response.data;
-    return {
-      ...r,
-      id: r.id.toString(),
-      animalId: r.animalId.toString(),
-      consultaId: r.consultaId?.toString() ?? null,
-      dataAtendimento: r.dataAtendimento?.slice(0, 10) ?? r.dataAtendimento,
-    };
+    console.log('[createRecord] POST /registro-atendimento payload:', JSON.stringify(payload, null, 2));
+    try {
+      const response = await apiJava.post('/registro-atendimento', payload);
+      console.log('[createRecord] Response data:', JSON.stringify(response.data, null, 2));
+      const r = response.data;
+      return {
+        ...r,
+        id: r.id?.toString() ?? '',
+        animalId: r.animalId?.toString() ?? '',
+        consultaId: r.consultaId?.toString() ?? null,
+        dataAtendimento: r.dataAtendimento?.slice(0, 10) ?? r.dataAtendimento,
+      };
+    } catch (err: any) {
+      console.error('[createRecord] Erro 400 detalhado:', err?.response?.status, JSON.stringify(err?.response?.data, null, 2));
+      throw err;
+    }
   }
   return addFakeRecord(record);
 };

@@ -1,54 +1,165 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Input } from '../../component/ui/Input';
-import useMedicalRecordControl from '../../control/useMedicalRecordControl';
+import useMedicalRecordControl, { type RecordType } from '../../control/useMedicalRecordControl';
 import type { PacientesTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
-type RecordType = 'VACINA' | 'CONSULTA' | 'EXAME' | 'PROCEDIMENTO';
-
 const RECORD_TYPES: { key: RecordType; label: string }[] = [
-  { key: 'VACINA', label: 'Vacina' },
   { key: 'CONSULTA', label: 'Consulta' },
+  { key: 'VACINA', label: 'Vacina' },
   { key: 'EXAME', label: 'Exame' },
   { key: 'PROCEDIMENTO', label: 'Procedimento' },
 ];
 
-const ANAMNESE_CHIPS = [
-  'Sem alterações',
-  'Consulta de rotina',
-  'Tutor relata melhora',
-  'Retorno de acompanhamento',
-];
-
+const ANAMNESE_CHIPS = ['Sem alterações', 'Rotina', 'Retorno'];
 const DIAGNOSTICO_CHIPS = ['Saudável', 'Otite', 'Dermatite', 'Gastroenterite'];
+const VACINA_CHIPS = ['V10', 'Antirrábica', 'Gripe', 'Giárdia'];
+const EXAME_CHIPS = ['Hemograma', 'Ultrassom', 'Raio-X', 'Fezes'];
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'ProntuarioForm'>;
 
 export function ProntuarioFormScreen({ route }: Props) {
-  const { petId } = route.params;
+  const { petId, consultaId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
-  const [recordType, setRecordType] = useState<RecordType>('CONSULTA');
 
   const {
+    recordType, setRecordType,
     anamnese, setAnamnese,
     diagnostico, setDiagnostico,
     observacao, setObservacao,
+    nomeVacina, setNomeVacina,
+    loteVacina, setLoteVacina,
+    nomeExame, setNomeExame,
+    nomeProcedimento, setNomeProcedimento,
     weight, handleWeightChange,
     diagnosticoErro,
     isSaving,
     salvar,
   } = useMedicalRecordControl(
     petId,
-    (registro) => navigation.navigate('Prescricao', { animalId: petId, registroAtendimentoId: registro.id! }),
+    (registro, consultaIdResult) => navigation.navigate('Prescricao', { animalId: petId, consultaId: consultaIdResult || consultaId || '', prontuario: registro }),
     () => navigation.goBack(),
+    consultaId,
   );
+
+  const renderDynamicFields = () => {
+    switch (recordType) {
+      case 'VACINA':
+        return (
+          <>
+            <Input
+              label="Nome da Vacina *"
+              placeholder="ex.: V10, Antirrábica"
+              value={nomeVacina}
+              onChangeText={setNomeVacina}
+              hasError={!!diagnosticoErro}
+            />
+            <View style={styles.chipsRow}>
+              {VACINA_CHIPS.map((chip) => (
+                <Pressable key={chip} onPress={() => setNomeVacina(chip)} style={styles.chip}>
+                  <Text style={styles.chipText}>{chip}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <FieldError message={diagnosticoErro ?? undefined} />
+
+            <Input
+              label="Lote / Marca (opcional)"
+              placeholder="ex.: Zoetis Lote 12345"
+              value={loteVacina}
+              onChangeText={setLoteVacina}
+            />
+          </>
+        );
+
+      case 'EXAME':
+        return (
+          <>
+            <Input
+              label="Qual exame foi realizado? *"
+              placeholder="ex.: Coleta de Sangue"
+              value={nomeExame}
+              onChangeText={setNomeExame}
+              hasError={!!diagnosticoErro}
+            />
+            <View style={styles.chipsRow}>
+              {EXAME_CHIPS.map((chip) => (
+                <Pressable key={chip} onPress={() => setNomeExame(chip)} style={styles.chip}>
+                  <Text style={styles.chipText}>{chip}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <FieldError message={diagnosticoErro ?? undefined} />
+
+            <Input
+              label="Suspeita Clínica / Motivo (opcional)"
+              placeholder="ex.: Investigação de anemia"
+              value={diagnostico}
+              onChangeText={setDiagnostico}
+            />
+          </>
+        );
+
+      case 'PROCEDIMENTO':
+        return (
+          <>
+            <Input
+              label="Nome do Procedimento *"
+              placeholder="ex.: Limpeza de Tártaro"
+              value={nomeProcedimento}
+              onChangeText={setNomeProcedimento}
+              hasError={!!diagnosticoErro}
+            />
+            <FieldError message={diagnosticoErro ?? undefined} />
+          </>
+        );
+
+      case 'CONSULTA':
+      default:
+        return (
+          <>
+            <Input
+              label="Anamnese (opcional)"
+              placeholder="ex.: Tutora relata coceira no ouvido há 3 dias"
+              value={anamnese}
+              onChangeText={setAnamnese}
+              multiline
+              numberOfLines={3}
+              style={styles.notesInput}
+            />
+            <View style={styles.chipsRow}>
+              {ANAMNESE_CHIPS.map((chip) => (
+                <Pressable key={chip} onPress={() => setAnamnese(chip)} style={styles.chip}>
+                  <Text style={styles.chipText}>{chip}</Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <Input
+              label="Diagnóstico *"
+              placeholder="ex.: Otite leve no ouvido direito"
+              value={diagnostico}
+              onChangeText={setDiagnostico}
+              hasError={!!diagnosticoErro}
+            />
+            <View style={styles.chipsRow}>
+              {DIAGNOSTICO_CHIPS.map((chip) => (
+                <Pressable key={chip} onPress={() => setDiagnostico(chip)} style={styles.chip}>
+                  <Text style={styles.chipText}>{chip}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <FieldError message={diagnosticoErro ?? undefined} />
+          </>
+        );
+    }
+  };
 
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
@@ -74,38 +185,7 @@ export function ProntuarioFormScreen({ route }: Props) {
             })}
           </View>
 
-          <Input
-            label="Anamnese (opcional)"
-            placeholder="ex.: Tutora relata coceira no ouvido há 3 dias"
-            value={anamnese}
-            onChangeText={setAnamnese}
-            multiline
-            numberOfLines={3}
-            style={styles.notesInput}
-          />
-          <View style={styles.chipsRow}>
-            {ANAMNESE_CHIPS.map((chip) => (
-              <Pressable key={chip} onPress={() => setAnamnese(chip)} style={styles.chip}>
-                <Text style={styles.chipText}>{chip}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Input
-            label="Diagnóstico"
-            placeholder="ex.: Otite leve no ouvido direito"
-            value={diagnostico}
-            onChangeText={setDiagnostico}
-            hasError={!!diagnosticoErro}
-          />
-          <View style={styles.chipsRow}>
-            {DIAGNOSTICO_CHIPS.map((chip) => (
-              <Pressable key={chip} onPress={() => setDiagnostico(chip)} style={styles.chip}>
-                <Text style={styles.chipText}>{chip}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <FieldError message={diagnosticoErro ?? undefined} />
+          {renderDynamicFields()}
 
           <Input
             label="Peso (kg)"
@@ -116,8 +196,8 @@ export function ProntuarioFormScreen({ route }: Props) {
           />
 
           <Input
-            label="Observações (opcional)"
-            placeholder="ex.: Retorno em 10 dias"
+            label={recordType === 'VACINA' ? 'Reações / Observações' : 'Observações (opcional)'}
+            placeholder={recordType === 'VACINA' ? 'ex.: Animal agitado' : 'ex.: Retorno em 10 dias'}
             value={observacao}
             onChangeText={setObservacao}
             multiline
@@ -126,21 +206,31 @@ export function ProntuarioFormScreen({ route }: Props) {
           />
 
           <View style={styles.actionRow}>
-            <View style={styles.actionHalf}>
+            {recordType === 'VACINA' ? (
               <Button
-                variant="secondary"
-                label="Apenas Salvar"
+                label="Registrar Vacina"
                 loading={isSaving}
                 onPress={() => salvar(false)}
               />
-            </View>
-            <View style={styles.actionHalf}>
-              <Button
-                label="Salvar e Prescrever"
-                loading={isSaving}
-                onPress={() => salvar(true)}
-              />
-            </View>
+            ) : (
+              <>
+                <View style={styles.actionHalf}>
+                  <Button
+                    variant="secondary"
+                    label="Apenas Salvar"
+                    loading={isSaving}
+                    onPress={() => salvar(false)}
+                  />
+                </View>
+                <View style={styles.actionHalf}>
+                  <Button
+                    label="Salvar e Prescrever"
+                    loading={isSaving}
+                    onPress={() => salvar(true)}
+                  />
+                </View>
+              </>
+            )}
           </View>
 
         </ScrollView>
@@ -174,11 +264,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   typeButton: {
     flexBasis: '47%',
-    height: 52,
+    height: 48,
     borderRadius: radii.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -191,7 +281,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   typeButtonText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.textPrimary,
   },
@@ -207,6 +297,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.xs,
     marginTop: -spacing.xs,
+    marginBottom: spacing.sm,
   },
   chip: {
     paddingHorizontal: spacing.sm,
@@ -222,7 +313,7 @@ const styles = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
   actionHalf: {
     flex: 1,

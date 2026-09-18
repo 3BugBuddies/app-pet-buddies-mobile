@@ -4,8 +4,8 @@ import { DetalhesPetScreen } from '../../tutor/DetalhesPetScreen';
 import { ProntuarioFormScreen } from '../../vet/ProntuarioFormScreen';
 import { PlanoPacienteScreen } from '../../vet/PlanoPacienteScreen';
 import { PrescricaoScreen } from '../../vet/PrescricaoScreen';
-import { NovaRegraScreen } from '../../vet/NovaRegraScreen';
 import { AssinarPrescricaoScreen } from '../../vet/AssinarPrescricaoScreen';
+import { CheckoutAtendimentoScreen } from '../../vet/CheckoutAtendimentoScreen';
 import type { PacientesTabParamList } from '../types';
 
 const Stack = createNativeStackNavigator<PacientesTabParamList>();
@@ -38,12 +38,17 @@ export function PacientesTabStack() {
         component={PrescricaoScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="NovaRegra" component={NovaRegraScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="AssinarPrescricao"
         component={AssinarPrescricaoScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="CheckoutAtendimento"
+        component={CheckoutAtendimentoScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }
+
