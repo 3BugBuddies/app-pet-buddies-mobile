@@ -40,7 +40,6 @@ export const PERSISTENCE_LABEL: Record<PersistenceKey, string> = {
 };
 
 // "Manter dose do dia anterior" (do design original) não existe aqui — exigiria
-// histórico de doses de dias anteriores, que este mock não tem.
 export type RuleAction = 'MENOR_DOSE' | 'MAIOR_DOSE' | 'SEM_DOSE_CLINICA' | 'SEM_DOSE_EMERGENCIA';
 
 export const RULE_ACTION_LABEL: Record<RuleAction, string> = {

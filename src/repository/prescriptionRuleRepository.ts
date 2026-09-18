@@ -18,9 +18,6 @@ const getRulesByPrescriptionId = async (prescricaoId: string): Promise<Prescript
 // ordem é 1-based (posição da regra na lista)
 const createRule = async (regra: PrescriptionRule & { ordem: number }): Promise<PrescriptionRule> => {
   if (USE_API) {
-    // id NÃO é enviado — Java auto-gera
-    // campo Java chama-se "acaoDose" (não "acao")
-    // condicaoClinicaId e prescricaoId precisam ser Number (Java Long)
     const payload = {
       prescricaoId: Number(regra.prescricaoId),
       condicaoClinicaId: Number(regra.condicaoClinicaId),

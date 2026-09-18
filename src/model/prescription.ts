@@ -68,7 +68,6 @@ export interface NarrativaPrescricaoRequest {
 }
 
 // Campos de prescrição que a IA extraiu da narrativa — objeto aninhado dentro
-// de RascunhoPrescricaoResponse, espelhando o PrescricaoRequest do Java.
 export interface PrescricaoRequest {
   medicamento: string;
   doseMin: number;
@@ -80,7 +79,6 @@ export interface PrescricaoRequest {
 }
 
 // Corpo completo da resposta de POST /api/prescricao/rascunho.
-// O Java retorna um objeto estruturado com a prescrição, regras propostas e metadados
 // de confiança — não campos soltos na raiz.
 export interface RascunhoPrescricaoResponse {
   narrativaOriginal: string;

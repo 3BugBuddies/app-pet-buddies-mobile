@@ -39,7 +39,6 @@ const getPrescriptionsByAnimalId = async (animalId: string): Promise<Prescriptio
 const createPrescription = async (prescription: Prescription): Promise<Prescription> => {
   if (USE_API) {
     // Backend exige wrapper: { "prescricoes": [...] }
-    // id NÃO é enviado — Java auto-gera; IDs precisam ser Number (Java Long)
     const payload = {
       medicamento: prescription.medicamento,
       doseMin: prescription.doseMin,
@@ -51,7 +50,7 @@ const createPrescription = async (prescription: Prescription): Promise<Prescript
       orientacao: prescription.orientacao ?? undefined,
       animalId: Number(prescription.animalId),
       veterinarioId: Number(prescription.veterinarioId),
-      registroAtendimentoId: prescription.registroAtendimentoId
+      registroAtendimentoId: prescription.registroAtendimentoId && !isNaN(Number(prescription.registroAtendimentoId))
         ? Number(prescription.registroAtendimentoId)
         : undefined,
     };
@@ -67,16 +66,21 @@ const createPrescription = async (prescription: Prescription): Promise<Prescript
 // Exige perfil VET (única rota com restrição de perfil — contrato seção 2).
 const draftPrescription = async (data: NarrativaPrescricaoRequest): Promise<RascunhoPrescricaoResponse> => {
   if (USE_API) {
-    // IDs convertidos para Number para satisfazer o DTO do Java
     const payload = {
       ...data,
       animalId: Number(data.animalId),
       registroAtendimentoId: data.registroAtendimentoId ? Number(data.registroAtendimentoId) : undefined,
     };
-    const response = await apiJava.post('/prescricao/rascunho', payload);
-    return response.data;
+    console.log('[draftPrescription] POST /prescricao/rascunho payload:', JSON.stringify(payload, null, 2));
+    try {
+      const response = await apiJava.post('/prescricao/rascunho', payload);
+      console.log('[draftPrescription] Response data:', JSON.stringify(response.data, null, 2));
+      return response.data;
+    } catch (err: any) {
+      console.error('[draftPrescription] Error:', err?.response?.status, JSON.stringify(err?.response?.data, null, 2));
+      throw err;
+    }
   }
-  // Mock: estrutura completa do RascunhoPrescricaoResponse do Java
   return {
     narrativaOriginal: data.narrativa,
     extracaoDisponivel: true,
@@ -91,8 +95,8 @@ const draftPrescription = async (data: NarrativaPrescricaoRequest): Promise<Rasc
       orientacao: 'Administrar junto com alimento',
     },
     regrasPropostas: [
-      { condicaoClinicaId: 'cond-fezes-moles', rotuloCongelado: 'Fezes moles', acao: 'DOSE_MIN' },
-      { condicaoClinicaId: 'cond-vomito', rotuloCongelado: 'Vômito', acao: 'ACIONAR_CLINICA' },
+      { condicaoClinicaId: 1, rotuloCongelado: 'Fezes moles', acao: 'DOSE_MIN' },
+      { condicaoClinicaId: 2, rotuloCongelado: 'Vômito', acao: 'ACIONAR_CLINICA' },
     ],
     condicoesDescartadas: [],
   };
