@@ -21,8 +21,10 @@ interface UsuarioLocal {
   veterinarioId?: string | null;
 }
 
-// Estes são os usuários falsos que permitem o login no emulador
+// Usuários de testes e contas oficiais da API
 const initialUsuarios: UsuarioLocal[] = [
+  { id: '1', nome: 'Dra. Ana Souza', email: 'ana@clinica.com', senha: 'petbuddies123', perfil: 'VET', responsavelId: null, veterinarioId: '1' },
+  { id: '2', nome: 'Maria Oliveira', email: 'maria@email.com', senha: 'petbuddies123', perfil: 'TUTOR', responsavelId: '1', veterinarioId: null },
   { id: 'tutor-1', nome: 'Marina', email: 'tutor@email.com', senha: '123456', perfil: 'TUTOR', responsavelId: 'tutor-1', veterinarioId: null },
   { id: 'vet-1', nome: 'Dra. Helena', email: 'vet@email.com', senha: '123456', perfil: 'VET', responsavelId: null, veterinarioId: 'vet-1' },
 ];
@@ -47,13 +49,35 @@ const login = async (credenciais: LoginFormValues): Promise<AuthSession> => {
   if (USE_API) {
     try {
       const resposta = await apiJava.post('/auth/login', {
-        login: credenciais.email,
+        login: credenciais.email.trim(),
         senha: credenciais.senha,
       });
       return resposta.data;
     } catch (err: any) {
-      console.log('Erro ao entrar na API: ' + err.message);
-      throw new Error('Não foi possível entrar. Verifique suas credenciais.');
+      console.log('Erro ao entrar na API:', err?.response?.data || err.message);
+      const apiMsg = err?.response?.data?.message || err?.response?.data?.mensagem || err?.response?.data?.erro;
+      if (apiMsg) {
+        throw new Error(apiMsg);
+      }
+      
+      // Fallback para emulador/offline se a API estiver inacessível
+      const usuarios = await loadLocalUsuarios();
+      const emailDigitado = credenciais.email.trim().toLowerCase();
+      const encontrado = usuarios.find(
+        (usuario) => usuario.email.toLowerCase() === emailDigitado && usuario.senha === credenciais.senha
+      );
+      if (encontrado) {
+        return {
+          token: fakeTokenFor(encontrado.id),
+          usuarioId: encontrado.id,
+          nome: encontrado.nome,
+          perfil: encontrado.perfil,
+          responsavelId: encontrado.responsavelId ?? null,
+          veterinarioId: encontrado.veterinarioId ?? null,
+        };
+      }
+
+      throw new Error('Não foi possível conectar ao servidor. Verifique suas credenciais.');
     }
   }
 

@@ -85,6 +85,31 @@ export function LoginScreen() {
             <View style={styles.buttonSpacing}>
               <Button label="Entrar" loading={isEntrando} onPress={entrar} />
             </View>
+
+            {/* Atalhos para preenchimento rápido em testes/apresentação */}
+            <View style={styles.demoSection}>
+              <Text style={styles.demoLabel}>Acesso rápido para demonstração:</Text>
+              <View style={styles.demoRow}>
+                <Pressable
+                  onPress={() => {
+                    setEmail('maria@email.com');
+                    setSenha('petbuddies123');
+                  }}
+                  style={styles.demoChip}
+                >
+                  <Text style={styles.demoChipText}>🐾 Tutor (Maria)</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setEmail('ana@clinica.com');
+                    setSenha('petbuddies123');
+                  }}
+                  style={styles.demoChip}
+                >
+                  <Text style={styles.demoChipText}>🩺 Vet (Dra. Ana)</Text>
+                </Pressable>
+              </View>
+            </View>
           </Card>
 
           <Pressable onPress={() => navigation.navigate('Register')} style={styles.registerLink}>
@@ -131,6 +156,34 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.error,
     marginBottom: spacing.sm,
+  },
+  demoSection: {
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  demoLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  demoRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    justifyContent: 'center',
+  },
+  demoChip: {
+    backgroundColor: colors.cardChia,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+  },
+  demoChipText: {
+    ...typography.caption,
+    fontWeight: '600',
+    color: colors.textPrimary,
   },
   registerLink: {
     marginTop: spacing.lg,
