@@ -18,7 +18,7 @@ import { Input } from '../../component/ui/Input';
 import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useLoginControl } from '../../control/authControl';
 import type { AuthStackParamList } from '../navigation/types';
-import { colors, spacing, typography } from '../../styles/theme';
+import { colors, radii, spacing, typography } from '../../styles/theme';
 
 export function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
