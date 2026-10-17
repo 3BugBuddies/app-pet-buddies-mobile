@@ -39,7 +39,8 @@
             "./assets/notification.wav"
           ]
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
