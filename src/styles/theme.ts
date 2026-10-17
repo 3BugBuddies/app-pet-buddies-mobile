@@ -55,40 +55,40 @@ export const primitiveColors = {
  */
 export const colors = {
   // Fundo e Superfícies
-  background: primitiveColors.pbCreme, 
-  surface: primitiveColors.white,            
-  surfaceDark: primitiveColors.pbAzulMarinho,     
+  background: primitiveColors.pbCreme,
+  surface: primitiveColors.white,
+  surfaceDark: primitiveColors.pbAzulMarinho,
 
   // Identidade Principal
   primary: primitiveColors.pbAzulMarinho,
   secondary: primitiveColors.tsElectric,
-  action: primitiveColors.pbLaranja,          
-  accent: primitiveColors.pbAmarelo,          
+  action: primitiveColors.pbLaranja,
+  accent: primitiveColors.pbAmarelo,
 
   // Textos (Acessibilidade/Contraste)
-  textPrimary: primitiveColors.pbAzulMarinho,   
-  textSecondary: primitiveColors.gray500,    
-  textMuted: primitiveColors.gray400,        
-  textLight: primitiveColors.white,          
+  textPrimary: primitiveColors.pbAzulMarinho,
+  textSecondary: primitiveColors.gray500,
+  textMuted: primitiveColors.gray400,
+  textLight: primitiveColors.white,
 
   // Estrutura
-  border: primitiveColors.gray200,           
-  borderStrong: primitiveColors.gray300,   
+  border: primitiveColors.gray200,
+  borderStrong: primitiveColors.gray300,
 
   // Status e Feedbacks
-  success: primitiveColors.tsNeon, 
+  success: primitiveColors.tsNeon,
   error: '#EF4444',
   warning: primitiveColors.tsTangerine,
 
   // UI Específica
-  cardHome: primitiveColors.pbLaranja, 
-  cardProgress: primitiveColors.pbAmarelo, 
-  cardProtocol: primitiveColors.tsSky, 
+  cardHome: primitiveColors.pbLaranja,
+  cardProgress: primitiveColors.pbAmarelo,
+  cardProtocol: primitiveColors.tsSky,
 
   // Cartões Bento UI (~15% de opacidade)
-  cardMax: `${primitiveColors.pbAmarelo}26`,       
-  cardChia: `${primitiveColors.pbAzulCeu}26`,      
-  cardAlert: `${primitiveColors.tsTangerine}26`,   
+  cardMax: `${primitiveColors.pbAmarelo}26`,
+  cardChia: `${primitiveColors.pbAzulCeu}26`,
+  cardAlert: `${primitiveColors.tsTangerine}26`,
 };
 
 export const spacing = {
@@ -100,12 +100,14 @@ export const radii = {
 };
 
 export const typography = {
-  // Sora para Títulos (Branding Forte)
-  title: { fontFamily: 'Sora', fontSize: 24, fontWeight: '700' as const },
-  subtitle: { fontFamily: 'Sora', fontSize: 16, fontWeight: '600' as const },
-  // Inter para Corpo (Leitura Perfeita)
-  body: { fontFamily: 'Inter', fontSize: 14, fontWeight: '400' as const },
-  caption: { fontFamily: 'Inter', fontSize: 12, fontWeight: '400' as const },
+  // Sora para Títulos
+  title: { fontFamily: 'Sora_700Bold', fontSize: 24 },
+  subtitle: { fontFamily: 'Sora_600SemiBold', fontSize: 16 },
+
+  // Inter para Corpo
+  body: { fontFamily: 'Inter_400Regular', fontSize: 14 },
+  caption: { fontFamily: 'Inter_400Regular', fontSize: 12 },
 };
+
 
 export const theme = { colors, spacing, radii, typography };
