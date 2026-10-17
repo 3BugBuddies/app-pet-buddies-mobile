@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { Alert } from 'react-native';
 import { buildApiErrorMessage } from './apiErrorHelper';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MedicalRecord, medicalRecordSchema } from '../model/medicalRecord';
-import { createRecord, getRecordsByPetId } from '../repository/medicalRecordRepository';
-import { getAllAppointments } from '../repository/appointmentRepository';
+import { AuthContext } from '../context/authContext';
+import { getRecordsByPetId } from '../repository/medicalRecordRepository';
+import {
+  createWalkInAppointment,
+  fecharAtendimento,
+  findTodaysOpenAppointment,
+} from '../repository/appointmentRepository';
 import { usePet, useUpdatePet } from './usePetsControl';
 
 const registrosQueryKey = (animalId: string) => ['prontuario', 'registros', animalId];
@@ -49,6 +54,7 @@ const useMedicalRecordControl = (
   initialConsultaId?: string,
 ): MedicalRecordControl => {
   const queryClient = useQueryClient();
+  const { session } = useContext(AuthContext);
 
   const registrosQuery = useQuery({
     queryKey: registrosQueryKey(animalId),
@@ -90,7 +96,8 @@ const useMedicalRecordControl = (
         }
       }
 
-      // Hack para contornar @NotNull do back-end até que as tabelas sejam atualizadas
+      // Tipos que não são consulta (vacina, exame, procedimento) preenchem diagnóstico e anamnese
+      // com um texto padrão, porque a API ainda não tem campos próprios para eles.
       let diagFinal = diagnostico;
       let anamnFinal = anamnese;
       let obsAdicional = observacao;
@@ -120,60 +127,24 @@ const useMedicalRecordControl = (
         .filter(Boolean)
         .join(' | ') || undefined;
 
-      // Busca a consulta ativa do pet (se houver consulta agendada ou passada)
-      let consultaAtualId = initialConsultaId || null;
+      // A API só registra atendimento dentro de uma consulta: usa a que veio da agenda; senão a
+      // consulta aberta de hoje do paciente; senão abre uma consulta de atendimento imediato.
+      // Consulta antiga ou de outro dia nunca é reaproveitada.
+      let consultaAtualId: string | null = initialConsultaId || null;
       if (!consultaAtualId) {
-        try {
-          const consultasDoPet = await getAllAppointments(animalId);
-          if (consultasDoPet.length > 0) {
-            consultaAtualId = consultasDoPet[0].id;
-          } else {
-            const todasConsultas = await getAllAppointments();
-            const encontrada = todasConsultas.find((c) => String(c.petId) === String(animalId));
-            if (encontrada) {
-              consultaAtualId = encontrada.id;
-            }
-          }
-        } catch (e) {
-          console.warn('[useMedicalRecordControl] Erro ao buscar consulta do pet:', e);
+        const veterinarioId = session?.veterinarioId;
+        if (!veterinarioId) {
+          throw new Error('Sessão sem veterinário: entre novamente para registrar o atendimento.');
         }
-      }
-
-      // Se ainda não achou consulta para este pet, tenta buscar em registros anteriores
-      if (!consultaAtualId) {
-        try {
-          const { getRecordsByPetId } = await import('../repository/medicalRecordRepository');
-          const priorRecords = await getRecordsByPetId(animalId);
-          if (priorRecords.length > 0 && priorRecords[0].consultaId) {
-            consultaAtualId = priorRecords[0].consultaId;
-          }
-        } catch (e) {}
-      }
-
-      if (!consultaAtualId) {
-        const candidateJanelas = [41, 42, 43, 44, 45, 50, 55, 60, 70, 80, 90, 100];
-        for (const jId of candidateJanelas) {
-          try {
-            const { createAppointment } = await import('../repository/appointmentRepository');
-            const nova = await createAppointment({
-              petId: animalId,
-              date: new Date().toISOString(),
-              reason: 'Atendimento Clínico Imediato',
-              janelaId: jId,
-            });
-            if (nova?.id) {
-              consultaAtualId = nova.id;
-              break;
-            }
-          } catch {}
-        }
+        const aberta = await findTodaysOpenAppointment(animalId, veterinarioId);
+        consultaAtualId = (aberta ?? (await createWalkInAppointment(animalId, veterinarioId))).id;
       }
 
       const registro = await medicalRecordSchema.validate(
         {
           id: `rec-${Date.now()}`,
           animalId,
-          consultaId: consultaAtualId ? String(consultaAtualId) : null,
+          consultaId: String(consultaAtualId),
           dataAtendimento: new Date().toISOString().slice(0, 10),
           anamnese: anamnFinal || undefined,
           diagnostico: diagFinal,
@@ -187,24 +158,18 @@ const useMedicalRecordControl = (
 
       let registroFinal = registro;
       if (precisaPrescrever) {
-        // Fluxo Atômico (Decisão D2): não gravamos o registro de atendimento isoladamente.
-        // Ele vai viajar em memória para a próxima tela e será enviado junto com as prescrições
-        // na rota de fechamento atômico POST /consulta/{id}/fechamento.
+        // O registro não é gravado isoladamente: segue em memória para a próxima tela e vai junto
+        // com as prescrições no fechamento atômico POST /consulta/{id}/fechamento.
         registroFinal = registro;
       } else {
-        if (consultaAtualId) {
-          const { fecharAtendimento } = await import('../repository/appointmentRepository');
-          await fecharAtendimento(String(consultaAtualId), { registroAtendimento: registro, prescricoes: [] });
-        } else {
-          const { createRecord } = await import('../repository/medicalRecordRepository');
-          registroFinal = await createRecord(registro);
-        }
+        await fecharAtendimento(String(consultaAtualId), { registroAtendimento: registro, prescricoes: [] });
       }
 
-      return { registro: registroFinal, consultaAtualId: consultaAtualId ? String(consultaAtualId) : '', precisaPrescrever };
+      return { registro: registroFinal, consultaAtualId: String(consultaAtualId), precisaPrescrever };
     },
     onSuccess: ({ registro, consultaAtualId, precisaPrescrever }) => {
       queryClient.invalidateQueries({ queryKey: registrosQueryKey(animalId) });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
       if (precisaPrescrever) {
         onSaved?.(registro, String(consultaAtualId));
       } else {

@@ -8,23 +8,25 @@ import {
   deleteAppointment,
   getAllAppointments,
   getAppointmentById,
-  toggleAttendance,
   updateAppointment,
   getFreeWindows,
 } from '../repository/appointmentRepository';
+import { getVeterinarians } from '../repository/veterinarianRepository';
 import type { CreateAppointmentInput } from '../model/appointment';
 
 const APPOINTMENTS_KEY = 'appointments';
 
-// Sem petId: busca a agenda (do Vet logado ou do Tutor logado) via Token Bearer.
-// Com petId: filtra o histórico de consultas daquele animal.
+// Com petId: histórico de consultas daquele animal.
+// Sem petId: só o veterinário tem agenda própria (filtrada pelo veterinarioId da sessão).
+// Tutor sem pet não consulta nada: sem filtro a API devolveria as consultas de todo mundo.
 export function useAppointments(petId?: string) {
   const { session } = useContext(AuthContext);
+  const veterinarioId = session?.perfil === 'VET' ? session.veterinarioId : null;
   return useQuery({
-    queryKey: [APPOINTMENTS_KEY, session?.usuarioId, petId],
-    queryFn: () => getAllAppointments(petId),
+    queryKey: [APPOINTMENTS_KEY, session?.usuarioId, petId, veterinarioId],
+    queryFn: () => getAllAppointments(petId, veterinarioId),
     retry: false,
-    enabled: !!session?.usuarioId,
+    enabled: !!session?.usuarioId && (!!petId || !!veterinarioId),
   });
 }
 
@@ -55,6 +57,8 @@ export function useCreateAppointment() {
     mutationFn: (payload: CreateAppointmentInput) => createAppointment(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
+      // A janela agendada deixa de estar livre: a grade precisa ser buscada de novo.
+      queryClient.invalidateQueries({ queryKey: ['freeWindows'] });
     },
   });
 }
@@ -71,20 +75,10 @@ export function useUpdateAppointment() {
   });
 }
 
-export function useToggleAppointmentAttendance() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => toggleAttendance(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
-    },
-  });
-}
-
 export function useDeleteAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deleteAppointment(id),
+    mutationFn: ({ id, motivo }: { id: string; motivo: string }) => deleteAppointment(id, motivo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
       Alert.alert('Sucesso', 'A consulta foi cancelada com sucesso.');
@@ -98,7 +92,15 @@ export function useDeleteAppointment() {
 export function useFreeWindows(veterinarioId?: string | number, dataISO?: string) {
   return useQuery({
     queryKey: ['freeWindows', veterinarioId, dataISO],
-    queryFn: () => getFreeWindows(veterinarioId, dataISO),
-    enabled: !!dataISO,
+    queryFn: () => getFreeWindows(veterinarioId!, dataISO!),
+    enabled: !!veterinarioId && !!dataISO,
+  });
+}
+
+export function useVeterinarians() {
+  return useQuery({
+    queryKey: ['veterinarians'],
+    queryFn: getVeterinarians,
+    staleTime: 5 * 60 * 1000,
   });
 }

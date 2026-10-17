@@ -37,10 +37,11 @@ export function AgendaClinicaScreen() {
 
   const items: NextPatientItem[] = useMemo(() => {
     if (!appointments || !pets) return [];
-    const hoje = new Date().toISOString().slice(0, 10);
+    const agora = new Date();
+    const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
     return appointments
       .slice()
-      .filter((a) => a.date?.slice(0, 10) >= hoje)
+      .filter((a) => a.status !== 'CANCELED' && a.date?.slice(0, 10) >= hoje)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((appointment) => {
         const pet = pets.find((p) => p.id === appointment.petId);

@@ -7,7 +7,7 @@ import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useCreateAppointment, useFreeWindows } from '../../control/useAppointmentsControl';
+import { useCreateAppointment, useFreeWindows, useVeterinarians } from '../../control/useAppointmentsControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { AgendaTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,13 @@ type Props = NativeStackScreenProps<AgendaTabParamList, 'AgendamentoTutor'>;
 
 const MOTIVOS = ['Consulta de Rotina', 'Vacinação', 'Exames', 'Pet Doente', 'Retorno'];
 
+// Data local AAAA-MM-DD (toISOString usaria UTC e adiantaria o dia à noite no Brasil).
+function isoLocal(d: Date): string {
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
 function gerarProximosDias(quantidade: number) {
   const dias: { iso: string; diaSemana: string; numeroDia: string }[] = [];
   const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -25,15 +32,13 @@ function gerarProximosDias(quantidade: number) {
     const d = new Date(hoje);
     d.setDate(hoje.getDate() + i);
     dias.push({
-      iso: d.toISOString().slice(0, 10),
+      iso: isoLocal(d),
       diaSemana: nomes[d.getDay()],
       numeroDia: String(d.getDate()).padStart(2, '0'),
     });
   }
   return dias;
 }
-
-const DIAS = gerarProximosDias(14);
 
 export function AgendamentoTutorScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<AgendaTabParamList>>();
@@ -43,17 +48,21 @@ export function AgendamentoTutorScreen({ route }: Props) {
   const { activePetId, setActivePetId } = useActivePetId();
   const petIdAtivo = activePetId ?? '';
 
+  const DIAS = useMemo(() => gerarProximosDias(14), []);
   const [reason, setReason] = useState('');
   const [selectedDate, setSelectedDate] = useState(DIAS[0].iso);
   const [selectedJanelaId, setSelectedJanelaId] = useState<number | null>(null);
+  const [vetEscolhidoId, setVetEscolhidoId] = useState<string | null>(null);
 
-  // Busca janelas reais na API para a data selecionada
-  // Passando undefined pro veterinarioId, a API deve devolver a grade da clínica
-  const { data: janelasLivres, isLoading: isLoadingJanelas } = useFreeWindows(undefined, selectedDate);
+  // A API só lista janelas de um veterinário específico: com um só na clínica ele é
+  // escolhido automaticamente; com vários, o tutor escolhe.
+  const { data: veterinarios, isLoading: isLoadingVets } = useVeterinarians();
+  const veterinarioId = vetEscolhidoId ?? veterinarios?.[0]?.id;
+  const { data: janelasLivres, isLoading: isLoadingJanelas } = useFreeWindows(veterinarioId, selectedDate);
 
   useEffect(() => {
     setSelectedJanelaId(null);
-  }, [selectedDate]);
+  }, [selectedDate, veterinarioId]);
 
   const handleSave = async () => {
     if (!petIdAtivo || !reason || !selectedDate || !selectedJanelaId) return;
@@ -121,6 +130,29 @@ export function AgendamentoTutorScreen({ route }: Props) {
           ) : null}
         </View>
 
+        {/* Seção: Veterinário (só quando há mais de um para escolher) */}
+        {veterinarios && veterinarios.length > 1 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Veterinário</Text>
+            <View style={styles.petsRow}>
+              {veterinarios.map((vet) => {
+                const active = vet.id === veterinarioId;
+                return (
+                  <Pressable
+                    key={vet.id}
+                    onPress={() => setVetEscolhidoId(vet.id)}
+                    style={[styles.petChip, active && styles.petChipActive]}
+                  >
+                    <Text style={[styles.petName, active && styles.petNameActive]} numberOfLines={1}>
+                      {vet.nome}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/* Seção 3: Dia */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Dia</Text>
@@ -144,8 +176,12 @@ export function AgendamentoTutorScreen({ route }: Props) {
         {/* Seção 4: Horário */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Horário</Text>
-          {isLoadingJanelas ? (
+          {isLoadingVets || isLoadingJanelas ? (
             <LoadingIndicator label="Buscando horários..." />
+          ) : !veterinarioId ? (
+            <Text style={styles.emptyText}>
+              Nenhum veterinário disponível na clínica no momento.
+            </Text>
           ) : !janelasLivres || janelasLivres.length === 0 ? (
             <Text style={styles.emptyText}>
               Nenhum horário disponível para esta data. Selecione outro dia.

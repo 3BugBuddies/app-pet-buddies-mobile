@@ -1,15 +1,15 @@
-import { apiJava } from './apiClient';
+import { apiJava, USE_API } from './apiClient';
 import type { Appointment, CreateAppointmentInput } from '../model/appointment';
+import type { MedicalRecord } from '../model/medicalRecord';
 import {
   addFakeAppointment,
+  addFakePrescription,
+  addFakeRule,
   deleteFakeAppointment,
   getFakeAppointments,
   updateFakeAppointment,
 } from './fakeData';
 
-// MANTENHA false para testar a interface.
-// Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = true;
 
 // Converte o enum de status do backend (PT) para o tipo interno do app (EN)
 function mapStatus(backendStatus: string): Appointment['status'] {
@@ -33,19 +33,23 @@ function deriveType(reason: string): string {
 }
 
 const getAllAppointments = async (
-  animalId?: string | number | null
+  animalId?: string | number | null,
+  veterinarioId?: string | number | null
 ): Promise<Appointment[]> => {
   if (USE_API) {
-    let url = '/consulta';
-    if (animalId) url = `/consulta?animalId=${animalId}`;
-    const response = await apiJava.get(url);
+    const response = await apiJava.get('/consulta', {
+      params: {
+        animalId: animalId || undefined,
+        veterinarioId: veterinarioId || undefined,
+      },
+    });
     const list = response.data._embedded?.consultaResponseList ?? [];
     return list.map((c: any) => ({
       id: c.id?.toString() ?? '',
       petId: c.animalId?.toString() ?? '',
       vetId: c.veterinarioId?.toString() ?? '',
       date: c.dataHora,
-      reason: c.motivo || '',
+      reason: c.observacao || '',
       status: mapStatus(c.status),
     }));
   }
@@ -63,7 +67,7 @@ const getAppointmentById = async (id: string): Promise<Appointment | undefined> 
       petId: c.animalId.toString(),
       vetId: c.veterinarioId.toString(),
       date: c.dataHora,
-      reason: c.motivo || '',
+      reason: c.observacao || '',
       status: mapStatus(c.status),
     };
   }
@@ -86,7 +90,7 @@ const createAppointment = async (payload: CreateAppointmentInput): Promise<Appoi
       petId: c.animalId.toString(),
       vetId: c.veterinarioId?.toString() ?? '',
       date: c.dataHora,
-      reason: c.motivo || payload.reason,
+      reason: c.observacao || payload.reason,
       status: mapStatus(c.status),
     };
   }
@@ -106,68 +110,182 @@ const updateAppointment = async (
       petId: c.animalId.toString(),
       vetId: c.veterinarioId?.toString() ?? '',
       date: c.dataHora,
-      reason: c.motivo || '',
+      reason: c.observacao || '',
       status: mapStatus(c.status),
     };
   }
   return updateFakeAppointment(id, payload);
 };
 
-// Fecha o atendimento via POST /{id}/fechamento (contrato seção 7 — Vet · fechar atendimento)
+const pad = (n: number) => String(n).padStart(2, '0');
+
+// Data local AAAA-MM-DD (toISOString usaria UTC e viraria o dia à noite no Brasil).
+const isoLocal = (d: Date): string => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+// LocalDateTime do Java, sem fuso: AAAA-MM-DDTHH:mm:ss
+const dateTimeLocal = (d: Date): string =>
+  `${isoLocal(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+// O app guarda o registro com data pura (AAAA-MM-DD) e campos extras (id, animalId, consultaId).
+// O fechamento espera só os campos do RegistroAtendimentoFechamentoRequest, com dataAtendimento
+// em LocalDateTime — a data pura faz a API recusar com 400.
+const toRegistroFechamento = (registro: MedicalRecord) => ({
+  dataAtendimento: registro.dataAtendimento.includes('T')
+    ? registro.dataAtendimento
+    : `${registro.dataAtendimento}T${dateTimeLocal(new Date()).slice(11)}`,
+  anamnese: registro.anamnese ?? undefined,
+  diagnostico: registro.diagnostico,
+  tratamento: registro.tratamento,
+  observacao: registro.observacao ?? undefined,
+  proximoRetorno: registro.proximoRetorno ?? undefined,
+  proximaVacina: registro.proximaVacina ?? undefined,
+});
+
+// Fecha o atendimento via POST /{id}/fechamento (atômico: registro + procedimentos + prescrições).
+// A API só fecha consulta AGENDADA ou CONFIRMADA e exige `registroAtendimento`.
 const fecharAtendimento = async (id: string, payload: any): Promise<void> => {
   if (USE_API) {
-    await apiJava.post(`/consulta/${id}/fechamento`, payload);
+    const registro = payload?.registroAtendimento;
+    await apiJava.post(`/consulta/${id}/fechamento`, {
+      ...payload,
+      registroAtendimento: registro ? toRegistroFechamento(registro) : registro,
+      prescricoes: (payload?.prescricoes ?? []).map((p: any) => ({
+        ...p,
+        regras: (p.regras ?? []).map(({ rotuloCongelado: _rotulo, ...regra }: any) => regra),
+      })),
+    });
     return;
   }
-  // Fake behavior
+  // Mock: marca a consulta como realizada e guarda as prescrições assinadas (e suas regras).
   const appt = getFakeAppointments().find((a) => a.id === id);
   if (appt) {
     updateFakeAppointment(id, { status: 'COMPLETED' } as any);
   }
+  const registro = payload?.registroAtendimento;
+  (payload?.prescricoes ?? []).forEach((p: any, i: number) => {
+    const prescricaoId = `presc-${Date.now()}-${i}`;
+    addFakePrescription({
+      id: prescricaoId,
+      medicamento: p.medicamento,
+      doseMin: p.doseMin,
+      doseMax: p.doseMax,
+      unidade: p.unidade,
+      frequenciaDia: p.frequenciaDia,
+      duracaoDias: p.duracaoDias,
+      dataInicio: p.dataInicio,
+      orientacao: p.orientacao ?? null,
+      materialOrigemId: null,
+      versaoOrigem: null,
+      animalId: String(registro?.animalId ?? appt?.petId ?? ''),
+      veterinarioId: appt?.vetId ?? '',
+      registroAtendimentoId: registro?.id ? String(registro.id) : null,
+    });
+    (p.regras ?? []).forEach((r: any) =>
+      addFakeRule({
+        id: null,
+        prescricaoId,
+        condicaoClinicaId: r.condicaoClinicaId,
+        rotuloCongelado: r.rotuloCongelado ?? '',
+        acao: r.acaoDose,
+        operador: r.operador ?? null,
+        limite: r.limite ?? null,
+      })
+    );
+  });
 };
 
-
-const deleteAppointment = async (id: string, motivo: string = 'Cancelado pelo usuário'): Promise<void> => {
+// Cancela por POST /{id}/cancelamento: guarda o motivo e libera a janela. O DELETE apagaria o
+// histórico e dá 409 se a consulta já tiver registro ou plano.
+const deleteAppointment = async (id: string, motivo: string): Promise<void> => {
   if (USE_API) {
-    // O correto é cancelar, informando o motivo.
     await apiJava.post(`/consulta/${id}/cancelamento`, { motivo });
     return;
   }
   deleteFakeAppointment(id);
 };
 
-const toggleAttendance = async (id: string): Promise<void> => {
-  return fecharAtendimento(id, {});
+// Consulta ainda aberta (agendada/confirmada) do paciente para hoje, se houver.
+const findTodaysOpenAppointment = async (
+  animalId: string,
+  veterinarioId?: string | number | null
+): Promise<Appointment | undefined> => {
+  const hoje = isoLocal(new Date());
+  // Com animalId a API ignora veterinarioId, então o filtro por veterinário é feito aqui.
+  const lista = await getAllAppointments(animalId, veterinarioId);
+  return lista
+    .filter(
+      (a) =>
+        a.petId === String(animalId) &&
+        (!veterinarioId || a.vetId === String(veterinarioId)) &&
+        (a.status === 'SCHEDULED' || a.status === 'CONFIRMED') &&
+        a.date?.slice(0, 10) === hoje
+    )
+    .sort((x, y) => new Date(x.date).getTime() - new Date(y.date).getTime())[0];
 };
 
+// Atendimento imediato (sem horário marcado): a API só fecha atendimento de uma consulta, então
+// o vet abre uma consulta agora, com ele mesmo como veterinário.
+const createWalkInAppointment = async (
+  animalId: string,
+  veterinarioId: string | number
+): Promise<Appointment> => {
+  if (USE_API) {
+    const response = await apiJava.post('/consulta', {
+      tipo: 'ROTINA',
+      dataHora: dateTimeLocal(new Date()),
+      observacao: 'Atendimento imediato',
+      animalId: Number(animalId),
+      veterinarioId: Number(veterinarioId),
+    });
+    const c = response.data;
+    return {
+      id: c.id.toString(),
+      petId: c.animalId.toString(),
+      vetId: c.veterinarioId?.toString() ?? '',
+      date: c.dataHora,
+      reason: c.observacao || 'Atendimento imediato',
+      status: mapStatus(c.status),
+    };
+  }
+  return addFakeAppointment({
+    id: `appt-${Date.now()}`,
+    petId: animalId,
+    vetId: String(veterinarioId),
+    date: dateTimeLocal(new Date()),
+    reason: 'Atendimento imediato',
+    status: 'SCHEDULED',
+  });
+};
+
+// Janela livre como o app a usa. A API manda `dataHoraInicio` (LocalDateTime); a duração
+// não vem, então só exibimos o início.
 export interface JanelaAtendimento {
   id: number;
   data: string; // YYYY-MM-DD
   horaInicio: string; // HH:mm:ss
-  horaFim: string; // HH:mm:ss
-  status: string;
 }
 
-const getFreeWindows = async (veterinarioId?: string | number, dataISO?: string): Promise<JanelaAtendimento[]> => {
+const getFreeWindows = async (
+  veterinarioId: string | number,
+  dataISO: string
+): Promise<JanelaAtendimento[]> => {
   if (USE_API) {
-    let url = '/janela-atendimento/livres';
-    const params = new URLSearchParams();
-    if (veterinarioId) params.append('veterinarioId', String(veterinarioId));
-    if (dataISO) params.append('data', dataISO);
-    
-    if (params.toString()) {
-      url += `?${params.toString()}`;
-    }
-    const response = await apiJava.get(url);
-    // Extrai a lista do HATEOAS, ou pega direto se for um array plano
-    return response.data._embedded?.janelaAtendimentoResponseList || response.data || [];
+    // veterinarioId e data são obrigatórios na API; ela já exclui janela ocupada ou que já começou.
+    const response = await apiJava.get('/janela-atendimento/livres', {
+      params: { veterinarioId, data: dataISO },
+    });
+    const lista: any[] = response.data._embedded?.janelaAtendimentoResponseList ?? [];
+    return lista.map((j) => ({
+      id: j.id,
+      data: String(j.dataHoraInicio).slice(0, 10),
+      horaInicio: String(j.dataHoraInicio).slice(11, 19),
+    }));
   }
-  
-  const [ano, mes, dia] = (dataISO || new Date().toISOString().slice(0, 10)).split('-');
+
   return [
-    { id: 991, data: dataISO!, horaInicio: '08:00:00', horaFim: '08:30:00', status: 'LIVRE' },
-    { id: 992, data: dataISO!, horaInicio: '10:00:00', horaFim: '10:30:00', status: 'LIVRE' },
-    { id: 993, data: dataISO!, horaInicio: '15:00:00', horaFim: '15:30:00', status: 'LIVRE' }
+    { id: 991, data: dataISO, horaInicio: '08:00:00' },
+    { id: 992, data: dataISO, horaInicio: '10:00:00' },
+    { id: 993, data: dataISO, horaInicio: '15:00:00' },
   ];
 };
 
@@ -177,7 +295,8 @@ export {
   createAppointment,
   updateAppointment,
   fecharAtendimento,
-  toggleAttendance,
   deleteAppointment,
+  findTodaysOpenAppointment,
+  createWalkInAppointment,
   getFreeWindows,
 };

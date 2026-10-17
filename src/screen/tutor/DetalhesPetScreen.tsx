@@ -83,7 +83,7 @@ export function DetalhesPetScreen({ route }: Props) {
       'Tem certeza que deseja cancelar esta consulta? O horário será liberado na sua agenda.',
       [
         { text: 'Voltar', style: 'cancel' },
-        { text: 'Sim, Cancelar', style: 'destructive', onPress: () => deleteAppointment.mutate(id) },
+        { text: 'Sim, Cancelar', style: 'destructive', onPress: () => deleteAppointment.mutate({ id, motivo: 'Cancelada pela clínica' }) },
       ]
     );
   };
@@ -97,7 +97,7 @@ export function DetalhesPetScreen({ route }: Props) {
         {
           text: 'Cancelar e Avisar Tutor',
           style: 'default',
-          onPress: () => deleteAppointment.mutate(id),
+          onPress: () => deleteAppointment.mutate({ id, motivo: 'Reagendamento solicitado pela clínica' }),
         },
       ]
     );
