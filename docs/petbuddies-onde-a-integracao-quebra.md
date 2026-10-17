@@ -9,8 +9,6 @@
 - `PetBuddies-AI` @ `149e89b`
 - Main congelada de 13/09 · lida em 14/09/2026
 
-**Fonte original:** `.claude/docs/analysis/2026-09-14-base-sprint-4-mobile-e-apis.md`
-
 ---
 
 ## Legenda de estados

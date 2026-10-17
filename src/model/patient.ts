@@ -1,6 +1,5 @@
 // Visao de adesao do paciente pra clinica (Agenda, Pacientes). Nao existe
-// tabela propria no schema — seria agregacao sobre plano/consulta/procedimento
-// (ver schema-sprint-3-08.md, secao "Pontos").
+// tabela propria no schema — seria agregacao sobre plano/consulta/procedimento.
 export interface ClinicPatient {
   petId: string;
   petName: string;

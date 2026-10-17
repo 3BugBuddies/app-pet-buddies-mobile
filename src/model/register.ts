@@ -10,14 +10,14 @@ const registerSchema = object({
     .oneOf([ref('senha')], 'As senhas não conferem'),
   perfil: string().oneOf(PERFIS, 'Selecione um perfil').required('Selecione um perfil'),
 
-  // Obrigatório para TUTOR (contrato seção 4 — Erros do registro: REGISTRO_INCOMPLETO)
+  // Obrigatório para TUTOR (a API responde REGISTRO_INCOMPLETO sem ele)
   telefone: string().when('perfil', {
     is: 'TUTOR',
     then: (schema) => schema.required('O telefone é obrigatório para tutores'),
     otherwise: (schema) => schema.nullable(),
   }),
 
-  // Obrigatório para VET (contrato seção 4 — Erros do registro: REGISTRO_INCOMPLETO)
+  // Obrigatório para VET (a API responde REGISTRO_INCOMPLETO sem ele)
   crmv: string().when('perfil', {
     is: 'VET',
     then: (schema) => schema.required('O CRMV é obrigatório para veterinários'),

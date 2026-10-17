@@ -1,4 +1,4 @@
-// Campos baseados em T_PB_REGISTRO_ATENDIMENTO (schema-sprint-3-08.md), em camelCase
+// Campos baseados em T_PB_REGISTRO_ATENDIMENTO, em camelCase
 // porque o app consome JSON (DTO) e nao a coluna do banco direto.
 import { InferType, object, string } from 'yup';
 

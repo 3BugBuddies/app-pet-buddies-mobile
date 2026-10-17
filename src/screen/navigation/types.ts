@@ -64,7 +64,7 @@ export type PacientesTabParamList = {
   DetalhesPet: { petId: string; consultaId?: string };
   ProntuarioForm: { petId: string; consultaId?: string };
   PlanoPaciente: { petId: string };
-  // Tunel do veterinario (Fase 4): Prescricao <-> NovaRegra -> AssinarPrescricao.
+  // Fluxo de prescricao do veterinario: Prescricao <-> NovaRegra -> AssinarPrescricao.
   Prescricao: { animalId: string; consultaId: string; prontuario: any; novaRegra?: RegraDraft };
   NovaRegra: { animalId: string; consultaId: string; prontuario: any };
   AssinarPrescricao: { draft: PrescricaoDraft; consultaId: string; prontuario: any };

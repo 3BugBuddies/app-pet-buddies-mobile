@@ -1,7 +1,5 @@
-// Campos baseados em T_PB_PRESCRICAO (schema-sprint-3-08.md), em camelCase.
-// O contrato REST de prescricao ainda nao existe na Sprint 3 (ver schema-sprint-3-08.md,
-// secao "Antes de tudo"), entao os nomes aqui seguem a mesma convencao ja usada nos DTOs
-// existentes (prefixo de coluna cai, FK vira "<entidade>Id") ate a API real ser publicada.
+// Campos baseados em T_PB_PRESCRICAO, em camelCase: o prefixo da coluna cai e a FK vira
+// "<entidade>Id", a mesma convencao dos DTOs da API.
 import { InferType, object, string, number, ref } from 'yup';
 import type { RegraDraft, RegraPrescricaoRequest } from './prescriptionRule';
 
@@ -40,7 +38,7 @@ const prescriptionSchema = object({
 
 type Prescription = InferType<typeof prescriptionSchema>;
 
-// Estado do assistente "Tunel do Veterinario" (Fase 4) entre ProntuarioForm ->
+// Estado do assistente de prescricao do veterinario entre ProntuarioForm ->
 // PrescricaoScreen -> NovaRegraScreen -> AssinarPrescricaoScreen. Nada disso e
 // gravado no repository ate a assinatura final — a prescricao no schema real
 // so nasce assinada (sem status de rascunho em T_PB_PRESCRICAO), entao o

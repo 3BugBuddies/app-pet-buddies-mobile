@@ -1,7 +1,7 @@
 // Forma ANTIGA de prescricao (nomes em ingles, status DRAFT/SIGNED), usada
 // so pelo motor de simulacao de check-in (careRepository.ts/careRules.ts) e
 // pela tela de protocolos. Nao confundir com model/prescription.ts, que e a
-// prescricao real, assinada de verdade (Fase 4) — unificar as duas exigiria
+// prescricao real, assinada de verdade — unificar as duas exigiria
 // portar esse motor de regras pro schema novo (ver nota em careRepository.ts).
 export type ConditionSignal =
   | 'FEZES_MOLES'

@@ -1,4 +1,4 @@
-// Espelha T_PB_USUARIO (schema-sprint-3-08.md): quem logou, com que perfil, e o
+// Espelha T_PB_USUARIO: quem logou, com que perfil, e o
 const PERFIS = ['TUTOR', 'VET'] as const;
 
 type Perfil = (typeof PERFIS)[number];
