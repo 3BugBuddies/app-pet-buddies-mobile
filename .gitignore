@@ -42,3 +42,8 @@ yarn-error.*
 
 .agent.md
 .env
+
+# Claude Code (uso local)
+.claude/
+CLAUDE.md
+AGENTS.md
