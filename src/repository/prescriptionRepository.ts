@@ -1,10 +1,7 @@
-import { apiJava } from './apiClient';
+import { apiJava, USE_API } from './apiClient';
 import { Prescription, type NarrativaPrescricaoRequest, type RascunhoPrescricaoResponse } from '../model/prescription';
 import { addFakePrescription, getFakePrescriptionsByAnimalId } from './fakeData';
 
-// MANTENHA false para testar a interface.
-// Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = true;
 
 // Normaliza um item da lista do backend para o tipo interno Prescription
 function mapPrescription(p: any): Prescription {
@@ -28,7 +25,7 @@ function mapPrescription(p: any): Prescription {
 
 const getPrescriptionsByAnimalId = async (animalId: string): Promise<Prescription[]> => {
   if (USE_API) {
-    // Filho não é aninhado — é filtro (contrato regra 2)
+    // Filho não é aninhado — é filtro
     const response = await apiJava.get(`/prescricao?animalId=${animalId}`);
     const list = response.data._embedded?.prescricaoResponseList ?? [];
     return list.map(mapPrescription);
@@ -63,7 +60,7 @@ const createPrescription = async (prescription: Prescription): Promise<Prescript
 };
 
 // Rota exclusiva para veterinário: envia narrativa e recebe rascunho estruturado pela IA.
-// Exige perfil VET (única rota com restrição de perfil — contrato seção 2).
+// Exige perfil VET.
 const draftPrescription = async (data: NarrativaPrescricaoRequest): Promise<RascunhoPrescricaoResponse> => {
   if (USE_API) {
     const payload = {
@@ -71,15 +68,8 @@ const draftPrescription = async (data: NarrativaPrescricaoRequest): Promise<Rasc
       animalId: Number(data.animalId),
       registroAtendimentoId: data.registroAtendimentoId ? Number(data.registroAtendimentoId) : undefined,
     };
-    console.log('[draftPrescription] POST /prescricao/rascunho payload:', JSON.stringify(payload, null, 2));
-    try {
-      const response = await apiJava.post('/prescricao/rascunho', payload);
-      console.log('[draftPrescription] Response data:', JSON.stringify(response.data, null, 2));
-      return response.data;
-    } catch (err: any) {
-      console.error('[draftPrescription] Error:', err?.response?.status, JSON.stringify(err?.response?.data, null, 2));
-      throw err;
-    }
+    const response = await apiJava.post('/prescricao/rascunho', payload);
+    return response.data;
   }
   return {
     narrativaOriginal: data.narrativa,
@@ -95,8 +85,8 @@ const draftPrescription = async (data: NarrativaPrescricaoRequest): Promise<Rasc
       orientacao: 'Administrar junto com alimento',
     },
     regrasPropostas: [
-      { condicaoClinicaId: 1, rotuloCongelado: 'Fezes moles', acao: 'DOSE_MIN' },
-      { condicaoClinicaId: 2, rotuloCongelado: 'Vômito', acao: 'ACIONAR_CLINICA' },
+      { condicaoClinicaId: 1, acaoDose: 'DOSE_MIN' },
+      { condicaoClinicaId: 4, acaoDose: 'ACIONAR_CLINICA' },
     ],
     condicoesDescartadas: [],
   };

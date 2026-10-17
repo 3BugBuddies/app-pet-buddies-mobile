@@ -17,9 +17,10 @@ import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
 import { FieldError } from '../../component/forms/FieldError';
 import { Input } from '../../component/ui/Input';
-import { usePrescricaoDraftControl, useDraftPrescription, useNovaRegraControl } from '../../control/usePrescriptionControl';
+import { usePrescricaoDraftControl, useDraftPrescription, useNovaRegraControl, useCondicoesClinicas } from '../../control/usePrescriptionControl';
 import { extrairPrescricaoDaNarrativa } from '../../control/prescriptionExtractor';
-import { CONDICOES_CLINICAS } from '../../model/prescriptionRule';
+import { descreverCondicao, OPERADOR_SIMBOLO } from '../../model/prescriptionRule';
+import { getRecordsByPetId } from '../../repository/medicalRecordRepository';
 import { usePet } from '../../control/usePetsControl';
 import { usePatients } from '../../control/usePatientsControl';
 import type { PacientesTabParamList } from '../navigation/types';
@@ -31,6 +32,7 @@ const ACAO_LABEL: Record<string, string> = {
   DOSE_MAX: 'dose máxima',
   DOSE_PADRAO: 'dose padrão',
   ACIONAR_CLINICA: 'acionar clínica',
+  SUSPENDER: 'suspender o medicamento',
 };
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'Prescricao'>;
@@ -121,15 +123,20 @@ export function PrescricaoScreen({ route }: Props) {
     registroAtendimentoId: prontuario?.id ? String(prontuario.id) : '',
   });
 
+  const { data: catalogo = [], isLoading: isLoadingCondicoes } = useCondicoesClinicas();
   const {
-    condicoes, acoes,
+    condicoes, condicao, acoes, operadores,
     condicaoClinicaId, setCondicaoClinicaId,
     acao, setAcao,
+    operador, setOperador,
+    limiteTexto, setLimiteTexto,
+    erro: erroRegra,
     construirRegra,
-  } = useNovaRegraControl();
+  } = useNovaRegraControl(catalogo);
 
   const handleAddRule = () => {
     const regra = construirRegra();
+    if (!regra) return;
     setRegras(prev => [...prev, regra]);
     setRuleModalVisible(false);
   };
@@ -195,62 +202,53 @@ export function PrescricaoScreen({ route }: Props) {
     }
   };
 
+  // Preenche o formulário com o extrator local (sem IA da API). Os valores são só uma sugestão.
+  const preencherComExtratorLocal = (texto: string, aviso: string) => {
+    const extraido = extrairPrescricaoDaNarrativa(texto);
+    if (extraido.medicamento) setMedicamento(extraido.medicamento);
+    setDoseMin(extraido.doseMin);
+    setDoseMax(extraido.doseMax);
+    setUnidade(extraido.unidade);
+    setFrequenciaDia(extraido.frequenciaDia);
+    setDuracaoDias(extraido.duracaoDias);
+    if (extraido.orientacao) setOrientacao(extraido.orientacao);
+    Alert.alert('Prescrição Estruturada', aviso);
+  };
+
   const handleGerarIA = async (textoCustomizado?: string) => {
     const textoParaProcessar = (textoCustomizado ?? narrativaIA).trim();
     if (!textoParaProcessar) return;
 
     try {
+      // A IA da API exige um registro de atendimento já gravado do paciente para ler o contexto
+      // (POST /prescricao/rascunho). Este fluxo só grava o prontuário na assinatura (fechamento
+      // atômico), então usamos um registro anterior do paciente apenas como referência. Sem ele,
+      // não persistimos nada: cai no extrator local.
       let regId: string | number | undefined =
-        prontuario?.id && !String(prontuario.id).startsWith('rec-')
-          ? prontuario.id
-          : undefined;
-
-      // Se ainda não tiver ID real do banco, tenta buscar registros existentes do animal
+        prontuario?.id && !String(prontuario.id).startsWith('rec-') ? prontuario.id : undefined;
       if (!regId) {
-        try {
-          const { getRecordsByPetId } = await import('../../repository/medicalRecordRepository');
-          const records = await getRecordsByPetId(animalId);
-          if (records && records.length > 0) {
-            regId = records[0].id;
-          }
-        } catch (e) {
-          console.warn('[PrescricaoScreen] Não foi possível consultar histórico de registros:', e);
-        }
+        const registros = await getRecordsByPetId(animalId).catch(() => []);
+        regId = registros[0]?.id;
       }
-
-      // Se o pet não tem nenhum registro no banco, persiste o prontuário atual
-      if (!regId && prontuario) {
-        try {
-          const { createRecord } = await import('../../repository/medicalRecordRepository');
-          const salvo = await createRecord(prontuario);
-          if (salvo?.id) {
-            regId = salvo.id;
-            prontuario.id = salvo.id;
-          }
-        } catch (e) {
-          console.warn('[PrescricaoScreen] Não foi possível salvar prontuário:', e);
-        }
+      if (!regId) {
+        preencherComExtratorLocal(
+          textoParaProcessar,
+          'Este paciente ainda não tem atendimento gravado, então a IA do servidor não pôde ser usada. Campos preenchidos pelo extrator local: revise antes de assinar.'
+        );
+        return;
       }
 
       const rascunho = await draftPrescription.mutateAsync({
         animalId,
-        registroAtendimentoId: regId ? String(regId) : undefined,
+        registroAtendimentoId: String(regId),
         narrativa: textoParaProcessar,
       });
 
-      // Modelo de IA indisponível — tenta preenchimento com o extrator local
+      // Modelo de IA indisponível — preenchimento com o extrator local
       if (!rascunho.extracaoDisponivel) {
-        const extraido = extrairPrescricaoDaNarrativa(textoParaProcessar);
-        if (extraido.medicamento) setMedicamento(extraido.medicamento);
-        setDoseMin(extraido.doseMin);
-        setDoseMax(extraido.doseMax);
-        setUnidade(extraido.unidade);
-        setFrequenciaDia(extraido.frequenciaDia);
-        setDuracaoDias(extraido.duracaoDias);
-        if (extraido.orientacao) setOrientacao(extraido.orientacao);
-        Alert.alert(
-          'Prescrição Estruturada',
-          'Campos preenchidos com base no seu relato de áudio! Revise os valores antes de assinar.',
+        preencherComExtratorLocal(
+          textoParaProcessar,
+          'Campos preenchidos com base no seu relato de áudio! Revise os valores antes de assinar.'
         );
         return;
       }
@@ -264,36 +262,27 @@ export function PrescricaoScreen({ route }: Props) {
       setDuracaoDias(prescricao.duracaoDias ?? 7);
       if (prescricao.orientacao) setOrientacao(prescricao.orientacao);
 
-      const regrasSeguras = rascunho.regrasPropostas || [];
+      // A IA devolve só ids e `acaoDose`: o rótulo vem do catálogo de condições da clínica.
       setRegras(
-        regrasSeguras.map((r: any) => {
+        (rascunho.regrasPropostas ?? []).map((r) => {
           const idCond = Number(r.condicaoClinicaId);
-          const condEncontrada = CONDICOES_CLINICAS.find((c) => c.id === idCond);
-          const rotulo = r.rotuloCongelado || condEncontrada?.rotulo || `Condição #${idCond}`;
-          const acaoFinal = (r.acao || r.acaoDose || 'DOSE_MIN') as any;
           return {
             condicaoClinicaId: idCond,
-            rotuloCongelado: rotulo,
-            acao: acaoFinal,
+            rotuloCongelado: catalogo.find((c) => c.id === idCond)?.rotulo ?? `Condição #${idCond}`,
+            acao: r.acaoDose,
+            operador: r.operador ?? null,
+            limite: r.limite ?? null,
           };
         })
       );
     } catch (error: any) {
-      console.warn('[PrescricaoScreen] API de IA do backend indisponível ou recusou payload, usando extrator local:', error);
+      console.warn('[PrescricaoScreen] IA do servidor indisponível ou recusou a requisição:', error);
       try {
-        const extraido = extrairPrescricaoDaNarrativa(textoParaProcessar);
-        if (extraido.medicamento) setMedicamento(extraido.medicamento);
-        setDoseMin(extraido.doseMin);
-        setDoseMax(extraido.doseMax);
-        setUnidade(extraido.unidade);
-        setFrequenciaDia(extraido.frequenciaDia);
-        setDuracaoDias(extraido.duracaoDias);
-        if (extraido.orientacao) setOrientacao(extraido.orientacao);
-        Alert.alert(
-          'Prescrição Estruturada',
-          'Campos preenchidos automaticamente a partir do áudio! Revise e adicione regras caso desejar.',
+        preencherComExtratorLocal(
+          textoParaProcessar,
+          'A IA do servidor não respondeu. Campos preenchidos pelo extrator local: revise e adicione regras se desejar.'
         );
-      } catch (extractorErr) {
+      } catch {
         Alert.alert('Erro ao chamar IA', buildApiErrorMessage(error));
       }
     }
@@ -480,7 +469,7 @@ export function PrescricaoScreen({ route }: Props) {
             <View key={index} style={styles.regraRow}>
               <View style={styles.regraDot} />
               <Text style={styles.regraText} numberOfLines={2}>
-                Se <Text style={styles.regraBold}>{(regra.rotuloCongelado || 'Condição Desconhecida').toLowerCase()}</Text>
+                Se <Text style={styles.regraBold}>{descreverCondicao(regra)}</Text>
                 <Text style={styles.regraArrow}> → </Text>
                 {ACAO_LABEL[regra.acao] ?? (regra.acao ? regra.acao.toLowerCase() : 'ação desconhecida')}
               </Text>
@@ -550,6 +539,42 @@ export function PrescricaoScreen({ route }: Props) {
                 </Pressable>
               ))}
             </View>
+
+            {isLoadingCondicoes ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : condicoes.length === 0 ? (
+              <Text style={styles.noteText}>
+                Nenhuma condição clínica cadastrada na clínica. Cadastre condições para criar regras.
+              </Text>
+            ) : null}
+
+            {condicao?.tipoDado === 'NUMERICO' ? (
+              <>
+                <Text style={styles.sectionLabel}>Quando o valor for:</Text>
+                <View style={styles.chipsRow}>
+                  {operadores.map((op) => (
+                    <Pressable
+                      key={op}
+                      onPress={() => setOperador(op)}
+                      style={[styles.chip, operador === op && styles.chipActive]}
+                    >
+                      <Text style={[styles.chipText, operador === op && styles.chipTextActive]}>
+                        {OPERADOR_SIMBOLO[op]}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Input
+                  label={`Limite${condicao.unidade ? ` (${condicao.unidade})` : ''}`}
+                  placeholder="Ex.: 39,5"
+                  value={limiteTexto}
+                  onChangeText={setLimiteTexto}
+                  keyboardType="decimal-pad"
+                />
+              </>
+            ) : null}
+
+            {erroRegra ? <FieldError message={erroRegra} /> : null}
 
             <Text style={styles.sectionLabel}>Então aplicaremos:</Text>
             

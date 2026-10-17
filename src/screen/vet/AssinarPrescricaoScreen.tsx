@@ -8,6 +8,7 @@ import { Button } from '../../component/ui/Button';
 import { AuthContext } from '../../context/authContext';
 import { useAssinarPrescricaoControl } from '../../control/usePrescriptionControl';
 import { usePet } from '../../control/usePetsControl';
+import { descreverCondicao } from '../../model/prescriptionRule';
 import type { PacientesTabParamList } from '../navigation/types';
 import type { VetTabParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
@@ -83,7 +84,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
               <View style={styles.ruleRow}>
                 <View style={styles.ruleDot} />
                 <Text style={styles.ruleText}>
-                  {regra.rotuloCongelado.toLowerCase()} → {regra.acao.replace(/_/g, ' ').toLowerCase()}
+                  {descreverCondicao(regra)} → {regra.acao.replace(/_/g, ' ').toLowerCase()}
                 </Text>
               </View>
               {index < (draft.regras?.length ?? 0) - 1 ? <View style={styles.divider} /> : null}

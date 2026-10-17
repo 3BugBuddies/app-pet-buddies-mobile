@@ -1,14 +1,26 @@
 import { useContext, useState } from 'react';
 import { Alert } from 'react-native';
 import { buildApiErrorMessage } from './apiErrorHelper';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
 import { prescriptionSchema, type NarrativaPrescricaoRequest, type PrescricaoDraft } from '../model/prescription';
-import { CONDICOES_CLINICAS, TP_ACAO, type RegraDraft } from '../model/prescriptionRule';
-import { createPrescription, draftPrescription } from '../repository/prescriptionRepository';
-import { createRule } from '../repository/prescriptionRuleRepository';
+import {
+  OPERADORES,
+  TP_ACAO,
+  type CondicaoClinica,
+  type Operador,
+  type RegraDraft,
+  type TipoAcao,
+} from '../model/prescriptionRule';
+import { fecharAtendimento } from '../repository/appointmentRepository';
+import { getCondicoesClinicas } from '../repository/condicaoClinicaRepository';
+import { draftPrescription } from '../repository/prescriptionRepository';
 
-const hojeIso = () => new Date().toISOString().slice(0, 10);
+// Data local AAAA-MM-DD (toISOString usaria UTC e viraria o dia à noite no Brasil).
+const hojeIso = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 // So os campos que a PrescricaoScreen coleta — id/dataInicio/veterinarioId/animalId
 // entram depois, quando o rascunho vira prescricao de verdade (na assinatura).
@@ -49,7 +61,6 @@ const usePrescricaoDraftControl = ({ animalId, registroAtendimentoId }: UsePresc
         { medicamento, doseMin, doseMax, unidade, frequenciaDia, duracaoDias, orientacao },
         { abortEarly: false }
       );
-      // Usa o estado real de regras em vez de array vazio hardcoded
       return { animalId, registroAtendimentoId, medicamento, doseMin, doseMax, unidade, frequenciaDia, duracaoDias, orientacao, regras };
     } catch (error: any) {
       if (!error?.inner) return null;
@@ -77,192 +88,128 @@ const usePrescricaoDraftControl = ({ animalId, registroAtendimentoId }: UsePresc
   };
 };
 
-const useNovaRegraControl = () => {
-  const [condicaoClinicaId, setCondicaoClinicaId] = useState<number>(CONDICOES_CLINICAS[0].id);
-  const [acao, setAcao] = useState<(typeof TP_ACAO)[number]>('DOSE_MIN');
+// Catálogo de condições da clínica (GET /condicao-clinica).
+const useCondicoesClinicas = () =>
+  useQuery({
+    queryKey: ['condicoesClinicas'],
+    queryFn: getCondicoesClinicas,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const construirRegra = (): RegraDraft => {
-    const condicao = CONDICOES_CLINICAS.find((item) => item.id === condicaoClinicaId)!;
-    return { condicaoClinicaId, rotuloCongelado: condicao.rotulo, acao };
+const useNovaRegraControl = (condicoes: CondicaoClinica[]) => {
+  const [condicaoSelecionada, setCondicaoClinicaId] = useState<number | null>(null);
+  const [acao, setAcao] = useState<TipoAcao>('DOSE_MIN');
+  const [operador, setOperador] = useState<Operador>('MAIOR_QUE');
+  const [limiteTexto, setLimiteTexto] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+
+  // Enquanto o vet não escolhe, vale a primeira condição do catálogo.
+  const condicaoClinicaId = condicaoSelecionada ?? condicoes[0]?.id ?? null;
+  const condicao = condicoes.find((item) => item.id === condicaoClinicaId);
+
+  // Condição numérica exige operador e limite; booleana não aceita nenhum dos dois (a API recusa).
+  const construirRegra = (): RegraDraft | null => {
+    if (!condicao) {
+      setErro('Selecione a condição que aciona a regra.');
+      return null;
+    }
+    if (condicao.tipoDado === 'NUMERICO') {
+      const limite = parseFloat(limiteTexto.replace(',', '.'));
+      if (Number.isNaN(limite)) {
+        setErro('Informe o valor limite da condição.');
+        return null;
+      }
+      setErro(null);
+      return { condicaoClinicaId: condicao.id, rotuloCongelado: condicao.rotulo, acao, operador, limite };
+    }
+    setErro(null);
+    return { condicaoClinicaId: condicao.id, rotuloCongelado: condicao.rotulo, acao, operador: null, limite: null };
   };
 
   return {
-    condicoes: CONDICOES_CLINICAS,
+    condicoes,
+    condicao,
     acoes: TP_ACAO,
+    operadores: OPERADORES,
     condicaoClinicaId,
     setCondicaoClinicaId,
     acao,
     setAcao,
+    operador,
+    setOperador,
+    limiteTexto,
+    setLimiteTexto,
+    erro,
     construirRegra,
   };
 };
 
-// Unico ponto que grava no repository: a prescricao no schema real so existe
-// assinada (T_PB_PRESCRICAO nao tem status de rascunho), entao tudo que veio
-// dos passos anteriores (medicamento, dose, regras) so vira registro persistido
-// aqui, na assinatura.
+// Único ponto que grava a prescrição: a API só a cria assinada, junto com o registro do
+// atendimento, numa chamada atômica (POST /consulta/{id}/fechamento). Se qualquer parte falha,
+// nada é gravado pela metade.
 const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, consultaId: string) => {
   const { session } = useContext(AuthContext);
   const queryClient = useQueryClient();
 
-  const toNumericId = (val: any) => {
-    if (val === null || val === undefined) return undefined;
-    const n = Number(val);
-    return isNaN(n) ? undefined : n;
-  };
-
   const assinarMutation = useMutation({
     mutationFn: async () => {
-      let regId: string | number | undefined =
-        draft?.registroAtendimentoId && !String(draft.registroAtendimentoId).startsWith('rec-')
-          ? draft.registroAtendimentoId
-          : prontuario?.id && !String(prontuario.id).startsWith('rec-')
-          ? prontuario.id
-          : undefined;
-
-      let activeConsultaId: string | number | undefined =
-        consultaId || prontuario?.consultaId || undefined;
-
-      if (!regId && draft?.animalId) {
-        try {
-          const { getRecordsByPetId } = await import('../repository/medicalRecordRepository');
-          const records = await getRecordsByPetId(draft.animalId);
-          if (records && records.length > 0) {
-            regId = records[0].id;
-            if (!activeConsultaId && records[0].consultaId) {
-              activeConsultaId = records[0].consultaId;
-            }
-          }
-        } catch (e) {
-          console.warn('[useAssinarPrescricaoControl] Erro ao consultar histórico de prontuários:', e);
-        }
+      const consultaAtualId = consultaId || prontuario?.consultaId;
+      if (!consultaAtualId) {
+        throw new Error('Consulta não identificada. Volte ao prontuário e salve o atendimento de novo.');
       }
-
-      // Se ainda não temos consultaId associada ao animal:
-      if (!activeConsultaId && draft?.animalId) {
-        try {
-          const { getAllAppointments } = await import('../repository/appointmentRepository');
-          const appts = await getAllAppointments(draft.animalId);
-          if (appts && appts.length > 0) {
-            activeConsultaId = appts[0].id;
-          } else {
-            const all = await getAllAppointments();
-            const found = all.find((a) => String(a.petId) === String(draft.animalId));
-            if (found) activeConsultaId = found.id;
-          }
-        } catch (e) {
-          console.warn('[useAssinarPrescricaoControl] Erro ao buscar consulta do animal:', e);
-        }
+      if (!session?.veterinarioId) {
+        throw new Error('Sessão sem veterinário: entre novamente para assinar.');
       }
-
-      const vetIdVal = session?.veterinarioId
-        ? String(session.veterinarioId)
-        : (session?.usuarioId ? String(session.usuarioId) : 'vet-1');
 
       const prescricao = await prescriptionSchema.validate(
         {
           id: null,
-          medicamento: draft?.medicamento || 'Medicamento',
-          doseMin: draft?.doseMin ?? 1,
-          doseMax: draft?.doseMax ?? (draft?.doseMin ?? 1),
-          unidade: draft?.unidade || 'mg',
-          frequenciaDia: draft?.frequenciaDia ?? 1,
-          duracaoDias: draft?.duracaoDias ?? 7,
+          medicamento: draft.medicamento,
+          doseMin: draft.doseMin,
+          doseMax: draft.doseMax,
+          unidade: draft.unidade,
+          frequenciaDia: draft.frequenciaDia,
+          duracaoDias: draft.duracaoDias,
           dataInicio: hojeIso(),
-          orientacao: draft?.orientacao || undefined,
-          animalId: String(draft?.animalId || '1'),
-          veterinarioId: vetIdVal,
-          registroAtendimentoId: regId && !String(regId).startsWith('rec-') ? String(regId) : null,
+          orientacao: draft.orientacao || undefined,
+          animalId: String(draft.animalId),
+          veterinarioId: String(session.veterinarioId),
+          registroAtendimentoId: null,
           materialOrigemId: null,
           versaoOrigem: null,
         },
         { abortEarly: false }
       );
 
-      // Constrói o payload atômico com IDs estruturados
-      const payload = {
-        registroAtendimento: {
-          ...(prontuario || {}),
-          id: toNumericId(regId),
-          animalId: toNumericId(draft?.animalId) ?? 1,
-          consultaId: toNumericId(activeConsultaId),
-          dataAtendimento: prontuario?.dataAtendimento || new Date().toISOString().slice(0, 10),
-          diagnostico: prontuario?.diagnostico || 'Atendimento Clínico',
-          tratamento: prontuario?.tratamento || 'Vide prescrição estruturada',
-        },
+      await fecharAtendimento(String(consultaAtualId), {
+        registroAtendimento: prontuario,
         prescricoes: [
           {
-            ...prescricao,
-            registroAtendimentoId: toNumericId(regId),
-            regrasCondicionais: (draft?.regras || []).map((regra, indice) => ({
+            medicamento: prescricao.medicamento,
+            doseMin: prescricao.doseMin,
+            doseMax: prescricao.doseMax,
+            unidade: prescricao.unidade,
+            frequenciaDia: prescricao.frequenciaDia,
+            duracaoDias: prescricao.duracaoDias,
+            dataInicio: prescricao.dataInicio,
+            orientacao: prescricao.orientacao ?? undefined,
+            regras: (draft.regras ?? []).map((regra, indice) => ({
               condicaoClinicaId: regra.condicaoClinicaId,
-              rotuloCongelado: regra.rotuloCongelado,
+              rotuloCongelado: regra.rotuloCongelado, // só o mock usa; removido antes de ir à API
+              operador: regra.operador ?? undefined,
+              limite: regra.limite ?? undefined,
               acaoDose: regra.acao,
               ordem: indice + 1,
             })),
           },
         ],
-      };
-
-      let assinado = false;
-
-      // 1. Tenta fechamento atômico da consulta se tiver consultaId
-      if (activeConsultaId) {
-        try {
-          const { fecharAtendimento } = await import('../repository/appointmentRepository');
-          await fecharAtendimento(String(activeConsultaId), payload);
-          assinado = true;
-        } catch (fechamentoErr) {
-          console.warn('[useAssinarPrescricaoControl] fecharAtendimento falhou, executando fallback:', fechamentoErr);
-        }
-      }
-
-      // 2. Se fechamento atômico não foi executado ou falhou, usa endpoint direto de prescrição
-      if (!assinado) {
-        try {
-          const { createPrescription } = await import('../repository/prescriptionRepository');
-          const { createRule } = await import('../repository/prescriptionRuleRepository');
-          const prescricaoSalva = await createPrescription(prescricao);
-          for (const [indice, regra] of (draft?.regras || []).entries()) {
-            try {
-              await createRule({
-                id: null,
-                prescricaoId: prescricaoSalva.id!,
-                condicaoClinicaId: regra.condicaoClinicaId,
-                rotuloCongelado: regra.rotuloCongelado,
-                acao: regra.acao,
-                ordem: indice + 1,
-              });
-            } catch (ruleErr) {
-              console.warn('[useAssinarPrescricaoControl] createRule erro:', ruleErr);
-            }
-          }
-          assinado = true;
-        } catch (prescErr) {
-          console.warn('[useAssinarPrescricaoControl] createPrescription recusado pelo backend:', prescErr);
-          const { addFakePrescription } = await import('../repository/fakeData');
-          addFakePrescription({
-            ...prescricao,
-            id: `presc-${Date.now()}`,
-            registroAtendimentoId: regId ? String(regId) : 'rec-local',
-          });
-          assinado = true;
-        }
-      }
-
-      // Atualiza também fake local de consulta para 'COMPLETED' se houver
-      if (activeConsultaId) {
-        try {
-          const { updateFakeAppointment } = await import('../repository/fakeData');
-          updateFakeAppointment(String(activeConsultaId), { status: 'COMPLETED' } as any);
-        } catch {}
-      }
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['prontuario'] });
       queryClient.invalidateQueries({ queryKey: ['prescricao'] });
-      queryClient.invalidateQueries({ queryKey: ['pets'] });
+      queryClient.invalidateQueries({ queryKey: ['carePlan'] });
     },
     onError: (error: any) => {
       Alert.alert('Erro ao assinar prescrição', buildApiErrorMessage(error));
@@ -284,4 +231,10 @@ const useDraftPrescription = () => {
   });
 };
 
-export { usePrescricaoDraftControl, useNovaRegraControl, useAssinarPrescricaoControl, useDraftPrescription };
+export {
+  usePrescricaoDraftControl,
+  useNovaRegraControl,
+  useCondicoesClinicas,
+  useAssinarPrescricaoControl,
+  useDraftPrescription,
+};
