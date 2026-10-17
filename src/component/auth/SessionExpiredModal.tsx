@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { Modal, View, Text, StyleSheet } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { onSessionExpired } from '../../repository/apiClient';
@@ -8,7 +9,8 @@ import { AuthContext } from '../../context/authContext';
 import { colors, radii, spacing } from '../../styles/theme';
 
 export function SessionExpiredModal() {
-  const { clearSession, setSession } = useContext(AuthContext);
+  const { session, clearSession, setSession } = useContext(AuthContext);
+  const queryClient = useQueryClient();
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -33,6 +35,10 @@ export function SessionExpiredModal() {
     try {
       const newSession = await login({ email, senha });
       await saveSession(newSession);
+      // Outro usuário entrou pelo modal: descarta o cache da sessão anterior.
+      if (session && session.usuarioId !== newSession.usuarioId) {
+        queryClient.clear();
+      }
       setSession(newSession);
       setVisible(false);
       setSenha('');
