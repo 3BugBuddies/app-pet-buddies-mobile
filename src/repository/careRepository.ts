@@ -1,4 +1,4 @@
-import { apiJava } from './apiClient';
+import { apiJava, USE_API } from './apiClient';
 import type {
   Badge,
   CarePlan,
@@ -7,9 +7,11 @@ import type {
   CheckInEscalationResult,
   CheckinExtracaoRequest,
   CheckinExtracaoResponse,
-  CheckInRequest,
+  CheckinResponse,
+  ConfirmCheckInInput,
   CheckInResult,
 } from '../model/care';
+import { resolveCheckInResponse } from '../model/careRules';
 import {
   FAKE_BADGES,
   FAKE_SCORE,
@@ -17,9 +19,13 @@ import {
   getFakeCarePlan,
 } from './fakeData';
 
-// MANTENHA false para testar a interface.
-// Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = true;
+
+// Data local no formato AAAA-MM-DD (toISOString usaria UTC e viraria o dia à noite no Brasil).
+const isoLocal = (d: Date): string => {
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
+};
 
 const getPlan = async (petId: string): Promise<CarePlan> => {
   if (USE_API) {
@@ -27,7 +33,7 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
     const data = response.data;
 
     const eventos: any[] = data.eventos || [];
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = isoLocal(new Date());
 
     // tasks = eventos de hoje, cada evento vira um CareTask
     const tasks = eventos
@@ -38,7 +44,7 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
         description: e.tipo === 'MEDICACAO' ? 'Medicação prescrita' : e.tipo,
         time: 'conforme prescrição',
         points: 10,
-        completed: e.status === 'CONCLUIDO',
+        completed: e.status === 'REALIZADO',
       }));
 
     // weekDays = próximos 7 dias a partir de hoje com dot se houver evento
@@ -47,7 +53,7 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
     const weekDays = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() + i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = isoLocal(d);
       return {
         label: DIAS_PT[d.getDay()],
         dayNumber: d.getDate(),
@@ -84,7 +90,7 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
           dateLabel: `${dia}/${mes}`,
           dayLabel: `Dia ${Math.max(1, diffDias)}`,
           title: e.nome,
-          completed: e.status === 'CONCLUIDO' || e.status === 'REALIZADO',
+          completed: e.status === 'REALIZADO',
         };
       });
 
@@ -103,17 +109,17 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
 };
 
 const toggleTask = async (_petId: string, taskId: string): Promise<void> => {
-  // POST /plano-cuidado/.../concluir não existe no backend (contrato seção 8)
+  // POST /plano-cuidado/.../concluir não existe no backend
   // Conclusão de item é feita via POST /checkin com itemPlanoCuidadoId
   // Aqui mantemos apenas a simulação local
   fakePlanToggleTask(taskId);
 };
 
-const confirmCheckIn = async (payload: CheckInRequest): Promise<CheckInResult> => {
+const confirmCheckIn = async ({ payload, redFlags }: ConfirmCheckInInput): Promise<CheckInResult> => {
   if (USE_API) {
-    // Rota correta: POST /checkin (contrato seção 7)
-    const response = await apiJava.post('/checkin', payload);
-    return response.data;
+    // Rota correta: POST /checkin
+    const response = await apiJava.post<CheckinResponse>('/checkin', payload);
+    return resolveCheckInResponse(response.data, redFlags);
   }
   const hoje = new Date().toLocaleDateString('pt-BR');
   return {
@@ -129,7 +135,7 @@ const confirmCheckIn = async (payload: CheckInRequest): Promise<CheckInResult> =
   };
 };
 
-// /checkin/escalation-preview não existe nesta sprint (contrato seção 8)
+// /checkin/escalation-preview não existe nesta sprint
 // Mantém apenas simulação local
 const getEscalationPreview = async (): Promise<CheckInEscalationResult> => {
   return {
@@ -143,26 +149,26 @@ const getEscalationPreview = async (): Promise<CheckInEscalationResult> => {
 };
 
 const completeCheckInTask = async (_petId: string, taskId: string): Promise<void> => {
-  // POST /plano-cuidado/.../concluir não existe (contrato seção 8)
+  // POST /plano-cuidado/.../concluir não existe
   // Item é concluído via POST /checkin com itemPlanoCuidadoId
   // Mantém apenas simulação local
   fakePlanToggleTask(taskId);
 };
 
-// /pontuacao/{id} não tem API nesta sprint (contrato seção 8)
+// /pontuacao/{id} não tem API nesta sprint
 // Mantém apenas simulação local
 const getScore = async (_petId: string): Promise<CareScore> => {
   return FAKE_SCORE;
 };
 
-// /badges/{id} não tem API nesta sprint (contrato seção 8)
+// /badges/{id} não tem API nesta sprint
 // Mantém apenas simulação local
 const getBadges = async (_petId: string): Promise<Badge[]> => {
   return FAKE_BADGES;
 };
 
 // Passo 1 do check-in narrado: envia a narrativa, recebe o que a IA entendeu.
-// Resposta é corpo cru — sem envelope HATEOAS (contrato seção 5).
+// Resposta é corpo cru — sem envelope HATEOAS.
 const extractCheckIn = async (data: CheckinExtracaoRequest): Promise<CheckinExtracaoResponse> => {
   if (USE_API) {
     const response = await apiJava.post('/checkin/extracao', data);

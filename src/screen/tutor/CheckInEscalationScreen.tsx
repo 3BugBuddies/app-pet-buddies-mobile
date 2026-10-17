@@ -35,7 +35,7 @@ export function CheckInEscalationScreen({ route }: Props) {
         <Text style={styles.ruleLabel}>Regra da prescrição</Text>
         <Text style={styles.ruleCode}>{result.ruleDescription}</Text>
         <Text style={styles.ruleMeta}>
-          {result.vetName} · {result.vetCrmv}
+          {[result.vetName, result.vetCrmv].filter(Boolean).join(' · ')}
         </Text>
       </View>
 

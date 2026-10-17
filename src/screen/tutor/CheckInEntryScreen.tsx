@@ -125,7 +125,11 @@ export function CheckInEntryScreen({ route }: Props) {
         dataReferencia: today,
         narrativa: narrative,
       });
-      navigation.navigate('CheckInConfirm', { petId, extracaoResponse });
+      navigation.navigate('CheckInConfirm', {
+        petId,
+        extracaoResponse,
+        itemPlanoCuidadoId: route.params.itemPlanoCuidadoId,
+      });
     } catch (error: any) {
       const msg = error?.response?.status === 409
         ? 'Você já registrou os cuidados deste pet hoje!'

@@ -1,4 +1,5 @@
 import type {
+  CheckinResponse,
   CheckInDoseResult,
   CheckInEscalationResult,
   CheckInInterpretation,
@@ -73,13 +74,13 @@ interface ResolveCheckInParams {
   points: number;
 }
 
-// Regra do produto (RegrasPrescricao-html): sinal de alarme global sempre
+// Regra do produto: sinal de alarme global sempre
 // escala, mesmo sem regra cadastrada. Senão, a primeira regra da prescrição
 // cujo sinal bate decide a ação. Sem nenhuma correspondência, nunca "chuta"
 // uma dose — cai em "confirmar com a clínica".
 //
 // Persistência (hoje/2 dias/48h/3+) é só metadado exibido na regra; não é
-// aplicada aqui, pois exigiria histórico do sinal ao longo de vários
+// aplicada aqui, pois exigiria histórico do sinal ao longo de vários dias.
 export function resolveCheckIn({
   prescription,
   signals,
@@ -141,6 +142,66 @@ export function resolveCheckIn({
 
 function formatDose(value: number): string {
   return String(value).replace('.', ',');
+}
+
+const CLINICA_PADRAO = 'Clínica Veterinária';
+
+// Traduz a resposta real de POST /checkin (`escalado` + `desfechos[]`) para o resultado que
+// as telas desenham. A API não devolve nome/CRMV do vet, faixa de dose nem pontos: esses
+// campos ficam vazios e as telas usam seus textos padrão.
+export function resolveCheckInResponse(
+  response: CheckinResponse,
+  redFlags: string[],
+): CheckInResult {
+  const desfechos = response.desfechos ?? [];
+  const acionar = desfechos.find((d) => d.desfecho === 'ACIONAR_CLINICA');
+
+  if (response.escalado) {
+    const escalation: CheckInEscalationResult = {
+      status: 'ESCALATION',
+      reasonLabel: redFlags.length > 0 ? redFlags.join(', ') : 'um sinal de alerta',
+      ruleDescription: acionar
+        ? `Regra de ${acionar.medicamento} · acionar a clínica`
+        : 'Regra da prescrição · acionar a clínica',
+      vetName: CLINICA_PADRAO,
+      vetCrmv: '',
+      suggestedSlotLabel: '',
+    };
+    return escalation;
+  }
+
+  const comDose = desfechos.filter(
+    (d) => d.desfecho === 'DOSE_CALCULADA' && d.doseAplicada != null,
+  );
+
+  if (comDose.length === 0) {
+    const noRule: CheckInNoRuleResult = {
+      status: 'NO_RULE',
+      vetName: CLINICA_PADRAO,
+      vetCrmv: '',
+    };
+    return noRule;
+  }
+
+  const rotulos = comDose.map((d) => {
+    const dose = `${formatDose(d.doseAplicada as number)}${d.unidade ? ` ${d.unidade}` : ''}`;
+    return comDose.length > 1 ? `${d.medicamento}: ${dose}` : dose;
+  });
+
+  const dose: CheckInDoseResult = {
+    status: 'DOSE',
+    doseLabel: rotulos.join(' · '),
+    doseRangeLabel: '',
+    ruleDescription: `Regra da prescrição · ${comDose.map((d) => d.medicamento).join(', ')}`,
+    ruleConfirmedAtLabel: response.registradoEm
+      ? new Date(response.registradoEm).toLocaleDateString('pt-BR')
+      : '',
+    vetName: CLINICA_PADRAO,
+    vetCrmv: '',
+    prescriptionDateLabel: '',
+    pointsEarned: 0,
+  };
+  return dose;
 }
 
 const CONDITION_SIGNAL_LABEL_LOWER: Record<ConditionSignal, string> = {

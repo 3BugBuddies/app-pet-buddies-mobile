@@ -50,7 +50,17 @@ export function HomeTutorScreen() {
 
   const handleStartCheckIn = () => {
     if (activePet?.id) {
-      navigation.navigate('PlanoTab', { screen: 'CheckInEntry', params: { petId: activePet.id! } });
+      // Liga o check-in ao primeiro item de hoje ainda pendente (id numérico = item da API;
+      // ids do mock não são numéricos e seguem sem vínculo).
+      const pendente = plan?.tasks.find((t) => !t.completed);
+      const itemId = pendente ? Number(pendente.id) : NaN;
+      navigation.navigate('PlanoTab', {
+        screen: 'CheckInEntry',
+        params: {
+          petId: activePet.id!,
+          itemPlanoCuidadoId: Number.isFinite(itemId) ? itemId : undefined,
+        },
+      });
     }
   };
 

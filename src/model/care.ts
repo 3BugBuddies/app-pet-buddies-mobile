@@ -102,7 +102,7 @@ export interface CheckInEscalationResult {
 }
 
 // Nenhuma regra da prescrição bateu com o relato — princípio do produto: cai
-// em "confirmar com a clínica", nunca em dose (ver RegrasPrescricao-html).
+// em "confirmar com a clínica", nunca em dose.
 export interface CheckInNoRuleResult {
   status: 'NO_RULE';
   vetName: string;
@@ -145,7 +145,7 @@ export interface CondicaoObservadaExtracao {
   confianca: number; // 0.0 – 1.0
 }
 
-// Corpo cru da resposta de /checkin/extracao — sem envelope HATEOAS (contrato seção 5).
+// Corpo cru da resposta de /checkin/extracao — sem envelope HATEOAS.
 export interface CheckinExtracaoResponse {
   animalId: number | string;
   dataReferencia: string;
@@ -164,7 +164,39 @@ export interface CondicaoConfirmadaRequest {
   confianca: number;
 }
 
-// Payload completo de POST /api/checkin (contrato seção 7 — Tutor · check-in em dois passos).
+// Resposta de POST /api/checkin (CheckinResponse do Java). Quem diz se houve escalação é
+// `escalado`; `desfechos` traz a dose por medicamento (vazio = nenhuma regra bateu).
+export type TipoDesfecho = 'DOSE_CALCULADA' | 'ACIONAR_CLINICA' | 'SEM_DOSE';
+
+export interface CheckinDesfecho {
+  prescricaoId: number;
+  medicamento: string;
+  itemPlanoCuidadoId: number | null;
+  desfecho: TipoDesfecho;
+  doseAplicada: number | null;
+  unidade: string | null;
+  regraAplicadaId: number | null;
+}
+
+export interface CheckinResponse {
+  id: number;
+  animalId: number;
+  itemPlanoCuidadoId: number | null;
+  dataReferencia: string;
+  registradoEm: string;
+  narrativa: string;
+  escalado: boolean;
+  desfechos: CheckinDesfecho[];
+}
+
+// Entrada da mutation de confirmação: o payload da API + o que a IA já tinha sinalizado
+// na extração (a API não devolve o motivo da escalação).
+export interface ConfirmCheckInInput {
+  payload: CheckInRequest;
+  redFlags: string[];
+}
+
+// Payload completo de POST /api/checkin (check-in em dois passos).
 export interface CheckInRequest {
   animalId: number | string;
   narrativa: string;

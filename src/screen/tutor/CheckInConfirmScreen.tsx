@@ -21,7 +21,10 @@ export function CheckInConfirmScreen({ route }: Props) {
 
   const condicoesSeguras = extracaoResponse.condicoes || [];
   const redFlagsSeguras = extracaoResponse.redFlags || [];
-  const isEscalation = extracaoResponse.degradado || redFlagsSeguras.length > 0;
+  // Aviso prévio só pelos sinais de alerta da IA. `degradado` significa "a IA não conseguiu
+  // interpretar", não escalação — quem confirma a escalação é `escalado`, na resposta do POST.
+  const isEscalation = redFlagsSeguras.length > 0;
+  const isDegradado = extracaoResponse.degradado;
 
   // Monta os campos de revisão a partir do que a IA extraiu da narrativa
   const fields: ConfirmedField[] = [
@@ -47,28 +50,26 @@ export function CheckInConfirmScreen({ route }: Props) {
   const handleConfirm = async () => {
     try {
       const result = await confirmCheckIn.mutateAsync({
-        animalId: extracaoResponse.animalId,
-        narrativa: extracaoResponse.narrativa,
-        itemPlanoCuidadoId: route.params.itemPlanoCuidadoId, // Opcional, mas crucial se passado para ligar ao plano
-        condicoes: condicoesSeguras.map((c) => ({
-          condicaoClinicaId: c.condicaoClinicaId,
-          valorBooleano: c.valorBooleano,
-          valorNumerico: c.valorNumerico,
-          confianca: c.confianca,
-        })),
+        redFlags: redFlagsSeguras,
+        payload: {
+          animalId: extracaoResponse.animalId,
+          narrativa: extracaoResponse.narrativa,
+          itemPlanoCuidadoId: route.params.itemPlanoCuidadoId, // liga o desfecho ao item do plano
+          condicoes: condicoesSeguras.map((c) => ({
+            condicaoClinicaId: c.condicaoClinicaId,
+            valorBooleano: c.valorBooleano,
+            valorNumerico: c.valorNumerico,
+            confianca: c.confianca,
+          })),
+        },
       });
 
-      // Removemos o UX Hack 'lactulona', pois a API gerencia isso.
-
-      // Navegação baseada no contrato real da API (CheckinResponse)
-      if (result.escalado) {
-        // Se a API escalou para a clínica, navegamos para a tela de alerta
+      // O repositório já traduziu `escalado`/`desfechos` da API para o tipo de resultado da tela.
+      if (result.status === 'ESCALATION') {
         navigation.navigate('CheckInEscalation', { petId, result });
-      } else if (!result.desfechos || result.desfechos.length === 0) {
-        // Se não houve desfechos, significa que não bateu com nenhuma regra da prescrição
+      } else if (result.status === 'NO_RULE') {
         navigation.navigate('CheckInNoRule', { petId, result, narrative: extracaoResponse.narrativa });
       } else {
-        // Fluxo feliz: calculou a dose
         navigation.navigate('CheckInResult', { petId, result });
       }
     } catch (error: any) {
@@ -116,6 +117,13 @@ export function CheckInConfirmScreen({ route }: Props) {
             </View>
           )}
         </View>
+      )}
+
+      {isDegradado && (
+        <Text style={styles.noteText}>
+          Não consegui interpretar todo o relato automaticamente. Se ele estiver correto, confirme: a
+          clínica revisa o que a regra não cobrir.
+        </Text>
       )}
 
       <ConfirmedFieldsCard fields={fields} />

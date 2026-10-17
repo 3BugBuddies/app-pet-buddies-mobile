@@ -25,7 +25,7 @@ export function CheckInNoRuleScreen({ route }: Props) {
       <Text style={styles.quote}>"{narrative}"</Text>
 
       <Text style={styles.meta}>
-        {result.vetName} · {result.vetCrmv}
+        {[result.vetName, result.vetCrmv].filter(Boolean).join(' · ')}
       </Text>
 
       <Button
