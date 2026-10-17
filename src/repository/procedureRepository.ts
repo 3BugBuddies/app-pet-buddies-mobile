@@ -1,7 +1,6 @@
-import { apiJava } from './apiClient';
+import { apiJava, USE_API } from './apiClient';
 import type { Procedimento } from '../model/procedure';
 
-const USE_API = true;
 
 const FAKE_PROCEDIMENTOS: Procedimento[] = [
   { id: 'proc-1', animalId: 'pet-luna', nome: 'V10 Reforço', tipo: 'VACINACAO', status: 'REALIZADO', dataPrevistaInicio: '2026-03-10' },

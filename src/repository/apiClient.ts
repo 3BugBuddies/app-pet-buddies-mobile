@@ -47,3 +47,7 @@ apiJava.interceptors.response.use(
 );
 
 export { apiJava };
+
+// true (padrão) = telas chamam a API real; false = telas usam os dados mock (fakeData).
+// Para voltar ao mock: EXPO_PUBLIC_USE_API=false. Login e cadastro sempre usam a API.
+export const USE_API = process.env.EXPO_PUBLIC_USE_API !== 'false';

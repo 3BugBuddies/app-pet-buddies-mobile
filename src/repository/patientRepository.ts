@@ -1,10 +1,7 @@
-import { apiJava } from './apiClient';
+import { apiJava, USE_API } from './apiClient';
 import type { ClinicPatient } from '../model/patient';
 import { FAKE_CLINIC_PATIENTS } from './fakeData';
 
-// MANTENHA false para testar a interface.
-// Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = true;
 
 const getClinicPatients = async (): Promise<ClinicPatient[]> => {
   if (USE_API) {
