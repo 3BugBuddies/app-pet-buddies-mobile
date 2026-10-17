@@ -24,7 +24,7 @@ import { colors, radii, spacing, typography } from '../../styles/theme';
 const ESPECIE_ICONS: Record<string, any> = {
   CACHORRO: require('../../../assets/botoes/botao-cachorro-1.png'),
   GATO: require('../../../assets/botoes/botao-gato-1.png'),
-  PASSARO: require('../../../assets/botoes/botao-passaro.png'),
+  PASSARO: require('../../../assets/botoes/botao-passaro-1.png'),
   HAMSTER: require('../../../assets/botoes/botao-roedor-1.png'),
   OUTRO: require('../../../assets/botoes/botao-outros-1.png'),
 };
@@ -56,7 +56,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
     handleDataChange,
     castrado, setCastrado,
     condicaoCronica, setCondicaoCronica,
-    alergia, setAlergia,
+    alergias, setAlergias,
     erros,
     salvar,
     isFetchingPet,
@@ -193,7 +193,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
             onChangeText={setRaca}
           />
 
-          <Text style={styles.fieldLabel}>Porte</Text>
+          <Text style={styles.fieldLabel}>Porte *</Text>
           <View style={styles.porteRow}>
             {PORTES.map((p) => {
               const active = porte === p;
@@ -201,7 +201,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
                 <Pressable
                   key={p}
                   style={[styles.porteChip, active && styles.porteChipActive]}
-                  onPress={() => setPorte(active ? null : p)}
+                  onPress={() => setPorte(p)}
                   accessibilityRole="button"
                 >
                   <Text style={[styles.porteLabel, active && styles.porteLabelActive]}>
@@ -227,7 +227,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
             </View>
             <View style={styles.halfField}>
               <Input
-                label="Data de nascimento"
+                label="Data de nascimento *"
                 placeholder="DD/MM/AAAA"
                 value={dataNascimento}
                 onChangeText={handleDataChange}
@@ -263,10 +263,10 @@ export function NovoPetScreen({ route, navigation }: Props) {
           </View>
 
           <Input
-            label="Alergia"
+            label="Alergias"
             placeholder="Descreva se houver (opcional)"
-            value={alergia}
-            onChangeText={setAlergia}
+            value={alergias}
+            onChangeText={setAlergias}
           />
 
           <View style={styles.switchRow}>

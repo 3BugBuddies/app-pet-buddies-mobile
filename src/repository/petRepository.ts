@@ -1,11 +1,8 @@
-import { apiJava } from './apiClient';
+import { apiJava, USE_API } from './apiClient';
 import { Pet } from '../model/pet';
 import type { PetProfileDetails } from '../model/care';
 import { FAKE_PETS } from './fakeData';
 
-// MANTENHA false para testar a interface.
-// Mude para true no dia de gravar o vídeo da FIAP com a API no ar.
-const USE_API = true;
 
 const getAllPets = async (): Promise<Pet[]> => {
   if (USE_API) {
@@ -20,15 +17,15 @@ const getAllPets = async (): Promise<Pet[]> => {
 const getPetById = async (id: string): Promise<Pet | undefined> => {
   if (USE_API) {
     const response = await apiJava.get(`/animal/${id}`);
-    return response.data;
+    return { ...response.data, id: response.data.id?.toString() ?? '' };
   }
   return FAKE_PETS.find((p) => p.id === id);
 };
 
 const getPetsByResponsavelId = async (responsavelId: string): Promise<Pet[]> => {
   if (USE_API) {
-    // GET /animal sozinho já retorna os pets do tutor logado devido ao escopo de segurança.
-    const response = await apiJava.get(`/animal`);
+    // Sem o filtro a API devolve todos os animais (escopo por token ainda não existe no back).
+    const response = await apiJava.get('/animal', { params: { responsavelId } });
     const list: any[] = response.data._embedded?.animalResponseList ?? [];
     return list.map((p) => ({ ...p, id: p.id?.toString() ?? '' }));
   }
@@ -66,8 +63,8 @@ const deletePet = async (id: string): Promise<void> => {
 const FAKE_PROFILES: Record<string, PetProfileDetails> = {
   'pet-luna': {
     petId: 'pet-luna',
-    ageLabel: '3 anos',
-    weightLabel: '17,2 kg',
+    ageLabel: '11 anos',
+    weightLabel: '10 kg',
     neuteredLabel: 'Sim',
     sexLabel: 'Fêmea',
     planStatusLabel: 'Plano ativo · sem. 12/24',

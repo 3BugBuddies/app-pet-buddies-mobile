@@ -148,7 +148,7 @@ export function PetProfileScreen({ route }: Props) {
       <View style={styles.tintRow}>
         <InfoTintCard
           label="Alergias"
-          value={pet.alergia || 'Nenhuma registrada'}
+          value={pet.alergias || 'Nenhuma registrada'}
           subLabel="histórico do pet"
           tone="alert"
         />

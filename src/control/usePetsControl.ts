@@ -18,9 +18,10 @@ const PETS_KEY = ['pets'];
 export function usePets() {
   const { session } = useContext(AuthContext);
   return useQuery({
-    queryKey: [...PETS_KEY, 'my-pets', session?.usuarioId],
-    queryFn: () => getPetsByResponsavelId(String(session?.responsavelId ?? session?.usuarioId ?? '')),
-    enabled: !!session?.usuarioId,
+    queryKey: [...PETS_KEY, 'my-pets', session?.responsavelId],
+    // Sem responsavelId (ex.: veterinário) não há "meus pets": nunca cai no usuarioId, que é outro id.
+    queryFn: () => getPetsByResponsavelId(String(session?.responsavelId)),
+    enabled: !!session?.responsavelId,
     retry: false,
   });
 }

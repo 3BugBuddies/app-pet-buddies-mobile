@@ -1,6 +1,7 @@
 //   1. Apague este arquivo
 //   2. Nos repositórios, remova o bloco `if (!USE_API)` e a constante `USE_API`
 
+import { Image } from 'react-native';
 import type { Pet } from '../model/pet';
 import type { Appointment } from '../model/appointment';
 import type { CarePlan, CareScore, Badge, CheckInResult, CheckInInterpretation } from '../model/care';
@@ -17,17 +18,17 @@ import type { Protocol } from '../model/legacyPrescription';
 export const FAKE_PETS: Pet[] = [
   {
     id: 'pet-luna',
-    nome: 'Luna',
+    nome: 'Filó',
     especie: 'CACHORRO',
-    raca: 'Labrador',
-    porte: 'GRANDE',
+    raca: 'Shiba Inu',
+    porte: 'MEDIO',
     sexo: 'FEMEA',
-    dataNascimento: '2023-04-15',
-    peso: 17.2,
+    dataNascimento: '2014-10-19',
+    peso: 10,
     condicaoCronica: true,
     castrado: true,
-    foto: null,
-    alergia: 'Frango',
+    foto: Image.resolveAssetSource(require('../../assets/images/filo.webp')).uri,
+    alergias: 'Frango',
     observacoes: null,
     responsavelId: 'tutor-1',
   },
@@ -251,7 +252,7 @@ export const addFakeRule = (rule: PrescriptionRule): PrescriptionRule => {
 export const FAKE_CLINIC_PATIENTS: ClinicPatient[] = [
   {
     petId: 'pet-luna',
-    petName: 'Luna',
+    petName: 'Filó',
     tutorName: 'Marina',
     endereco: 'Av. Paulista, 1578 - Bela Vista, São Paulo - SP',
     telefone: '(11) 98765-4321',
