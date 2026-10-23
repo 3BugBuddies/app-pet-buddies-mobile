@@ -144,6 +144,9 @@ export interface CheckInDoseResult {
   pointsEarned: number;
   // false = nenhuma regra casou (dose-base da receita). Ausente nos resultados locais/mock.
   regraAplicada?: boolean;
+  medicationLabel?: string;
+  // O desfecho gravou o status de um item do plano (itemPlanoCuidadoId presente).
+  itemEncerrado?: boolean;
 }
 
 export interface CheckInEscalationResult {
@@ -179,6 +182,8 @@ export interface CondicaoObservadaExtracao {
   valorBooleano?: boolean;
   valorNumerico?: number;
   confianca: number; // 0.0 – 1.0
+  rotulo?: string | null;
+  unidade?: string | null;
 }
 
 // Corpo cru da resposta de /checkin/extracao — sem envelope HATEOAS.

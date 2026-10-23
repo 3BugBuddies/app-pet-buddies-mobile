@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.textSecondary,
-    width: 40,
+    minWidth: 40,
     textAlign: 'right',
   },
 });

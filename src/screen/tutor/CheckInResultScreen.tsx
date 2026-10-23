@@ -2,13 +2,12 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
-import { DoseTrack } from '../../component/checkin/DoseTrack';
+import { usePet } from '../../control/usePetsControl';
 import { Button } from '../../component/ui/Button';
 import type { PlanoTabParamList } from '../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
-import { parseDoseRange } from '../../model/careRules';
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInResult'>;
 
@@ -16,104 +15,69 @@ export function CheckInResultScreen({ route }: Props) {
   const { petId, result } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
+  const { data: pet } = usePet(petId);
 
-  const safeVetName = result.vetName || 'Clínica Veterinária';
-  const safeDoseRangeLabel = result.doseRangeLabel || 'Dose padrão';
   const safeDoseLabel = result.doseLabel || 'Dose recomendada';
-  const safePoints = result.pointsEarned || 0;
-
-  const vetInitial =
-    safeVetName
-      .split(' ')
-      .find((part) => !/^(dr|dra)\.?$/i.test(part))
-      ?.charAt(0)
-      .toUpperCase() ?? safeVetName.charAt(0).toUpperCase();
-
-  const range = parseDoseRange(safeDoseRangeLabel);
-  // Previne divisão por zero ou NaN caso parseDoseRange retorne zeros
-  const fillPct =
-    range.max > range.min && range.min > 0
-      ? ((Number.parseFloat(safeDoseLabel) - range.min) / (range.max - range.min)) * 100
-      : 50;
+  const regraAplicada = result.regraAplicada !== false;
 
   const handleFinish = () => {
-    // Limpa todo o stack do PlanoTab para que a aba Evolução
-    // não retenha as telas do check-in na pilha de navegação.
+    // Limpa o stack do PlanoTab para a aba Cuidados não reter as telas do check-in.
     navigation.popToTop();
     navigation.getParent()?.navigate('HomeTab');
   };
 
-  const isLongText = safeDoseLabel.length > 8;
-  const hasRange = range.max > range.min && range.min > 0;
+  const ruleHeader = [
+    result.vetName ? `Regra de ${result.vetName}` : 'Regra da prescrição',
+    result.vetCrmv ? `CRMV ${result.vetCrmv.replace(/^CRMV[\s-]*/i, '')}` : '',
+    result.prescriptionDateLabel ? `prescrita em ${result.prescriptionDateLabel}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const dosedFor = [result.medicationLabel, pet?.nome, regraAplicada ? 'a dose vem da regra' : 'dose padrão da receita']
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
-      <CheckInTopBar title="Resultado do Check-in" subtitle={safeDoseRangeLabel} stepLabel="3 / 3" />
+      <CheckInTopBar title="Check-in" stepLabel="3 de 3" />
 
-      {/* Card de Dose / Orientação */}
       <View style={styles.doseCard}>
-        <View style={styles.cardHeaderRow}>
-          <Text style={styles.doseLabel}>DOSE DE HOJE</Text>
-          {safePoints > 0 && (
-            <View style={styles.pointsBadge}>
-              <Text style={styles.pointsBadgeText}>+{safePoints} pts 🏆</Text>
-            </View>
-          )}
-        </View>
+        <Text style={styles.doseLabel}>Dose de hoje</Text>
+        <Text style={[styles.doseValue, safeDoseLabel.length > 8 && styles.doseValueLong]} numberOfLines={2}>
+          {safeDoseLabel}
+        </Text>
+        <Text style={styles.doseRange}>{dosedFor}</Text>
 
-        <View style={styles.doseRow}>
-          <Text style={[styles.doseValue, isLongText && styles.doseValueLong]} numberOfLines={2}>
-            {safeDoseLabel}
-          </Text>
-        </View>
-
-        {hasRange ? (
-          <>
-            <Text style={styles.doseRange}>Faixa recomendada: {safeDoseRangeLabel}</Text>
-            <DoseTrack
-              minLabel={`${range.min} ${range.unit} (Mínima)`}
-              maxLabel={`${range.max} ${range.unit} (Máxima)`}
-              fillPct={Math.max(0, Math.min(100, fillPct))}
-            />
-          </>
-        ) : result.regraAplicada === false ? (
+        {!regraAplicada ? (
           <View style={styles.normalStatusBox}>
-            <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
-            <Text style={styles.normalStatusText}>Orientação padrão Mantida. Tudo sob controle!</Text>
+            <Ionicons name="checkmark-circle-outline" size={20} color={colors.textPrimary} />
+            <Text style={styles.normalStatusText}>Orientação padrão mantida. Tudo sob controle!</Text>
           </View>
         ) : null}
       </View>
 
-      {/* Card da Regra da Prescrição */}
       <View style={styles.ruleCard}>
-        <Text style={styles.ruleLabel}>Regra da prescrição ativa</Text>
+        <Text style={styles.ruleLabel}>{ruleHeader}</Text>
         <Text style={styles.ruleCode}>{result.ruleDescription || 'Orientação padrão sem alteração de dosagem'}</Text>
-        {result.ruleConfirmedAtLabel ? <Text style={styles.ruleMeta}>{result.ruleConfirmedAtLabel}</Text> : null}
-        
-        <View style={styles.ruleDivider} />
-        
-        <View style={styles.vetRow}>
-          <View style={styles.vetAvatar}>
-            <Text style={styles.vetAvatarText}>{vetInitial}</Text>
+      </View>
+
+      {result.itemEncerrado ? (
+        <View style={styles.recordRow}>
+          <View style={styles.recordCheck}>
+            <Ionicons name="checkmark" size={14} color={colors.textPrimary} />
           </View>
-          <View style={styles.vetInfo}>
-            <Text style={styles.vetName}>{safeVetName}</Text>
-            <Text style={styles.vetCrmv}>
-              {[
-                result.vetCrmv ? `CRMV ${result.vetCrmv.replace(/^CRMV[\s-]*/i, '')}` : '',
-                result.prescriptionDateLabel ? `prescrita em ${result.prescriptionDateLabel}` : '',
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
+          <Text style={styles.recordText}>Item do plano</Text>
+          <View style={styles.recordPill}>
+            <Text style={styles.recordPillText}>dose dada</Text>
           </View>
         </View>
-      </View>
+      ) : null}
 
       <View style={styles.actions}>
         <Button
           backgroundColor={colors.action}
-          label="Concluir Check-in e Ir para Home"
+          label="Concluir · voltar ao início"
           onPress={handleFinish}
           textColor={colors.textLight}
         />
@@ -139,43 +103,20 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   doseCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.cardAlert,
     borderRadius: radii.lg,
     padding: spacing.lg,
     gap: spacing.sm,
   },
-  cardHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  pointsBadge: {
-    backgroundColor: `${colors.action}1A`,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radii.pill,
-  },
-  pointsBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.action,
-  },
   doseLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.6,
+    fontWeight: '700',
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
-    color: colors.action,
-  },
-  doseRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.sm,
+    color: colors.textSecondary,
   },
   doseValue: {
-    fontSize: 42,
+    fontSize: 48,
     fontWeight: '700',
     letterSpacing: -1,
     color: colors.textPrimary,
@@ -193,7 +134,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: `${colors.success}15`,
+    backgroundColor: colors.surface,
     padding: spacing.md,
     borderRadius: radii.md,
     marginTop: spacing.xs,
@@ -204,9 +145,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
   },
-  vetInfo: {
-    flex: 1,
-  },
   ruleCard: {
     backgroundColor: colors.cardChia,
     borderRadius: radii.lg,
@@ -215,69 +153,49 @@ const styles = StyleSheet.create({
   },
   ruleLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.6,
+    fontWeight: '700',
+    letterSpacing: 1,
     textTransform: 'uppercase',
-    color: colors.textPrimary,
+    color: colors.textSecondary,
   },
   ruleCode: {
     fontFamily: 'monospace',
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  ruleMeta: {
     fontSize: 15,
-    color: colors.textSecondary,
-  },
-  ruleDivider: {
-    height: 1,
-    backgroundColor: `${colors.primary}33`,
-  },
-  vetRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  vetAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  vetAvatarText: {
     fontWeight: '700',
     color: colors.textPrimary,
-  },
-  vetName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  vetCrmv: {
-    fontSize: 13,
-    color: colors.textSecondary,
   },
   recordRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
+    borderRadius: radii.md,
     padding: spacing.md,
   },
-  recordDot: {
-    width: 8,
-    height: 8,
+  recordCheck: {
+    width: 24,
+    height: 24,
     borderRadius: radii.pill,
     backgroundColor: colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   recordText: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
+  recordPill: {
+    backgroundColor: colors.success,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
+  },
+  recordPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
   disclaimer: {
     fontSize: 12,
@@ -286,7 +204,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   actions: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     gap: spacing.sm,
   },
 });
