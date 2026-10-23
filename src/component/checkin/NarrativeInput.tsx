@@ -37,6 +37,8 @@ export function NarrativeInput({
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}
         multiline
+        submitBehavior="blurAndSubmit"
+        returnKeyType="done"
         editable={!isRecording && !isTranscribing}
         style={styles.textarea}
       />

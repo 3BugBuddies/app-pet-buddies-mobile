@@ -34,6 +34,8 @@ export interface CareTask {
   time: string;
   points: number;
   completed: boolean;
+  // PRESCRICAO = medicação (tem check-in); PROTOCOLO = vacina/vermífugo do plano preventivo.
+  origin?: string | null;
   // % de adesão histórica do tutor nesse item — só usado na visão da vet
   // (PlanoPacienteScreen); ausente na visão do tutor.
   adherencePct?: number;
@@ -45,6 +47,55 @@ export interface ClinicalMilestone {
   whenLabel: string;
   tagLabel?: string;
   done: boolean;
+}
+
+export type CareItemStatus =
+  | 'PENDENTE'
+  | 'REALIZADO'
+  | 'SUSPENSO'
+  | 'ENCAMINHADO'
+  | 'CANCELADO'
+  | 'ATRASADO';
+
+// REALIZADO, SUSPENSO e ENCAMINHADO encerram o item (o check-in grava um deles por desfecho).
+export const CLOSED_STATUSES: readonly CareItemStatus[] = ['REALIZADO', 'SUSPENSO', 'ENCAMINHADO'];
+
+export const isStatusClosed = (status: CareItemStatus): boolean => CLOSED_STATUSES.includes(status);
+
+export type StatusTone = 'success' | 'warning' | 'alert' | 'neutral';
+
+export interface StatusDisplay {
+  label: string;
+  tone: StatusTone;
+}
+
+export function statusDisplay(status: CareItemStatus, medication: boolean, overdue: boolean): StatusDisplay {
+  switch (status) {
+    case 'REALIZADO':
+      return { label: medication ? 'dose dada' : 'realizado', tone: 'success' };
+    case 'SUSPENSO':
+      return { label: 'sem dose', tone: 'warning' };
+    case 'ENCAMINHADO':
+      return { label: 'clínica acionada', tone: 'alert' };
+    case 'ATRASADO':
+      return { label: 'atrasado', tone: 'alert' };
+    case 'CANCELADO':
+      return { label: 'cancelado', tone: 'neutral' };
+    case 'PENDENTE':
+      return overdue ? { label: 'atrasado', tone: 'alert' } : { label: 'pendente', tone: 'neutral' };
+  }
+}
+
+// Item do plano para a aba Cuidados. `treatment` = item nascido de prescrição.
+export interface CareItem {
+  id: string;
+  title: string;
+  dateIso: string;
+  dateLabel: string;
+  type: string;
+  status: CareItemStatus;
+  overdue: boolean;
+  treatment: boolean;
 }
 
 export interface CareHistoryItem {
@@ -67,6 +118,7 @@ export interface CarePlan {
   totalWeeks?: number;
   milestones?: ClinicalMilestone[];
   history?: CareHistoryItem[];
+  items: CareItem[];
 }
 
 export interface CheckInInterpretation {
@@ -90,6 +142,13 @@ export interface CheckInDoseResult {
   vetCrmv: string;
   prescriptionDateLabel: string;
   pointsEarned: number;
+  // false = nenhuma regra casou (dose-base da receita). Ausente nos resultados locais/mock.
+  ruleApplied?: boolean;
+  medicationLabel?: string;
+  // O desfecho gravou o status de um item do plano (itemPlanoCuidadoId presente).
+  itemClosed?: boolean;
+  // A regra aplicada suspendeu a dose de hoje (desfecho SEM_DOSE): não há dose a dar.
+  suspended?: boolean;
 }
 
 export interface CheckInEscalationResult {
@@ -111,24 +170,6 @@ export interface CheckInNoRuleResult {
 
 export type CheckInResult = CheckInDoseResult | CheckInEscalationResult | CheckInNoRuleResult;
 
-export interface CareScore {
-  totalPoints: number;
-  pointsToday: number;
-  tier: string;
-  nextTier: string;
-  pointsToNextTier: number;
-  progressPct: number;
-  streakDays: number;
-  appointmentsCount: number;
-  homeAdherencePct: number;
-}
-
-export interface Badge {
-  id: string;
-  name: string;
-  unlocked: boolean;
-}
-
 // --- DTOs do fluxo de IA: Check-in Narrado (POST /api/checkin/extracao) ---
 
 export interface CheckinExtracaoRequest {
@@ -143,6 +184,8 @@ export interface CondicaoObservadaExtracao {
   valorBooleano?: boolean;
   valorNumerico?: number;
   confianca: number; // 0.0 – 1.0
+  rotulo?: string | null;
+  unidade?: string | null;
 }
 
 // Corpo cru da resposta de /checkin/extracao — sem envelope HATEOAS.
@@ -176,6 +219,11 @@ export interface CheckinDesfecho {
   doseAplicada: number | null;
   unidade: string | null;
   regraAplicadaId: number | null;
+  // Campos novos do back-end (A5): ausentes em respostas antigas.
+  veterinarioNome?: string | null;
+  veterinarioCrmv?: string | null;
+  clinicaNome?: string | null;
+  prescritaEm?: string | null;
 }
 
 export interface CheckinResponse {
@@ -203,4 +251,19 @@ export interface CheckInRequest {
   itemPlanoCuidadoId?: number;
   ticUtilizada?: string;
   condicoes: CondicaoConfirmadaRequest[];
+}
+
+// Etiqueta de estado do hero da home, derivada dos itens do plano (sem dado fixo).
+export function planStateLabel(plan: CarePlan | null | undefined, today: string): string | undefined {
+  if (!plan) return undefined;
+  const treatmentDates = plan.items.filter((item) => item.treatment).map((item) => item.dateIso).sort();
+  const first = treatmentDates[0];
+  const last = treatmentDates[treatmentDates.length - 1];
+  if (first && last && last >= today) {
+    const day = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))) / 86400000;
+    const total = day(last) - day(first) + 1;
+    const current = Math.min(total, Math.max(1, day(today) - day(first) + 1));
+    return `Tratamento · dia ${current} de ${total}`;
+  }
+  return plan.items.length > 0 ? 'Preventivo' : undefined;
 }
