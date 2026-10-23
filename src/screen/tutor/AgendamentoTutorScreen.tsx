@@ -7,7 +7,7 @@ import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useCreateAppointment, useFreeWindows, useVeterinarians } from '../../control/useAppointmentsControl';
+import { useCreateAppointment, useFreeDates, useFreeWindows, useVeterinarians } from '../../control/useAppointmentsControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { AgendaTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,14 +50,15 @@ export function AgendamentoTutorScreen({ route }: Props) {
 
   const DIAS = useMemo(() => gerarProximosDias(14), []);
   const [reason, setReason] = useState('');
-  const [selectedDate, setSelectedDate] = useState(DIAS[0].iso);
+  const [escolhida, setEscolhida] = useState<string | null>(null);
   const [selectedJanelaId, setSelectedJanelaId] = useState<number | null>(null);
-  const [vetEscolhidoId, setVetEscolhidoId] = useState<string | null>(null);
 
-  // A API só lista janelas de um veterinário específico: com um só na clínica ele é
-  // escolhido automaticamente; com vários, o tutor escolhe.
+  // A API só lista janelas de um veterinário específico: usa-se o primeiro da clínica.
   const { data: veterinarios, isLoading: isLoadingVets } = useVeterinarians();
-  const veterinarioId = vetEscolhidoId ?? veterinarios?.[0]?.id;
+  const veterinarioId = veterinarios?.[0]?.id;
+  const { data: diasLivres } = useFreeDates(veterinarioId, DIAS[0].iso, DIAS[DIAS.length - 1].iso);
+  const livres = useMemo(() => new Set(diasLivres ?? []), [diasLivres]);
+  const selectedDate = escolhida && livres.has(escolhida) ? escolhida : (diasLivres?.[0] ?? '');
   const { data: janelasLivres, isLoading: isLoadingJanelas } = useFreeWindows(veterinarioId, selectedDate);
 
   useEffect(() => {
@@ -130,40 +131,19 @@ export function AgendamentoTutorScreen({ route }: Props) {
           ) : null}
         </View>
 
-        {/* Seção: Veterinário (só quando há mais de um para escolher) */}
-        {veterinarios && veterinarios.length > 1 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Veterinário</Text>
-            <View style={styles.petsRow}>
-              {veterinarios.map((vet) => {
-                const active = vet.id === veterinarioId;
-                return (
-                  <Pressable
-                    key={vet.id}
-                    onPress={() => setVetEscolhidoId(vet.id)}
-                    style={[styles.petChip, active && styles.petChipActive]}
-                  >
-                    <Text style={[styles.petName, active && styles.petNameActive]} numberOfLines={1}>
-                      {vet.nome}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
         {/* Seção 3: Dia */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Dia</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.diasRow}>
             {DIAS.map((dia) => {
               const active = dia.iso === selectedDate;
+              const livre = livres.has(dia.iso);
               return (
                 <Pressable
                   key={dia.iso}
-                  onPress={() => setSelectedDate(dia.iso)}
-                  style={[styles.diaBlock, active && styles.diaBlockActive]}
+                  disabled={!livre}
+                  onPress={() => setEscolhida(dia.iso)}
+                  style={[styles.diaBlock, active && styles.diaBlockActive, !livre && styles.horarioBlockDisabled]}
                 >
                   <Text style={[styles.diaSemana, active && styles.diaTextActive]}>{dia.diaSemana}</Text>
                   <Text style={[styles.diaNúmero, active && styles.diaTextActive]}>{dia.numeroDia}</Text>
@@ -182,9 +162,9 @@ export function AgendamentoTutorScreen({ route }: Props) {
             <Text style={styles.emptyText}>
               Nenhum veterinário disponível na clínica no momento.
             </Text>
-          ) : !janelasLivres || janelasLivres.length === 0 ? (
+          ) : !selectedDate || !janelasLivres || janelasLivres.length === 0 ? (
             <Text style={styles.emptyText}>
-              Nenhum horário disponível para esta data. Selecione outro dia.
+              Nenhum horário disponível nos próximos dias.
             </Text>
           ) : (
             <View style={styles.horariosGrid}>

@@ -265,6 +265,25 @@ export interface JanelaAtendimento {
   horaInicio: string; // HH:mm:ss
 }
 
+// Datas com ao menos uma janela livre no intervalo (AAAA-MM-DD, inclusive).
+const getFreeDates = async (
+  veterinarioId: string | number,
+  de: string,
+  ate: string
+): Promise<string[]> => {
+  if (USE_API) {
+    const response = await apiJava.get<string[]>('/janela-atendimento/livres', {
+      params: { veterinarioId, de, ate },
+    });
+    return response.data;
+  }
+  const datas: string[] = [];
+  for (let d = new Date(`${de}T12:00:00`); isoLocal(d) <= ate; d.setDate(d.getDate() + 1)) {
+    datas.push(isoLocal(d));
+  }
+  return datas;
+};
+
 const getFreeWindows = async (
   veterinarioId: string | number,
   dataISO: string
@@ -299,4 +318,5 @@ export {
   findTodaysOpenAppointment,
   createWalkInAppointment,
   getFreeWindows,
+  getFreeDates,
 };
