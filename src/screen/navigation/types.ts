@@ -19,7 +19,6 @@ export type AuthStackParamList = {
 
 export type HomeTabParamList = {
   HomeTutor: undefined;
-  Score: { petId: string };
 };
 
 
@@ -30,7 +29,6 @@ export type PlanoTabParamList = {
   CheckInResult: { petId: string; result: CheckInDoseResult; itemPlanoCuidadoId?: number };
   CheckInEscalation: { petId: string; result: CheckInEscalationResult; itemPlanoCuidadoId?: number };
   CheckInNoRule: { petId: string; result: CheckInNoRuleResult; narrative: string; itemPlanoCuidadoId?: number };
-  AssistantNotice: { petId: string };
 };
 
 

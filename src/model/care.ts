@@ -47,6 +47,55 @@ export interface ClinicalMilestone {
   done: boolean;
 }
 
+export type StatusItem =
+  | 'PENDENTE'
+  | 'REALIZADO'
+  | 'SUSPENSO'
+  | 'ENCAMINHADO'
+  | 'CANCELADO'
+  | 'ATRASADO';
+
+// REALIZADO, SUSPENSO e ENCAMINHADO encerram o item (o check-in grava um deles por desfecho).
+export const STATUS_CONCLUIDOS: readonly StatusItem[] = ['REALIZADO', 'SUSPENSO', 'ENCAMINHADO'];
+
+export const isStatusConcluido = (status: StatusItem): boolean => STATUS_CONCLUIDOS.includes(status);
+
+export type StatusTone = 'success' | 'warning' | 'alert' | 'neutral';
+
+export interface StatusDisplay {
+  label: string;
+  tone: StatusTone;
+}
+
+export function statusDisplay(status: StatusItem, medicacao: boolean, vencido: boolean): StatusDisplay {
+  switch (status) {
+    case 'REALIZADO':
+      return { label: medicacao ? 'dose dada' : 'realizado', tone: 'success' };
+    case 'SUSPENSO':
+      return { label: 'sem dose', tone: 'warning' };
+    case 'ENCAMINHADO':
+      return { label: 'clínica acionada', tone: 'alert' };
+    case 'ATRASADO':
+      return { label: 'atrasado', tone: 'alert' };
+    case 'CANCELADO':
+      return { label: 'cancelado', tone: 'neutral' };
+    case 'PENDENTE':
+      return vencido ? { label: 'atrasado', tone: 'alert' } : { label: 'pendente', tone: 'neutral' };
+  }
+}
+
+// Item do plano para a aba Cuidados. `tratamento` = item nascido de prescrição.
+export interface CareItem {
+  id: string;
+  title: string;
+  dateIso: string;
+  dateLabel: string;
+  tipo: string;
+  status: StatusItem;
+  vencido: boolean;
+  tratamento: boolean;
+}
+
 export interface CareHistoryItem {
   id: string;
   dateIso: string;
@@ -67,6 +116,7 @@ export interface CarePlan {
   totalWeeks?: number;
   milestones?: ClinicalMilestone[];
   history?: CareHistoryItem[];
+  items: CareItem[];
 }
 
 export interface CheckInInterpretation {
@@ -110,24 +160,6 @@ export interface CheckInNoRuleResult {
 }
 
 export type CheckInResult = CheckInDoseResult | CheckInEscalationResult | CheckInNoRuleResult;
-
-export interface CareScore {
-  totalPoints: number;
-  pointsToday: number;
-  tier: string;
-  nextTier: string;
-  pointsToNextTier: number;
-  progressPct: number;
-  streakDays: number;
-  appointmentsCount: number;
-  homeAdherencePct: number;
-}
-
-export interface Badge {
-  id: string;
-  name: string;
-  unlocked: boolean;
-}
 
 // --- DTOs do fluxo de IA: Check-in Narrado (POST /api/checkin/extracao) ---
 
@@ -176,6 +208,11 @@ export interface CheckinDesfecho {
   doseAplicada: number | null;
   unidade: string | null;
   regraAplicadaId: number | null;
+  // Campos novos do back-end (A5): ausentes em respostas antigas.
+  veterinarioNome?: string | null;
+  veterinarioCrmv?: string | null;
+  clinicaNome?: string | null;
+  prescritaEm?: string | null;
 }
 
 export interface CheckinResponse {

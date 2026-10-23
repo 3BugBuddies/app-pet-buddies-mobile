@@ -90,7 +90,7 @@ export function HomeTutorScreen() {
       <View style={[styles.screen, styles.emptyStateContainer, { paddingTop: Math.max(insets.top, 20) }]}>
         <GreetingHeader
           greeting={`${greetingForNow()},`}
-          userName={session?.nome?.split(' ')[0] ?? 'Tutor'}
+          userName={session?.nome?.split(' ')[0] ?? 'responsável'}
         />
         <View style={styles.emptyStateContent}>
           <Image
@@ -145,7 +145,7 @@ export function HomeTutorScreen() {
         <GreetingHeader
           greeting={`${greetingForNow()},`}
           petName={activePet.nome}
-          userName={session?.nome?.split(' ')[0] ?? 'Tutor'}
+          userName={session?.nome?.split(' ')[0] ?? 'responsável'}
           onAvatarPress={() =>
             navigation.navigate('PetTab', { screen: 'PetProfile', params: { petId: activePet.id! } })
           }
@@ -271,21 +271,16 @@ export function HomeTutorScreen() {
               </Pressable>
             </View>
             <View style={styles.half}>
-              <Pressable
-                style={styles.half}
-                onPress={() => navigation.navigate('Score', { petId: activePet.id! })}
-              >
-                <View style={[styles.fallbackCard, { backgroundColor: colors.cardMax, flex: 1, minHeight: 160 }]}>
-                  <View style={styles.fallbackHeader}>
-                    <Text style={styles.fallbackTitle}>Pata Segura</Text>
-                    <Ionicons name="star" size={20} color={colors.accent} />
-                  </View>
-                  <Text style={[styles.fallbackSub, { marginTop: 'auto' }]}>
-                    O programa de recompensas do seu pet está chegando!
-                  </Text>
-                  <Text style={styles.fallbackAction}>Saiba mais {'>'}</Text>
+              <View style={[styles.fallbackCard, { backgroundColor: colors.cardMax, flex: 1, minHeight: 160 }]}>
+                <View style={styles.fallbackHeader}>
+                  <Text style={styles.fallbackTitle}>Pata Segura</Text>
+                  <Ionicons name="star" size={20} color={colors.accent} />
                 </View>
-              </Pressable>
+                <Text style={[styles.fallbackSub, { marginTop: 'auto' }]}>
+                  O programa de recompensas do seu pet está chegando!
+                </Text>
+                <Text style={styles.fallbackAction}>Em breve</Text>
+              </View>
             </View>
           </View>
         </View>

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { confirmCheckIn, extractCheckIn, getEscalationPreview } from '../repository/careRepository';
+import { confirmCheckIn, extractCheckIn } from '../repository/careRepository';
 import type { CheckinExtracaoRequest, ConfirmCheckInInput } from '../model/care';
 
 export function useExtractCheckIn() {
@@ -13,28 +13,10 @@ export function useConfirmCheckIn() {
 
   return useMutation({
     mutationFn: (input: ConfirmCheckInInput) => confirmCheckIn(input),
-    onSuccess: (result, { payload }) => {
-      const itemId = payload.itemPlanoCuidadoId;
-      // A API ainda não grava REALIZADO no item (pendente no back), então marcamos só no cache
-      // e só o item que o tutor ligou ao check-in — e só se a dose foi liberada em casa.
-      if (result.status === 'DOSE' && itemId != null) {
-        queryClient.setQueryData(['carePlan', String(payload.animalId)], (old: any) => {
-          if (!old) return old;
-          return {
-            ...old,
-            tasks: (old.tasks ?? []).map((t: any) =>
-              String(t.id) === String(itemId) ? { ...t, completed: true } : t
-            ),
-          };
-        });
-      }
+    onSuccess: (_result, { payload }) => {
+      // O back-end grava o status do item pelo desfecho: recarrega o plano em vez de marcar no cache.
+      queryClient.invalidateQueries({ queryKey: ['carePlan', String(payload.animalId)] });
       queryClient.invalidateQueries({ queryKey: ['prontuario', 'registros', String(payload.animalId)] });
     },
-  });
-}
-
-export function useEscalationPreview() {
-  return useMutation({
-    mutationFn: () => getEscalationPreview(),
   });
 }

@@ -4,7 +4,6 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { DoseTrack } from '../../component/checkin/DoseTrack';
 import { Button } from '../../component/ui/Button';
-import { useEscalationPreview } from '../../control/useCheckInControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +16,6 @@ export function CheckInResultScreen({ route }: Props) {
   const { petId, result } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
-  const escalationPreview = useEscalationPreview();
 
   const safeVetName = result.vetName || 'Clínica Veterinária';
   const safeDoseRangeLabel = result.doseRangeLabel || 'Dose padrão';
@@ -43,11 +41,6 @@ export function CheckInResultScreen({ route }: Props) {
     // não retenha as telas do check-in na pilha de navegação.
     navigation.popToTop();
     navigation.getParent()?.navigate('HomeTab');
-  };
-
-  const handlePreviewEscalation = async () => {
-    const preview = await escalationPreview.mutateAsync();
-    navigation.navigate('CheckInEscalation', { petId, result: preview });
   };
 
   const isLongText = safeDoseLabel.length > 8;
@@ -106,7 +99,12 @@ export function CheckInResultScreen({ route }: Props) {
           <View style={styles.vetInfo}>
             <Text style={styles.vetName}>{safeVetName}</Text>
             <Text style={styles.vetCrmv}>
-              {result.vetCrmv ? `${result.vetCrmv} · ` : ''}Prescrito em {result.prescriptionDateLabel || 'Atendimento recente'}
+              {[
+                result.vetCrmv ? `CRMV ${result.vetCrmv.replace(/^CRMV[\s-]*/i, '')}` : '',
+                result.prescriptionDateLabel ? `prescrita em ${result.prescriptionDateLabel}` : '',
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </Text>
           </View>
         </View>
@@ -119,13 +117,13 @@ export function CheckInResultScreen({ route }: Props) {
           onPress={handleFinish}
           textColor={colors.textLight}
         />
-        <Button
-          label="Ver o que muda se piorar"
-          loading={escalationPreview.isPending}
-          onPress={handlePreviewEscalation}
-          variant="secondary"
-        />
       </View>
+
+      <Text style={styles.disclaimer}>
+        Isto não é uma consulta veterinária: a orientação segue a regra que a veterinária aprovou e
+        não substitui exame, diagnóstico nem prescrição. Em caso de sinal de alarme, procure a
+        clínica. Teleorientação com aviso prévio ao responsável (Res. CFMV 1.465/2022, art. 8º).
+      </Text>
     </ScrollView>
   );
 }
@@ -280,6 +278,12 @@ const styles = StyleSheet.create({
   recordText: {
     fontSize: 14,
     color: colors.textSecondary,
+  },
+  disclaimer: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   actions: {
     marginTop: spacing.md,

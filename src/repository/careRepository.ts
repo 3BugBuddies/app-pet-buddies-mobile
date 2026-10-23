@@ -1,9 +1,10 @@
+import { isAxiosError } from 'axios';
 import { apiJava, USE_API } from './apiClient';
 import type {
-  Badge,
   CarePlan,
   CareHistoryItem,
-  CareScore,
+  CareItem,
+  StatusItem,
   CheckInEscalationResult,
   CheckinExtracaoRequest,
   CheckinExtracaoResponse,
@@ -11,10 +12,9 @@ import type {
   ConfirmCheckInInput,
   CheckInResult,
 } from '../model/care';
+import { isStatusConcluido } from '../model/care';
 import { resolveCheckInResponse } from '../model/careRules';
 import {
-  FAKE_BADGES,
-  FAKE_SCORE,
   fakePlanToggleTask,
   getFakeCarePlan,
 } from './fakeData';
@@ -27,28 +27,50 @@ const isoLocal = (d: Date): string => {
   return `${d.getFullYear()}-${mes}-${dia}`;
 };
 
-const getPlan = async (petId: string): Promise<CarePlan> => {
-  if (USE_API) {
-    const response = await apiJava.get(`/motor/plano/${petId}`);
-    const data = response.data;
+interface ItemPlanoApi {
+  id: number;
+  tipo: string;
+  nome: string;
+  dataAlvo: string;
+  status: StatusItem;
+  origem?: string | null;
+  vencido?: boolean;
+}
 
-    const eventos: any[] = data.eventos || [];
+interface PlanoApi {
+  instanciadoEm?: string | null;
+  eventos?: ItemPlanoApi[] | null;
+}
+
+// Plano inexistente (404) não é erro: o pet ainda não tem plano.
+const getPlan = async (petId: string): Promise<CarePlan | null> => {
+  if (USE_API) {
+    let data: PlanoApi;
+    try {
+      const response = await apiJava.get<PlanoApi>(`/motor/plano/${petId}`);
+      data = response.data;
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 404) return null;
+      throw error;
+    }
+
+    const eventos = data.eventos ?? [];
     const hoje = isoLocal(new Date());
 
     // tasks = eventos de hoje, cada evento vira um CareTask
     const tasks = eventos
-      .filter((e: any) => e.dataAlvo === hoje)
-      .map((e: any) => ({
+      .filter((e) => e.dataAlvo === hoje)
+      .map((e) => ({
         id: String(e.id),
         title: e.nome,
         description: e.tipo === 'MEDICACAO' ? 'Medicação prescrita' : e.tipo,
         time: 'conforme prescrição',
         points: 10,
-        completed: e.status === 'REALIZADO',
+        completed: isStatusConcluido(e.status),
       }));
 
     // weekDays = próximos 7 dias a partir de hoje com dot se houver evento
-    const diasComEvento = new Set(eventos.map((e: any) => e.dataAlvo));
+    const diasComEvento = new Set(eventos.map((e) => e.dataAlvo));
     const DIAS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const weekDays = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
@@ -68,7 +90,7 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
     const currentWeekNumber = Math.max(1, Math.ceil((diffDias + 1) / 7));
 
     // total de semanas = span de datas nos eventos
-    const datas = eventos.map((e: any) => e.dataAlvo).sort();
+    const datas = eventos.map((e) => e.dataAlvo).sort();
     const totalWeeks = datas.length > 0
       ? Math.max(1, Math.ceil(
           (new Date(datas[datas.length - 1]).getTime() - new Date(datas[0]).getTime()) / 86400000 / 7
@@ -77,10 +99,10 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
 
     // Mapeia o histórico diário
     const history: CareHistoryItem[] = eventos
-      .filter((e: any) => e.dataAlvo <= hoje)
-      .sort((a: any, b: any) => b.dataAlvo.localeCompare(a.dataAlvo))
-      .map((e: any) => {
-        const [ano, mes, dia] = e.dataAlvo.split('-');
+      .filter((e) => e.dataAlvo <= hoje)
+      .sort((a, b) => b.dataAlvo.localeCompare(a.dataAlvo))
+      .map((e) => {
+        const [, mes, dia] = e.dataAlvo.split('-');
         const dataAlvo = new Date(`${e.dataAlvo}T00:00:00`);
         const diffDias = Math.floor((dataAlvo.getTime() - instancia.getTime()) / 86400000) + 1;
 
@@ -90,7 +112,23 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
           dateLabel: `${dia}/${mes}`,
           dayLabel: `Dia ${Math.max(1, diffDias)}`,
           title: e.nome,
-          completed: e.status === 'REALIZADO',
+          completed: isStatusConcluido(e.status),
+        };
+      });
+
+    const items: CareItem[] = [...eventos]
+      .sort((a, b) => a.dataAlvo.localeCompare(b.dataAlvo))
+      .map((e) => {
+        const [ano, mes, dia] = e.dataAlvo.split('-');
+        return {
+          id: String(e.id),
+          title: e.nome,
+          dateIso: e.dataAlvo,
+          dateLabel: `${dia}/${mes}/${ano}`,
+          tipo: e.tipo,
+          status: e.status,
+          vencido: e.vencido ?? false,
+          tratamento: e.origem === 'PRESCRICAO' || e.tipo === 'MEDICACAO',
         };
       });
 
@@ -103,6 +141,7 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
       totalWeeks,
       milestones: [],
       history,
+      items,
     };
   }
   return getFakeCarePlan(petId);
@@ -135,38 +174,6 @@ const confirmCheckIn = async ({ payload, redFlags }: ConfirmCheckInInput): Promi
   };
 };
 
-// /checkin/escalation-preview não existe nesta sprint
-// Mantém apenas simulação local
-const getEscalationPreview = async (): Promise<CheckInEscalationResult> => {
-  return {
-    status: 'ESCALATION',
-    reasonLabel: 'sangue nas fezes',
-    ruleDescription: 'sangue nas fezes → sem dose · emergência',
-    vetName: 'Dra. Helena',
-    vetCrmv: 'CRMV-SP 12.345',
-    suggestedSlotLabel: 'hoje 17:40',
-  };
-};
-
-const completeCheckInTask = async (_petId: string, taskId: string): Promise<void> => {
-  // POST /plano-cuidado/.../concluir não existe
-  // Item é concluído via POST /checkin com itemPlanoCuidadoId
-  // Mantém apenas simulação local
-  fakePlanToggleTask(taskId);
-};
-
-// /pontuacao/{id} não tem API nesta sprint
-// Mantém apenas simulação local
-const getScore = async (_petId: string): Promise<CareScore> => {
-  return FAKE_SCORE;
-};
-
-// /badges/{id} não tem API nesta sprint
-// Mantém apenas simulação local
-const getBadges = async (_petId: string): Promise<Badge[]> => {
-  return FAKE_BADGES;
-};
-
 // Passo 1 do check-in narrado: envia a narrativa, recebe o que a IA entendeu.
 // Resposta é corpo cru — sem envelope HATEOAS.
 const extractCheckIn = async (data: CheckinExtracaoRequest): Promise<CheckinExtracaoResponse> => {
@@ -188,9 +195,5 @@ export {
   getPlan,
   toggleTask,
   confirmCheckIn,
-  getEscalationPreview,
-  completeCheckInTask,
-  getScore,
-  getBadges,
   extractCheckIn,
 };

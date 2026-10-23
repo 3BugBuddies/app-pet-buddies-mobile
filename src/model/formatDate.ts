@@ -18,3 +18,9 @@ export function greetingForNow(): string {
   if (hour < 18) return 'Boa tarde';
   return 'Boa noite';
 }
+
+// "AAAA-MM-DD[THH:mm...]" -> "DD/MM", sem passar por Date (evita virar o dia por fuso).
+export function formatShortDate(iso: string): string {
+  const [ano, mes, dia] = iso.slice(0, 10).split('-');
+  return ano && mes && dia ? `${dia}/${mes}` : '';
+}

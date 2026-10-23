@@ -1,5 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { NoPlanState } from '../../component/care-plan/NoPlanState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { usePet } from '../../control/usePetsControl';
@@ -17,6 +18,10 @@ export function PlanoPacienteScreen({ route }: Props) {
 
   if (isLoadingPet || isLoadingPlan) {
     return <LoadingIndicator label="Carregando o plano..." />;
+  }
+
+  if (!isError && plan === null && pet) {
+    return <NoPlanState petName={pet.nome} />;
   }
 
   if (isError || !plan || !pet) {

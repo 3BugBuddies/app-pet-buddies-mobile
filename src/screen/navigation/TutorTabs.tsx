@@ -51,7 +51,7 @@ export function TutorTabs() {
           },
         })}
         options={{
-          tabBarLabel: 'Evolucao',
+          tabBarLabel: 'Cuidados',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'time' : 'time-outline'} size={size} color={color} />
           ),
