@@ -8,7 +8,6 @@ import type { CarePlan, CheckInResult, CheckInInterpretation } from '../model/ca
 import type { MedicalRecord } from '../model/medicalRecord';
 import type { Prescription } from '../model/prescription';
 import type { PrescriptionRule } from '../model/prescriptionRule';
-import type { Protocol } from '../model/legacyPrescription';
 
 // ---------------------------------------------------------------------------
 // Pets
@@ -212,18 +211,3 @@ export const addFakeRule = (rule: PrescriptionRule): PrescriptionRule => {
   _rules = [..._rules, rule];
   return rule;
 };
-
-// ---------------------------------------------------------------------------
-// Protocolos (visão vet)
-// ---------------------------------------------------------------------------
-
-export const FAKE_PROTOCOLS: Protocol[] = [
-  {
-    id: 'proto-1',
-    name: 'Lactulona — Constipação leve',
-    categoryLabel: 'Gastrointestinal',
-    doseRangeLabel: '1–2 ml',
-    ruleCount: 2,
-    patientCount: 1,
-  },
-];
