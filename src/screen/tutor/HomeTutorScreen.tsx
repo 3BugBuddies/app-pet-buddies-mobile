@@ -111,11 +111,11 @@ export function HomeTutorScreen() {
           />
           <Text style={styles.emptyStateTitle}>Bem-vindo ao Pet Buddies!</Text>
           <Text style={styles.emptyStateBody}>
-            Seu app de cuidado inteligente. Para começar a acompanhar a saúde e ganhar pontos,
-            adicione seu primeiro companheiro.
+            Cadastre o primeiro pet para a clínica montar o plano.
           </Text>
           <Button
-            label="Cadastrar meu primeiro Pet"
+            label="Cadastrar pet"
+            backgroundColor={colors.action}
             onPress={() => navigation.navigate('PetTab', { screen: 'NovoPet' })}
             style={{ marginTop: spacing.md }}
           />
@@ -224,7 +224,7 @@ export function HomeTutorScreen() {
               />
               {hasPendingMedication ? (
                 <Button
-                  label={`Fazer Check-in do ${activePet.nome} →`}
+                  label={`Contar como a ${activePet.nome} passou`}
                   backgroundColor={colors.action}
                   textColor={colors.textLight}
                   onPress={handleStartCheckIn}
@@ -285,16 +285,21 @@ export function HomeTutorScreen() {
               </Pressable>
             </View>
             <View style={styles.half}>
-              <View style={[styles.fallbackCard, { backgroundColor: colors.cardMax, flex: 1, minHeight: 160 }]}>
-                <View style={styles.fallbackHeader}>
-                  <Text style={styles.fallbackTitle}>Pata Segura</Text>
-                  <Ionicons name="star" size={20} color={colors.accent} />
+              <Pressable
+                style={styles.half}
+                accessibilityRole="button"
+                onPress={() => navigation.navigate('HomeTab', { screen: 'PataSegura' })}
+              >
+                <View style={[styles.fallbackCard, { backgroundColor: colors.cardMax, flex: 1, minHeight: 160 }]}>
+                  <View style={styles.fallbackHeader}>
+                    <Text style={styles.fallbackTitle}>Pata Segura</Text>
+                  </View>
+                  <Text style={[styles.fallbackSub, { marginTop: 'auto' }]}>
+                    Consulta efetivada vira ponto.
+                  </Text>
+                  <Text style={styles.fallbackAction}>Em breve</Text>
                 </View>
-                <Text style={[styles.fallbackSub, { marginTop: 'auto' }]}>
-                  O programa de recompensas do seu pet está chegando!
-                </Text>
-                <Text style={styles.fallbackAction}>Em breve</Text>
-              </View>
+              </Pressable>
             </View>
           </View>
         </View>
