@@ -212,7 +212,7 @@ const deleteAppointment = async (id: string, motivo: string): Promise<void> => {
 const findTodaysOpenAppointment = async (
   animalId: string,
   veterinarioId?: string | number | null
-): Promise<Appointment | undefined> => {
+): Promise<Appointment | null> => {
   const hoje = isoLocal(new Date());
   // Com animalId a API ignora veterinarioId, então o filtro por veterinário é feito aqui.
   const lista = await getAllAppointments(animalId, veterinarioId);
@@ -224,7 +224,7 @@ const findTodaysOpenAppointment = async (
         (a.status === 'SCHEDULED' || a.status === 'CONFIRMED') &&
         a.date?.slice(0, 10) === hoje
     )
-    .sort((x, y) => new Date(x.date).getTime() - new Date(y.date).getTime())[0];
+    .sort((x, y) => new Date(x.date).getTime() - new Date(y.date).getTime())[0] ?? null;
 };
 
 // Atendimento imediato (sem horário marcado): a API só fecha atendimento de uma consulta, então

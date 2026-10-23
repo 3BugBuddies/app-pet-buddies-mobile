@@ -6,6 +6,7 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useClinicPets } from '../../control/usePetsControl';
+import { breedLabel } from '../../model/pet';
 import { normalizeSearch } from '../../model/text';
 import { openClosing } from '../navigation/openClosing';
 import type { HojeTabParamList, VetTabParamList } from '../navigation/types';
@@ -64,7 +65,7 @@ export function AtenderAgoraScreen() {
             <View style={styles.cardText}>
               <Text style={styles.name}>{pet.nome}</Text>
               <Text style={styles.detail}>
-                {[pet.raca || pet.especie, pet.responsavelNome].filter(Boolean).join(' · ')}
+                {[breedLabel(pet.raca), pet.responsavelNome].filter(Boolean).join(' · ')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
