@@ -6,18 +6,10 @@ import { Card } from '../../component/ui/Card';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useClinicPets } from '../../control/usePetsControl';
+import { rotuloEspecie, rotuloRaca } from '../../model/pet';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../styles/theme';
-
-const ESPECIE_LABEL: Record<string, string> = {
-  CACHORRO: 'Cachorro',
-  GATO: 'Gato',
-  PASSARO: 'Pássaro',
-  COELHO: 'Coelho',
-  HAMSTER: 'Hamster',
-  OUTRO: 'Outro',
-};
 
 export function PacientesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
@@ -78,8 +70,7 @@ export function PacientesScreen() {
               <Card>
                 <Text style={styles.petNome}>{pet.nome}</Text>
                 <Text style={styles.petMeta}>
-                  {ESPECIE_LABEL[pet.especie] ?? pet.especie}
-                  {pet.raca ? ` · ${pet.raca}` : ''}
+                  {rotuloEspecie(pet.especie)} · {rotuloRaca(pet.raca)}
                 </Text>
               </Card>
             </Pressable>

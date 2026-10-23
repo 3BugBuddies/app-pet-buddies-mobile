@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAppointments, useDeleteAppointment } from '../../control/useAppointmentsControl';
 import { formatAppointmentDate } from '../../model/formatDate';
 import { VaccineListCard } from '../../component/pet-profile/VaccineListCard';
@@ -10,7 +10,8 @@ import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import useMedicalRecordControl from '../../control/useMedicalRecordControl';
 import { usePet, usePetProfileDetails } from '../../control/usePetsControl';
-import { usePatients } from '../../control/usePatientsControl';
+import { useResumoPlano } from '../../control/usePatientsControl';
+import { rotuloRaca, rotuloSexo } from '../../model/pet';
 import { useProcedures } from '../../control/useProcedureControl';
 import type { PetVaccine } from '../../model/care';
 import type { PacientesTabParamList } from '../navigation/types';
@@ -65,11 +66,10 @@ export function DetalhesPetScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
   const { data: profile } = usePetProfileDetails(petId);
-  const { data: patients } = usePatients();
-  const patientData = patients?.find((p) => p.petId === petId);
-  const tutorName = patientData?.tutorName || 'N/A';
-  const tutorAddress = patientData?.endereco;
-  const tutorPhone = patientData?.telefone;
+  const { data: resumo } = useResumoPlano(petId);
+  const tutorName = pet?.responsavelNome;
+  const tutorAddress = pet?.responsavelEndereco;
+  const tutorPhone = pet?.responsavelTelefone;
 
   const { data: procedimentos, isLoading: isLoadingProcedimentos } = useProcedures(petId);
   const { registros: records, carregandoRegistros: isLoadingRecords } = useMedicalRecordControl(petId);
@@ -91,11 +91,11 @@ export function DetalhesPetScreen({ route }: Props) {
   const handleRescheduleAppt = (id: string) => {
     Alert.alert(
       'Reagendar Consulta',
-      'Isso irá cancelar o horário atual e liberar a agenda. O tutor deverá marcar uma nova data pelo aplicativo dele. Deseja prosseguir?',
+      'Isso irá cancelar o horário atual e liberar a agenda. O responsável deverá marcar uma nova data pelo aplicativo dele. Deseja prosseguir?',
       [
         { text: 'Voltar', style: 'cancel' },
         {
-          text: 'Cancelar e Avisar Tutor',
+          text: 'Cancelar e avisar o responsável',
           style: 'default',
           onPress: () => deleteAppointment.mutate({ id, motivo: 'Reagendamento solicitado pela clínica' }),
         },
@@ -103,16 +103,8 @@ export function DetalhesPetScreen({ route }: Props) {
     );
   };
 
-  const handleOpenMaps = () => {
-    if (!tutorAddress) return;
-    import('react-native').then(({ Linking, Platform }) => {
-      const url = Platform.select({
-        ios: `maps://app?daddr=${encodeURIComponent(tutorAddress)}`,
-        android: `google.navigation:q=${encodeURIComponent(tutorAddress)}`,
-        default: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tutorAddress)}`,
-      });
-      Linking.openURL(url as string);
-    });
+  const abrirLink = (url: string) => {
+    Linking.openURL(url).catch(() => Alert.alert('Não foi possível abrir o link.'));
   };
 
   const vaccinesList = useMemo((): PetVaccine[] => {
@@ -146,6 +138,7 @@ export function DetalhesPetScreen({ route }: Props) {
     );
   }
 
+  const proximos = (resumo?.proximos ?? []).slice(0, 3);
   const pesoLabel = pet.peso ? `${pet.peso.toString().replace('.', ',')} kg` : null;
   const idadeLabel = calcIdadeLabel(pet.dataNascimento);
   const castradoLabel = pet.castrado ? 'Sim' : 'Não';
@@ -159,55 +152,56 @@ export function DetalhesPetScreen({ route }: Props) {
           <View style={styles.heroText}>
             <Text style={styles.name}>{pet.nome}</Text>
             <Text style={styles.detail}>
-              {`${pet.raca || pet.especie} · ${pet.sexo}`}
+              {`${rotuloRaca(pet.raca)} · ${rotuloSexo(pet.sexo)}`}
             </Text>
-            <Text style={styles.detail}>
-              {`Tutor: ${tutorName} ${tutorPhone ? `· ${tutorPhone}` : ''}`}
-            </Text>
+            {tutorName ? (
+              <Text style={styles.detail}>
+                {`Responsável: ${tutorName}${tutorPhone ? ` · ${tutorPhone}` : ''}`}
+              </Text>
+            ) : null}
           </View>
         </View>
 
         {tutorAddress ? (
           <View style={styles.addressBox}>
-            <Text style={styles.addressLabel}>📍 Endereço do Tutor</Text>
+            <Text style={styles.addressLabel}>Endereço do responsável</Text>
             <Text style={styles.addressText}>{tutorAddress}</Text>
-            <Button
-              variant="secondary"
-              label="Abrir Rota (Maps / Waze)"
-              onPress={handleOpenMaps}
-              style={styles.mapsButton}
-            />
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Button
+                variant="secondary"
+                label="Maps"
+                style={[styles.mapsButton, { flex: 1 }]}
+                onPress={() =>
+                  abrirLink(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(tutorAddress)}`)
+                }
+              />
+              <Button
+                variant="secondary"
+                label="Waze"
+                style={[styles.mapsButton, { flex: 1 }]}
+                onPress={() => abrirLink(`https://waze.com/ul?q=${encodeURIComponent(tutorAddress)}&navigate=yes`)}
+              />
+            </View>
           </View>
         ) : null}
       </View>
 
       <View style={styles.flashContainer}>
         <View style={styles.flashHeader}>
-          <Text style={styles.flashIcon}>⚡</Text>
-          <Text style={styles.flashTitle}>Resumo Rápido (Flash Histórico)</Text>
+          <Text style={styles.flashTitle}>Próximos cuidados</Text>
         </View>
-        
-        <View style={styles.flashRow}>
-          <View style={styles.flashTile}>
-            <Text style={styles.flashTileLabel} numberOfLines={1}>⚖️ Peso Atual</Text>
-            <Text style={styles.flashTileValue} numberOfLines={1} adjustsFontSizeToFit>{pesoLabel || '—'}</Text>
-            <Text style={styles.flashTileSub} numberOfLines={1}>há 2 meses</Text>
+        {proximos.length === 0 ? (
+          <Text style={styles.flashTileSub}>Nenhum cuidado pendente no plano.</Text>
+        ) : (
+          <View style={styles.flashRow}>
+            {proximos.map((c) => (
+              <View key={c.id} style={styles.flashTile}>
+                <Text style={styles.flashTileValue} numberOfLines={2}>{c.nome}</Text>
+                <Text style={styles.flashTileSub} numberOfLines={1}>{formatDataBR(c.dataAlvo)}</Text>
+              </View>
+            ))}
           </View>
-          
-          <View style={styles.flashTile}>
-            <Text style={styles.flashTileLabel} numberOfLines={1}>💉 Vacina</Text>
-            <Text style={[styles.flashTileValue, { color: '#B91C1C' }]} numberOfLines={1} adjustsFontSizeToFit>V10 Vence</Text>
-            <Text style={[styles.flashTileSub, { color: '#B91C1C', fontWeight: '600' }]} numberOfLines={1}>em 15 dias!</Text>
-          </View>
-
-          <View style={styles.flashTile}>
-            <Text style={styles.flashTileLabel} numberOfLines={1}>🩺 Último Atend.</Text>
-            <Text style={styles.flashTileValue} numberOfLines={1} adjustsFontSizeToFit>
-              {records && records.length > 0 ? records[0].diagnostico : 'Consulta'}
-            </Text>
-            <Text style={styles.flashTileSub} numberOfLines={1}>há 3 meses</Text>
-          </View>
-        </View>
+        )}
       </View>
 
       <View style={styles.tabs}>
