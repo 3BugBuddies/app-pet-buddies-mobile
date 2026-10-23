@@ -1,5 +1,6 @@
+import type { ComponentProps } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii } from '../../styles/theme';
@@ -9,6 +10,22 @@ import type { VetTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<VetTabParamList>();
 
+interface TabIconProps {
+  name: ComponentProps<typeof Ionicons>['name'];
+  color: string;
+  size: number;
+  focused: boolean;
+}
+
+// A pílula do item ativo fica atrás do ícone, não no item inteiro.
+function TabIcon({ name, color, size, focused }: TabIconProps) {
+  return (
+    <View style={[styles.iconPill, focused && styles.iconPillActive]}>
+      <Ionicons name={name} size={size} color={color} />
+    </View>
+  );
+}
+
 export function VetTabs() {
   const insets = useSafeAreaInsets();
 
@@ -17,7 +34,6 @@ export function VetTabs() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
-        tabBarActiveBackgroundColor: colors.cardChia,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: [styles.tabBar, { bottom: Math.max(insets.bottom, 16) }],
         tabBarItemStyle: styles.tabItem,
@@ -30,7 +46,7 @@ export function VetTabs() {
         options={{
           tabBarLabel: 'Hoje',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'today' : 'today-outline'} size={size} color={color} />
+            <TabIcon name={focused ? 'today' : 'today-outline'} size={size} color={color} focused={focused} />
           ),
         }}
       />
@@ -40,7 +56,7 @@ export function VetTabs() {
         options={{
           tabBarLabel: 'Pacientes',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'people' : 'people-outline'} size={size} color={color} />
+            <TabIcon name={focused ? 'people' : 'people-outline'} size={size} color={color} focused={focused} />
           ),
         }}
       />
@@ -67,9 +83,14 @@ const styles = StyleSheet.create({
   tabItem: {
     paddingTop: 8,
     paddingBottom: 8,
+  },
+  iconPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 4,
     borderRadius: radii.pill,
-    marginVertical: 6,
-    marginHorizontal: 4,
+  },
+  iconPillActive: {
+    backgroundColor: colors.cardChia,
   },
   tabLabel: {
     fontFamily: 'Inter',
