@@ -7,12 +7,7 @@ import type {
   CheckInNoRuleResult,
   CheckInResult,
 } from './care';
-import {
-  GLOBAL_ALARM_SIGNALS,
-  RULE_ACTION_RESULT_LABEL,
-  type ConditionSignal,
-  type Prescription,
-} from './legacyPrescription';
+import type { ConditionSignal } from './legacyPrescription';
 import { formatShortDate } from './formatDate';
 
 // Heurística local por palavras-chave, no lugar do serviço de IA que a vet
@@ -67,79 +62,6 @@ export function deriveSignals(interpretation: CheckInInterpretation): ConditionS
   if (interpretation.apathetic) signals.push('APATIA');
   if (interpretation.breathingDifficulty) signals.push('DIFICULDADE_RESPIRATORIA');
   return signals;
-}
-
-interface ResolveCheckInParams {
-  prescription: Prescription;
-  signals: ConditionSignal[];
-  confirmedAtLabel: string;
-  points: number;
-}
-
-// Regra do produto: sinal de alarme global sempre
-// escala, mesmo sem regra cadastrada. Senão, a primeira regra da prescrição
-// cujo sinal bate decide a ação. Sem nenhuma correspondência, nunca "chuta"
-// uma dose — cai em "confirmar com a clínica".
-//
-// Persistência (hoje/2 dias/48h/3+) é só metadado exibido na regra; não é
-// aplicada aqui, pois exigiria histórico do sinal ao longo de vários dias.
-export function resolveCheckIn({
-  prescription,
-  signals,
-  confirmedAtLabel,
-  points,
-}: ResolveCheckInParams): CheckInResult {
-  const globalAlarm = signals.find((signal) => GLOBAL_ALARM_SIGNALS.includes(signal));
-  if (globalAlarm) {
-    const escalation: CheckInEscalationResult = {
-      status: 'ESCALATION',
-      reasonLabel: CONDITION_SIGNAL_LABEL_LOWER[globalAlarm],
-      ruleDescription: `${CONDITION_SIGNAL_LABEL_LOWER[globalAlarm]} → sem dose · emergência`,
-      vetName: prescription.vetName,
-      vetCrmv: prescription.vetCrmv,
-      suggestedSlotLabel: 'hoje 17:40',
-    };
-    return escalation;
-  }
-
-  const matchedRule = prescription.rules.find((rule) => signals.includes(rule.signal));
-
-  if (!matchedRule) {
-    const noRule: CheckInNoRuleResult = {
-      status: 'NO_RULE',
-      vetName: prescription.vetName,
-      vetCrmv: prescription.vetCrmv,
-    };
-    return noRule;
-  }
-
-  if (matchedRule.action === 'SEM_DOSE_CLINICA' || matchedRule.action === 'SEM_DOSE_EMERGENCIA') {
-    const escalation: CheckInEscalationResult = {
-      status: 'ESCALATION',
-      reasonLabel: CONDITION_SIGNAL_LABEL_LOWER[matchedRule.signal],
-      ruleDescription: `${CONDITION_SIGNAL_LABEL_LOWER[matchedRule.signal]} → ${RULE_ACTION_RESULT_LABEL[matchedRule.action]}`,
-      vetName: prescription.vetName,
-      vetCrmv: prescription.vetCrmv,
-      suggestedSlotLabel: 'hoje 17:40',
-    };
-    return escalation;
-  }
-
-  const doseValue = matchedRule.action === 'MENOR_DOSE' ? prescription.doseMin : prescription.doseMax;
-  const doseRangeLabel = `${formatDose(prescription.doseMin)}–${formatDose(prescription.doseMax)} ${prescription.doseUnit}`;
-
-  const dose: CheckInDoseResult = {
-    status: 'DOSE',
-    doseLabel: `${formatDose(doseValue)} ${prescription.doseUnit}`,
-    doseRangeLabel,
-    ruleDescription: `${CONDITION_SIGNAL_LABEL_LOWER[matchedRule.signal]} → ${RULE_ACTION_RESULT_LABEL[matchedRule.action]}`,
-    ruleConfirmedAtLabel: confirmedAtLabel,
-    vetName: prescription.vetName,
-    vetCrmv: prescription.vetCrmv,
-    prescriptionDateLabel: prescription.prescriptionDateLabel,
-    pointsEarned: points,
-  };
-  return dose;
 }
 
 function formatDose(value: number): string {
@@ -238,16 +160,6 @@ export function resolveCheckInResponse(
   };
   return dose;
 }
-
-const CONDITION_SIGNAL_LABEL_LOWER: Record<ConditionSignal, string> = {
-  FEZES_MOLES: 'fezes moles',
-  NAO_EVACUOU: 'não evacuou',
-  COMEU_POUCO: 'comeu pouco',
-  VOMITO: 'vômito',
-  SANGUE_NAS_FEZES: 'sangue nas fezes',
-  APATIA: 'apatia',
-  DIFICULDADE_RESPIRATORIA: 'dificuldade respiratória',
-};
 
 export function parseDoseRange(label: string): { min: number; max: number; unit: string } {
   const match = label.match(/([\d.,]+)\s*[–-]\s*([\d.,]+)\s*(\w+)/);

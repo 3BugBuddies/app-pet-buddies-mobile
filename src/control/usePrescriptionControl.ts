@@ -1,16 +1,24 @@
-import { useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useContext, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AuthContext } from '../context/authContext';
+import { USE_API } from '../repository/apiClient';
 import { prescriptionSchema, type NarrativaPrescricaoRequest, type PrescricaoDraft } from '../model/prescription';
 import {
   OPERADORES,
   TP_ACAO,
+  normalizarTexto,
   type CondicaoClinica,
   type Operador,
   type RegraDraft,
   type TipoAcao,
 } from '../model/prescriptionRule';
-import { getCondicoesClinicas } from '../repository/condicaoClinicaRepository';
+import {
+  createCondicaoClinica,
+  getClinicaIdDoVeterinario,
+  getCondicoesClinicas,
+} from '../repository/condicaoClinicaRepository';
 import { draftPrescription } from '../repository/prescriptionRepository';
+import { getPrescriptionTemplates } from '../repository/templatePrescriptionRepository';
 
 // So os campos que a PrescricaoScreen coleta — id/dataInicio/veterinarioId/animalId
 // entram depois, quando o rascunho vira prescricao de verdade (na assinatura).
@@ -38,6 +46,7 @@ const usePrescricaoDraftControl = ({ animalId, registroAtendimentoId }: UsePresc
   const [duracaoDias, setDuracaoDias] = useState(7);
   const [orientacao, setOrientacao] = useState('');
   const [regras, setRegras] = useState<RegraDraft[]>([]);
+  const [receitaModelo, setReceitaModelo] = useState<{ id: number; versao: number } | null>(null);
   const [erros, setErros] = useState<Record<string, string>>({});
 
   const removerRegra = (index: number) => {
@@ -51,7 +60,19 @@ const usePrescricaoDraftControl = ({ animalId, registroAtendimentoId }: UsePresc
         { medicamento, doseMin, doseMax, unidade, frequenciaDia, duracaoDias, orientacao },
         { abortEarly: false }
       );
-      return { animalId, registroAtendimentoId, medicamento, doseMin, doseMax, unidade, frequenciaDia, duracaoDias, orientacao, regras };
+      return {
+        animalId,
+        registroAtendimentoId,
+        medicamento,
+        doseMin,
+        doseMax,
+        unidade,
+        frequenciaDia,
+        duracaoDias,
+        orientacao,
+        regras,
+        ...(receitaModelo ? { receitaModeloId: receitaModelo.id, receitaModeloVersao: receitaModelo.versao } : {}),
+      };
     } catch (error: any) {
       if (!error?.inner) return null;
       const errosAtuais: Record<string, string> = {};
@@ -73,29 +94,81 @@ const usePrescricaoDraftControl = ({ animalId, registroAtendimentoId }: UsePresc
     orientacao, setOrientacao,
     regras, setRegras,
     removerRegra,
+    setReceitaModelo,
     erros,
     validar,
   };
 };
 
-// Catálogo de condições da clínica (GET /condicao-clinica).
-const useCondicoesClinicas = () =>
-  useQuery({
-    queryKey: ['condicoesClinicas'],
-    queryFn: getCondicoesClinicas,
+// Clínica da vet logada (GET /veterinario/{id}): escopo do catálogo de condições.
+const useClinicaIdDaVet = () => {
+  const { session } = useContext(AuthContext);
+  const veterinarioId = session?.veterinarioId;
+  return useQuery({
+    queryKey: ['veterinarioClinicaId', veterinarioId],
+    queryFn: () => getClinicaIdDoVeterinario(veterinarioId as number | string),
+    enabled: veterinarioId != null,
+    staleTime: Infinity,
+  });
+};
+
+// Catálogo de condições da clínica (GET /condicao-clinica?clinicaId=).
+const useCondicoesClinicas = () => {
+  const { data: clinicaId } = useClinicaIdDaVet();
+  return useQuery({
+    queryKey: ['condicoesClinicas', clinicaId],
+    queryFn: () => getCondicoesClinicas(clinicaId ?? null),
+    enabled: clinicaId != null || !USE_API,
     staleTime: 5 * 60 * 1000,
   });
+};
 
-const useNovaRegraControl = (condicoes: CondicaoClinica[]) => {
-  const [condicaoSelecionada, setCondicaoClinicaId] = useState<number | null>(null);
+// Cria a condição na clínica da vet logada (409 = já existe, o repositório devolve a existente).
+const useCriarCondicao = () => {
+  const { session } = useContext(AuthContext);
+  const { data: clinicaId } = useClinicaIdDaVet();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (nova: { rotulo: string; tipoDado: 'BOOLEANO' | 'NUMERICO'; unidade?: string | null }) => {
+      if (clinicaId == null || session?.veterinarioId == null) {
+        throw new Error('Não foi possível identificar a sua clínica. Entre novamente.');
+      }
+      return createCondicaoClinica({ ...nova, clinicaId, veterinarioAutorId: Number(session.veterinarioId) });
+    },
+    // Já entra no catálogo em cache para a vet poder selecioná-la na hora.
+    onSuccess: (criada) =>
+      queryClient.setQueryData<CondicaoClinica[]>(['condicoesClinicas', clinicaId], (atual = []) =>
+        atual.some((c) => c.id === criada.id) ? atual : [...atual, criada]
+      ),
+  });
+};
+
+// Receitas-modelo da clínica (GET /receita-modelo).
+const usePrescriptionTemplates = () =>
+  useQuery({
+    queryKey: ['receitasModelo'],
+    queryFn: getPrescriptionTemplates,
+  });
+
+const useNovaRegraControl = (catalogo: CondicaoClinica[]) => {
+  const [condicaoClinicaId, setCondicaoClinicaId] = useState<number | null>(null);
+  const [busca, setBusca] = useState('');
   const [acao, setAcao] = useState<TipoAcao>('DOSE_MIN');
   const [operador, setOperador] = useState<Operador>('MAIOR_QUE');
   const [limiteTexto, setLimiteTexto] = useState('');
   const [erro, setErro] = useState<string | null>(null);
 
-  // Enquanto o vet não escolhe, vale a primeira condição do catálogo.
-  const condicaoClinicaId = condicaoSelecionada ?? condicoes[0]?.id ?? null;
-  const condicao = condicoes.find((item) => item.id === condicaoClinicaId);
+  const termo = normalizarTexto(busca);
+  // Busca local sem acento e sem caixa; sinais de alarme aparecem, mas não são selecionáveis.
+  const filtradas = catalogo.filter((c) => !termo || normalizarTexto(c.rotulo).includes(termo));
+  const condicao = catalogo.find((c) => c.id === condicaoClinicaId && !c.critica);
+  const termoCriavel =
+    termo && !catalogo.some((c) => normalizarTexto(c.rotulo) === termo) ? busca.trim() : null;
+
+  const selecionarCondicao = (id: number) => {
+    setCondicaoClinicaId(id);
+    setErro(null);
+  };
 
   // Condição numérica exige operador e limite; booleana não aceita nenhum dos dois (a API recusa).
   const construirRegra = (): RegraDraft | null => {
@@ -116,13 +189,25 @@ const useNovaRegraControl = (condicoes: CondicaoClinica[]) => {
     return { condicaoClinicaId: condicao.id, rotuloCongelado: condicao.rotulo, acao, operador: null, limite: null };
   };
 
+  const reiniciar = () => {
+    setCondicaoClinicaId(null);
+    setBusca('');
+    setAcao('DOSE_MIN');
+    setOperador('MAIOR_QUE');
+    setLimiteTexto('');
+    setErro(null);
+  };
+
   return {
-    condicoes,
     condicao,
+    filtradas,
+    termoCriavel,
     acoes: TP_ACAO,
     operadores: OPERADORES,
+    busca,
+    setBusca,
     condicaoClinicaId,
-    setCondicaoClinicaId,
+    selecionarCondicao,
     acao,
     setAcao,
     operador,
@@ -131,6 +216,7 @@ const useNovaRegraControl = (condicoes: CondicaoClinica[]) => {
     setLimiteTexto,
     erro,
     construirRegra,
+    reiniciar,
   };
 };
 
@@ -146,5 +232,7 @@ export {
   usePrescricaoDraftControl,
   useNovaRegraControl,
   useCondicoesClinicas,
+  useCriarCondicao,
   useDraftPrescription,
+  usePrescriptionTemplates,
 };

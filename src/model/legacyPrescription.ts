@@ -1,6 +1,6 @@
 // Forma ANTIGA de prescricao (nomes em ingles, status DRAFT/SIGNED), usada
-// so pelo motor de simulacao de check-in (careRepository.ts/careRules.ts) e
-// pela tela de protocolos. Nao confundir com model/prescription.ts, que e a
+// so pelo motor de simulacao de check-in (careRepository.ts/careRules.ts).
+// Nao confundir com model/prescription.ts, que e a
 // prescricao real, assinada de verdade — unificar as duas exigiria
 // portar esse motor de regras pro schema novo (ver nota em careRepository.ts).
 export type ConditionSignal =
@@ -21,14 +21,6 @@ export const CONDITION_SIGNAL_LABEL: Record<ConditionSignal, string> = {
   APATIA: 'Apatia',
   DIFICULDADE_RESPIRATORIA: 'Dificuldade respiratória',
 };
-
-// Sobrepõem qualquer prescrição/protocolo — sempre viram escalação, mesmo sem
-// regra cadastrada pra elas.
-export const GLOBAL_ALARM_SIGNALS: ConditionSignal[] = [
-  'SANGUE_NAS_FEZES',
-  'APATIA',
-  'DIFICULDADE_RESPIRATORIA',
-];
 
 export type PersistenceKey = 'HOJE' | 'DOIS_DIAS' | 'QUARENTA_OITO_H' | 'TRES_MAIS_DIAS';
 
@@ -79,13 +71,4 @@ export interface Prescription {
   vetName: string;
   vetCrmv: string;
   prescriptionDateLabel: string;
-}
-
-export interface Protocol {
-  id: string;
-  name: string;
-  categoryLabel: string;
-  doseRangeLabel: string;
-  ruleCount: number;
-  patientCount: number;
 }
