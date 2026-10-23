@@ -1,159 +1,118 @@
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useContext, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View, Share } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
-import { AuthContext } from '../../context/authContext';
-import { useAssinarPrescricaoControl } from '../../control/usePrescriptionControl';
-import { usePet } from '../../control/usePetsControl';
+import { useConcluirAtendimento, comporObservacao } from '../../control/useFechamentoControl';
 import { descreverCondicao } from '../../model/prescriptionRule';
 import type { PacientesTabParamList } from '../navigation/types';
-import type { VetTabParamList } from '../navigation/types';
-import type { CompositeNavigationProp } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'AssinarPrescricao'>;
-type AssinarNavigationProp = CompositeNavigationProp<
-  NativeStackNavigationProp<PacientesTabParamList, 'AssinarPrescricao'>,
-  BottomTabNavigationProp<VetTabParamList>
->;
 
 export function AssinarPrescricaoScreen({ route }: Props) {
-  const { draft, consultaId, prontuario } = route.params;
-  const navigation = useNavigation<AssinarNavigationProp>();
+  const { fechamento } = route.params;
+  const draft = fechamento.prescricao;
+  const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList, 'AssinarPrescricao'>>();
   const insets = useSafeAreaInsets();
-  const { session } = useContext(AuthContext);
-  const { data: pet } = usePet(draft.animalId);
-  const { assinar, isAssinando, erro } = useAssinarPrescricaoControl(draft, prontuario, consultaId);
-
-  const [isSigned, setIsSigned] = useState(false);
+  const { concluir, concluindo } = useConcluirAtendimento();
 
   const handleSign = async () => {
     try {
-      await assinar();
-      setIsSigned(true);
+      await concluir(fechamento);
     } catch {
-      // erro já fica visível via `erro` (estado da mutation).
+      return; // o erro já foi mostrado pelo onError da mutation
     }
-  };
-
-  const handleSharePDF = async () => {
-    try {
-      await Share.share({
-        message: `Receita Pet Buddies 🐾\nPaciente: ${pet?.nome ?? 'o paciente'}\n\nPrescrição Autenticada ICP-Brasil:\n${draft.medicamento} ${draft.frequenciaDia}x ao dia por ${draft.duracaoDias} dias\n\nAcesse o documento original com certificado digital no link seguro!`,
-        title: `Receita Digital - ${pet?.nome}`,
-      });
-    } catch (error: any) {
-      // Ignorar erros de cancelamento do usuário
-    }
-  };
-
-  const handleFinish = () => {
-    navigation.navigate('HojeTab', { screen: 'AgendaClinica' });
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 1,
+        routes: [
+          { name: 'Pacientes' },
+          { name: 'CheckoutAtendimento', params: { petName: fechamento.petNome } },
+        ],
+      })
+    );
   };
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
-      <CheckInTopBar title="Assinar prescrição" subtitle={pet?.nome} />
+      <CheckInTopBar title="Assinar e concluir" subtitle={fechamento.petNome} />
 
-      <View style={styles.headline}>
-        <Text style={styles.title}>
-          {draft.medicamento} · {draft.doseMin}–{draft.doseMax} {draft.unidade}
-        </Text>
-        <Text style={styles.subtitle}>
-          {draft.frequenciaDia}×/dia · {draft.duracaoDias} dias · {(draft.regras?.length ?? 0)} regra(s) condicional(is)
-        </Text>
-      </View>
-
-      {draft.orientacao ? (
+      {fechamento.motivo.trim() || fechamento.observacao.trim() || fechamento.peso ? (
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Orientação</Text>
-          <Text style={styles.orientacaoText}>{draft.orientacao}</Text>
+          <Text style={styles.sectionLabel}>Registro</Text>
+          {fechamento.motivo.trim() ? <Text style={styles.orientacaoText}>{fechamento.motivo.trim()}</Text> : null}
+          {fechamento.observacao.trim() ? <Text style={styles.orientacaoText}>{fechamento.observacao.trim()}</Text> : null}
+          {fechamento.peso ? <Text style={styles.orientacaoText}>Peso: {fechamento.peso} kg</Text> : null}
         </View>
       ) : null}
 
-      {(draft.regras?.length ?? 0) > 0 ? (
+      {fechamento.procedimentos.length > 0 ? (
         <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Regras condicionais</Text>
-          {(draft.regras ?? []).map((regra, index) => (
-            <View key={`${regra.condicaoClinicaId}-${index}`}>
-              <View style={styles.ruleRow}>
-                <View style={styles.ruleDot} />
-                <Text style={styles.ruleText}>
-                  {descreverCondicao(regra)} → {regra.acao.replace(/_/g, ' ').toLowerCase()}
-                </Text>
-              </View>
-              {index < (draft.regras?.length ?? 0) - 1 ? <View style={styles.divider} /> : null}
+          <Text style={styles.sectionLabel}>Procedimentos</Text>
+          {fechamento.procedimentos.map((p) => (
+            <View key={p.chave}>
+              <Text style={styles.orientacaoText}>{p.nome.trim()}</Text>
+              {comporObservacao(p) ? <Text style={styles.subtitle}>{comporObservacao(p)}</Text> : null}
+              {p.itemPlanoId != null ? <Text style={styles.subtitle}>Baixa o item do plano</Text> : null}
             </View>
           ))}
         </View>
       ) : null}
 
-      <View style={styles.footNote}>
-        <View style={styles.footNoteDot} />
-        <Text style={styles.footNoteText}>
-          Relato sem regra correspondente cai em <Text style={styles.bold}>«confirmar com a clínica»</Text>, nunca em dose.
-        </Text>
-      </View>
+      {draft ? (
+        <>
+          <View style={styles.headline}>
+            <Text style={styles.title}>
+              {draft.medicamento} · {draft.doseMin}–{draft.doseMax} {draft.unidade}
+            </Text>
+            <Text style={styles.subtitle}>
+              {draft.frequenciaDia}×/dia · {draft.duracaoDias} dias · {draft.regras.length} regra(s) condicional(is)
+            </Text>
+          </View>
+
+          {draft.regras.length > 0 ? (
+            <View style={styles.card}>
+              <Text style={styles.sectionLabel}>Regras condicionais</Text>
+              {draft.regras.map((regra, index) => (
+                <View key={`${regra.condicaoClinicaId}-${index}`}>
+                  <View style={styles.ruleRow}>
+                    <View style={styles.ruleDot} />
+                    <Text style={styles.ruleText}>
+                      {descreverCondicao(regra)} → {regra.acao.replace(/_/g, ' ').toLowerCase()}
+                    </Text>
+                  </View>
+                  {index < draft.regras.length - 1 ? <View style={styles.divider} /> : null}
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </>
+      ) : null}
 
       <View style={styles.signatureSection}>
-        {!isSigned ? (
-          // ESTADO 1: Antes de Assinar
-          <View style={styles.preSignContainer}>
-            <View style={styles.certificateStatus}>
-              <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-              <Text style={styles.certificateText}>Certificado A1 Conectado</Text>
-            </View>
-            
-            <Text style={styles.disclaimer}>
-              Ao assinar, este documento terá validade jurídica em todo o território nacional (ICP-Brasil), conforme resolução do CFMV.
-            </Text>
-
-            <Button 
-              label="Assinar Receita Digitalmente" 
-              loading={isAssinando} 
-              onPress={handleSign}
-              icon={<Ionicons name="document-lock-outline" size={20} color={colors.textLight} style={{ marginRight: 8 }} />}
-              style={{ width: '100%' }}
-            />
-          </View>
-        ) : (
-          // ESTADO 2: Após a Assinatura (Sucesso)
-          <View style={styles.postSignContainer}>
-            <View style={styles.successAlert}>
-              <Ionicons name="shield-checkmark-outline" size={36} color="#059669" />
-              <Text style={styles.successText}>Receita assinada com sucesso!</Text>
-              <Text style={styles.subSuccessText}>(Autenticada via ICP-Brasil)</Text>
-            </View>
-
-            {/* Thumbnail PDF Fake */}
-            <View style={styles.pdfThumbnail}>
-              <Ionicons name="document-text-outline" size={40} color={colors.textSecondary} />
-              <View style={styles.pdfSeal}>
-                <Ionicons name="ribbon" size={16} color="#059669" />
+        <View style={styles.preSignContainer}>
+          {draft ? (
+            <>
+              <View style={styles.certificateStatus}>
+                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                <Text style={styles.certificateText}>Certificado A1 Conectado</Text>
               </View>
-            </View>
-
-            <Button 
-              label="Compartilhar com Tutor (WhatsApp)" 
-              onPress={handleSharePDF}
-              icon={<Ionicons name="logo-whatsapp" size={20} color={colors.textLight} style={{ marginRight: 8 }} />}
-              style={{ width: '100%', backgroundColor: '#25D366', borderColor: '#25D366', marginBottom: spacing.md }}
-            />
-
-            <Button 
-              label="Concluir e Salvar no Prontuário" 
-              variant="secondary"
-              onPress={handleFinish}
-              icon={<Ionicons name="save-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />}
-              style={{ width: '100%' }}
-            />
-          </View>
-        )}
+              <Text style={styles.disclaimer}>
+                Ao assinar, este documento terá validade jurídica em todo o território nacional (ICP-Brasil), conforme resolução do CFMV.
+              </Text>
+            </>
+          ) : null}
+          <Button
+            label="Assinar e concluir"
+            backgroundColor={colors.action}
+            loading={concluindo}
+            onPress={handleSign}
+            style={{ width: '100%' }}
+          />
+        </View>
       </View>
     </ScrollView>
   );
@@ -224,30 +183,6 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.border,
-  },
-  footNote: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    backgroundColor: colors.background,
-    borderRadius: radii.sm,
-    padding: spacing.md,
-  },
-  footNoteDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.warning,
-    marginTop: 6,
-  },
-  footNoteText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
-  },
-  bold: {
-    color: colors.textPrimary,
-    fontWeight: '700',
   },
   signCard: {
     backgroundColor: colors.surface,

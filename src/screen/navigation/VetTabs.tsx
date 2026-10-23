@@ -16,7 +16,8 @@ export function VetTabs() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.secondary,
+        tabBarActiveTintColor: colors.primary,
+        tabBarActiveBackgroundColor: colors.cardChia,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: [styles.tabBar, { bottom: Math.max(insets.bottom, 16) }],
         tabBarItemStyle: styles.tabItem,
@@ -66,6 +67,9 @@ const styles = StyleSheet.create({
   tabItem: {
     paddingTop: 8,
     paddingBottom: 8,
+    borderRadius: radii.pill,
+    marginVertical: 6,
+    marginHorizontal: 4,
   },
   tabLabel: {
     fontFamily: 'Inter',

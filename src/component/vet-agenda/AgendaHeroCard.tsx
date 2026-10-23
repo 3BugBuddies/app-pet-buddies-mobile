@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
+import { rotuloConsultasRestantes } from '../../model/pet';
 import { colors, radii, spacing } from '../../styles/theme';
 
 const RING_SIZE = 84;
@@ -17,15 +18,15 @@ interface AgendaHeroCardProps {
 export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: AgendaHeroCardProps) {
   const progress = totalCount > 0 ? seenCount / totalCount : 0;
   const strokeDashoffset = RING_CIRCUMFERENCE - RING_CIRCUMFERENCE * progress;
-  const percentLabel = `${Math.round(progress * 100)}%`;
 
   return (
     <View style={styles.card}>
       <View style={styles.textBlock}>
-        <Text style={styles.label}>PET BUDDIES VET</Text>
-        <Text style={styles.value}>{remaining} consultas restantes</Text>
+        <Text style={styles.label}>AGENDA DE HOJE</Text>
+        <Text style={styles.value}>{seenCount} de {totalCount}</Text>
+        <Text style={styles.sub}>consultas atendidas</Text>
         <Text style={styles.sub}>
-          {seenCount} atendidas{nextTime ? ` · próxima às ${nextTime}` : ''}
+          {rotuloConsultasRestantes(remaining)}{nextTime ? ` · próxima às ${nextTime}` : ''}
         </Text>
       </View>
 
@@ -35,7 +36,7 @@ export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: A
             cx={RING_SIZE / 2}
             cy={RING_SIZE / 2}
             r={RING_RADIUS}
-            stroke="rgba(255,255,255,0.25)"
+            stroke={colors.surface}
             strokeWidth={RING_STROKE}
             fill="none"
           />
@@ -43,7 +44,7 @@ export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: A
             cx={RING_SIZE / 2}
             cy={RING_SIZE / 2}
             r={RING_RADIUS}
-            stroke={colors.textLight}
+            stroke={colors.primary}
             strokeWidth={RING_STROKE}
             strokeLinecap="round"
             strokeDasharray={RING_CIRCUMFERENCE}
@@ -53,9 +54,6 @@ export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: A
             origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
           />
         </Svg>
-        <View style={styles.ringLabel}>
-          <Text style={styles.ringLabelText}>{percentLabel}</Text>
-        </View>
       </View>
     </View>
   );
@@ -63,7 +61,7 @@ export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: A
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.textPrimary,
+    backgroundColor: colors.cardChia,
     borderRadius: radii.lg,
     padding: spacing.lg,
     flexDirection: 'row',
@@ -77,38 +75,21 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: colors.textLight,
-    opacity: 0.85,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: colors.textPrimary,
   },
   value: {
-    fontSize: 22,
+    fontSize: 32,
     fontWeight: '700',
-    color: colors.textLight,
+    color: colors.textPrimary,
   },
   sub: {
     fontSize: 14,
-    color: colors.textLight,
-    opacity: 0.9,
+    color: colors.textSecondary,
   },
   ringWrap: {
     width: RING_SIZE,
     height: RING_SIZE,
-  },
-  ringLabel: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ringLabelText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textLight,
   },
 });
