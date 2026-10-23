@@ -72,7 +72,7 @@ export function CheckInResultScreen({ route }: Props) {
           </View>
           <Text style={styles.recordText}>Item do plano</Text>
           <View style={styles.recordPill}>
-            <Text style={styles.recordPillText}>{suspended ? 'sem dose' : 'dose dada'}</Text>
+            <Text style={styles.recordPillText}>{suspended ? 'Sem dose' : 'Dose dada'}</Text>
           </View>
         </View>
       ) : null}
@@ -86,11 +86,7 @@ export function CheckInResultScreen({ route }: Props) {
         />
       </View>
 
-      <Text style={styles.disclaimer}>
-        Isto não é uma consulta veterinária: a orientação segue a regra que a veterinária aprovou e
-        não substitui exame, diagnóstico nem prescrição. Em caso de sinal de alarme, procure a
-        clínica. Teleorientação com aviso prévio ao responsável (Res. CFMV 1.465/2022, art. 8º).
-      </Text>
+      <Text style={styles.disclaimer}>O acompanhamento não substitui a consulta. Em dúvida, fale com a clínica.</Text>
     </ScrollView>
   );
 }
