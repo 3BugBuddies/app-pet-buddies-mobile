@@ -1,7 +1,6 @@
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
 import { useCompleteAppointment, composeNotes } from '../../control/useClosingControl';
@@ -94,17 +93,6 @@ export function AssinarPrescricaoScreen({ route }: Props) {
 
       <View style={styles.signatureSection}>
         <View style={styles.preSignContainer}>
-          {draft ? (
-            <>
-              <View style={styles.certificateStatus}>
-                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                <Text style={styles.certificateText}>Certificado A1 Conectado</Text>
-              </View>
-              <Text style={styles.disclaimer}>
-                Ao assinar, este documento terá validade jurídica em todo o território nacional (ICP-Brasil), conforme resolução do CFMV.
-              </Text>
-            </>
-          ) : null}
           <Button
             label="Assinar e concluir"
             backgroundColor={colors.action}
@@ -231,28 +219,6 @@ const styles = StyleSheet.create({
   },
   preSignContainer: {
     alignItems: 'center',
-  },
-  certificateStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D1FAE5',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: radii.pill,
-    marginBottom: spacing.md,
-  },
-  certificateText: {
-    color: '#065F46',
-    fontWeight: '600',
-    marginLeft: 8,
-    fontSize: 13,
-  },
-  disclaimer: {
-    textAlign: 'center',
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-    lineHeight: 18,
   },
   postSignContainer: {
     alignItems: 'center',

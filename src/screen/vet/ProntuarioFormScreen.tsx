@@ -47,6 +47,7 @@ export function ProntuarioFormScreen({ route }: Props) {
         <ScrollView
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.banner}>
