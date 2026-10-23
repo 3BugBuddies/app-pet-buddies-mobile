@@ -14,10 +14,11 @@ export interface NextPatientItem {
 interface NextPatientsCardProps {
   items: NextPatientItem[];
   onOpenPatient: (petId: string, consultaId?: string) => void;
+  onAtender: (petId: string, consultaId: string) => void;
   onToggle: (id: string) => void;
 }
 
-export function NextPatientsCard({ items, onOpenPatient, onToggle }: NextPatientsCardProps) {
+export function NextPatientsCard({ items, onOpenPatient, onAtender, onToggle }: NextPatientsCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.head}>
@@ -44,11 +45,20 @@ export function NextPatientsCard({ items, onOpenPatient, onToggle }: NextPatient
             </Text>
             <Text style={styles.reason}>{item.reason}</Text>
           </View>
-          <View style={[styles.statusTag, item.seen && styles.statusTagSeen]}>
-            <Text style={[styles.statusText, item.seen && styles.statusTextSeen]}>
-              {item.seen ? 'atendida' : 'aguardando'}
-            </Text>
-          </View>
+          {item.seen ? (
+            <View style={[styles.statusTag, styles.statusTagSeen]}>
+              <Text style={[styles.statusText, styles.statusTextSeen]}>atendida</Text>
+            </View>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={6}
+              style={styles.atenderButton}
+              onPress={() => onAtender(item.petId, item.id)}
+            >
+              <Text style={styles.atenderText}>Atender</Text>
+            </Pressable>
+          )}
         </Pressable>
       ))}
     </View>
@@ -156,6 +166,17 @@ const styles = StyleSheet.create({
   },
   statusTextSeen: {
     color: colors.success,
+  },
+  atenderButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primary,
+  },
+  atenderText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textLight,
   },
   idText: { fontSize: 12, color: colors.textMuted, fontWeight: '400' },
 });

@@ -52,3 +52,9 @@ const petSchema = object({
 type Pet = InferType<typeof petSchema>;
 
 export { Pet, petSchema, ESPECIES, PORTES, SEXOS };
+
+
+const rotuloConsultasRestantes = (quantidade: number): string =>
+  `${quantidade} ${quantidade === 1 ? 'consulta restante' : 'consultas restantes'}`;
+
+export { rotuloConsultasRestantes };

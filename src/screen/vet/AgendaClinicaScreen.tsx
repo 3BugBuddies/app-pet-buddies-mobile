@@ -14,6 +14,7 @@ import { useAppointments } from '../../control/useAppointmentsControl';
 import { AuthContext } from '../../context/authContext';
 import { useLogoutControl } from '../../control/authControl';
 import { useClinicPets } from '../../control/usePetsControl';
+import { abrirFechamento } from '../navigation/abrirFechamento';
 import type { HojeTabParamList, VetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from '../../styles/theme';
@@ -50,7 +51,7 @@ export function AgendaClinicaScreen() {
           petId: appointment.petId,
           dateLabel: new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' }).format(new Date(appointment.date)),
           time: formatAppointmentDate(appointment.date).timeLabel,
-          petName: pet?.nome ?? 'Paciente',
+          petName: appointment.animalNome ?? pet?.nome ?? 'Paciente',
           reason: appointment.reason,
           seen: appointment.status === 'COMPLETED',
         };
@@ -81,9 +82,14 @@ export function AgendaClinicaScreen() {
   const remaining = totalCount - seenCount;
   const nextItem = items.find((item) => !item.seen);
 
+  const iniciarFechamento = (params: { petId: string; consultaId?: string }) => {
+    const tabs = navigation.getParent<BottomTabNavigationProp<VetTabParamList>>();
+    if (tabs) abrirFechamento(tabs, params);
+  };
+
   const handleStartWalkIn = (petId: string) => {
     setWalkInModalVisible(false);
-    navigation.navigate('PacientesTab', { screen: 'ProntuarioForm', params: { petId } });
+    iniciarFechamento({ petId });
   };
 
   const dateLabel = new Intl.DateTimeFormat('pt-BR', {
@@ -128,6 +134,7 @@ export function AgendaClinicaScreen() {
         <NextPatientsCard
           items={items}
           onOpenPatient={(petId, consultaId) => navigation.navigate('PacientesTab', { screen: 'DetalhesPet', params: { petId, consultaId } })}
+          onAtender={(petId, consultaId) => iniciarFechamento({ petId, consultaId })}
           onToggle={() => {}}
         />
 

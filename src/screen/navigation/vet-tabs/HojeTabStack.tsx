@@ -6,7 +6,7 @@ const Stack = createNativeStackNavigator<HojeTabParamList>();
 
 export function HojeTabStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerBackTitle: 'Voltar' }}>
       <Stack.Screen
         name="AgendaClinica"
         component={AgendaClinicaScreen}
