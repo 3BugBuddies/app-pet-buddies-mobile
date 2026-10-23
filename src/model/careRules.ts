@@ -1,4 +1,5 @@
 import type {
+  CheckinDesfecho,
   CheckinResponse,
   CheckInDoseResult,
   CheckInEscalationResult,
@@ -12,6 +13,7 @@ import {
   type ConditionSignal,
   type Prescription,
 } from './legacyPrescription';
+import { formatShortDate } from './formatDate';
 
 // Heurística local por palavras-chave, no lugar do serviço de IA que a vet
 // usaria para interpretar a narrativa. Trocar por uma chamada real de NLP/IA
@@ -147,8 +149,16 @@ function formatDose(value: number): string {
 const CLINICA_PADRAO = 'Clínica Veterinária';
 
 // Traduz a resposta real de POST /checkin (`escalado` + `desfechos[]`) para o resultado que
-// as telas desenham. A API não devolve nome/CRMV do vet, faixa de dose nem pontos: esses
-// campos ficam vazios e as telas usam seus textos padrão.
+// as telas desenham. A API não devolve faixa de dose nem pontos. Nome, CRMV e data da
+// prescrição vêm do desfecho (campos opcionais); na ausência, as telas usam o texto padrão.
+function prescritor(d: CheckinDesfecho | undefined): { vetName: string; vetCrmv: string; prescriptionDateLabel: string } {
+  return {
+    vetName: d?.veterinarioNome || d?.clinicaNome || CLINICA_PADRAO,
+    vetCrmv: d?.veterinarioCrmv ?? '',
+    prescriptionDateLabel: d?.prescritaEm ? formatShortDate(d.prescritaEm) : '',
+  };
+}
+
 export function resolveCheckInResponse(
   response: CheckinResponse,
   redFlags: string[],
@@ -157,14 +167,15 @@ export function resolveCheckInResponse(
   const acionar = desfechos.find((d) => d.desfecho === 'ACIONAR_CLINICA');
 
   if (response.escalado) {
+    const { vetName, vetCrmv } = prescritor(acionar ?? desfechos[0]);
     const escalation: CheckInEscalationResult = {
       status: 'ESCALATION',
       reasonLabel: redFlags.length > 0 ? redFlags.join(', ') : 'um sinal de alerta',
       ruleDescription: acionar
         ? `Regra de ${acionar.medicamento} · acionar a clínica`
         : 'Regra da prescrição · acionar a clínica',
-      vetName: CLINICA_PADRAO,
-      vetCrmv: '',
+      vetName,
+      vetCrmv,
       suggestedSlotLabel: '',
     };
     return escalation;
@@ -175,10 +186,11 @@ export function resolveCheckInResponse(
   );
 
   if (comDose.length === 0) {
+    const { vetName, vetCrmv } = prescritor(desfechos[0]);
     const noRule: CheckInNoRuleResult = {
       status: 'NO_RULE',
-      vetName: CLINICA_PADRAO,
-      vetCrmv: '',
+      vetName,
+      vetCrmv,
     };
     return noRule;
   }
@@ -196,10 +208,11 @@ export function resolveCheckInResponse(
     ruleConfirmedAtLabel: response.registradoEm
       ? new Date(response.registradoEm).toLocaleDateString('pt-BR')
       : '',
-    vetName: CLINICA_PADRAO,
-    vetCrmv: '',
-    prescriptionDateLabel: '',
+    ...prescritor(comDose[0]),
     pointsEarned: 0,
+    regraAplicada: comDose.some((d) => d.regraAplicadaId != null),
+    medicationLabel: comDose.map((d) => d.medicamento).join(', '),
+    itemEncerrado: comDose.some((d) => d.itemPlanoCuidadoId != null),
   };
   return dose;
 }

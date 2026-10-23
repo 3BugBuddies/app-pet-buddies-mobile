@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
 
@@ -14,7 +13,6 @@ export function ClinicCard({ title, dayLabel, timeLabel, vetName }: ClinicCardPr
 
   return (
     <View style={styles.card}>
-      <Ionicons name="calendar-outline" size={20} color={colors.primary} />
       <Text style={styles.label}>Próxima consulta</Text>
       <Text style={styles.title} numberOfLines={2}>
         {title}
@@ -25,9 +23,6 @@ export function ClinicCard({ title, dayLabel, timeLabel, vetName }: ClinicCardPr
         </Text>
       )}
       {vetName ? <Text style={styles.vet}>{vetName}</Text> : null}
-      <View style={styles.arrowWrap}>
-        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-      </View>
     </View>
   );
 }
@@ -45,6 +40,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontSize: 11,
     fontWeight: '600',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -65,16 +62,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter',
     fontSize: 12,
     color: colors.textSecondary,
-  },
-  arrowWrap: {
-    position: 'absolute',
-    bottom: spacing.md,
-    right: spacing.md,
-    width: 28,
-    height: 28,
-    borderRadius: radii.pill,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

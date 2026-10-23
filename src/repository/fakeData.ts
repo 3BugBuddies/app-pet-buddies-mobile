@@ -4,7 +4,7 @@
 import { Image } from 'react-native';
 import type { Pet } from '../model/pet';
 import type { Appointment } from '../model/appointment';
-import type { CarePlan, CareScore, Badge, CheckInResult, CheckInInterpretation } from '../model/care';
+import type { CarePlan, CheckInResult, CheckInInterpretation } from '../model/care';
 import type { MedicalRecord } from '../model/medicalRecord';
 import type { Prescription } from '../model/prescription';
 import type { PrescriptionRule } from '../model/prescriptionRule';
@@ -78,9 +78,9 @@ export const deleteFakeAppointment = (id: string): void => {
 // ---------------------------------------------------------------------------
 
 const _initialTasks: CarePlan['tasks'] = [
-  { id: 'lactulona', title: 'Lactulona', description: '1–2 ml · 2x ao dia — administrar via oral, de preferência com o alimento.', time: '08:00', points: 20, completed: false },
-  { id: 'vermifugo', title: 'Vermífugo', description: '1 comprimido · dose única — repetir a cada 3 meses conforme prescrição.', time: '08:00', points: 20, completed: false },
-  { id: 'curativo', title: 'Troca de curativo', description: 'Trocar o curativo da pata traseira e higienizar com solução antisséptica.', time: '20:00', points: 30, completed: false },
+  { id: 'lactulona', title: 'Lactulona', description: '1–2 ml · 2x ao dia — administrar via oral, de preferência com o alimento.', time: '08:00', points: 20, completed: false, origem: 'PRESCRICAO' },
+  { id: 'vermifugo', title: 'Vermífugo', description: '1 comprimido · dose única — repetir a cada 3 meses conforme prescrição.', time: '08:00', points: 20, completed: false, origem: 'PRESCRICAO' },
+  { id: 'curativo', title: 'Troca de curativo', description: 'Trocar o curativo da pata traseira e higienizar com solução antisséptica.', time: '20:00', points: 30, completed: false, origem: 'PRESCRICAO' },
 ];
 
 let _planTasks = _initialTasks.map((t) => ({ ...t }));
@@ -100,15 +100,12 @@ export const getFakeCarePlan = (petId: string): CarePlan => ({
     { label: 'D', dayNumber: 7, isActive: false, dotColor: 'NONE' },
   ],
   tasks: _planTasks.map((t) => ({ ...t })),
+  items: [],
   milestones: [
     { title: 'Revisão de peso · sem. 12', whenLabel: 'hoje · registrar após a vacina', tagLabel: 'hoje', done: false },
     { title: 'Encerramento · sem. 24', whenLabel: '28 nov · exame de sangue', done: false },
   ],
 });
-
-export const fakePlanToggleTask = (taskId: string): void => {
-  _planTasks = _planTasks.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t));
-};
 
 // ---------------------------------------------------------------------------
 // Check-in — retorna DOSE ou ESCALATION baseado na interpretação
@@ -141,34 +138,6 @@ export const resolveFakeCheckIn = (interpretation: CheckInInterpretation): Check
     pointsEarned: 20,
   };
 };
-
-// ---------------------------------------------------------------------------
-// Score e Badges
-// ---------------------------------------------------------------------------
-
-export const FAKE_SCORE: CareScore = {
-  totalPoints: 1240,
-  pointsToday: 20,
-  tier: 'Prata',
-  nextTier: 'Ouro',
-  pointsToNextTier: 260,
-  progressPct: 83,
-  streakDays: 21,
-  appointmentsCount: 4,
-  homeAdherencePct: 96,
-};
-
-export const FAKE_BADGES: Badge[] = [
-  { id: 'primeira-consulta', name: 'Primeira consulta', unlocked: true },
-  { id: 'vacinas-em-dia', name: 'Vacinas em dia', unlocked: true },
-  { id: '7-dias', name: '7 dias seguidos', unlocked: true },
-  { id: '21-dias', name: '21 dias seguidos', unlocked: true },
-  { id: 'peso-ideal', name: 'Peso ideal', unlocked: true },
-  { id: 'checkup-anual', name: 'Check-up anual', unlocked: false },
-  { id: '60-dias', name: '60 dias seguidos', unlocked: false },
-  { id: 'castracao', name: 'Castração', unlocked: false },
-  { id: 'tier-ouro', name: 'Tier Ouro', unlocked: false },
-];
 
 // ---------------------------------------------------------------------------
 // Prontuários (Medical Records)
