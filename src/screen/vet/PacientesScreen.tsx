@@ -2,31 +2,51 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Card } from '../../component/ui/Card';
+import { PatientCard } from '../../component/patients/PatientCard';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
+import { useResumosPlano } from '../../control/usePatientsControl';
 import { useClinicPets } from '../../control/usePetsControl';
 import { rotuloEspecie, rotuloRaca } from '../../model/pet';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { colors, radii, spacing } from '../../styles/theme';
+
+type Filtro = 'TODOS' | 'TRATAMENTO' | 'PREVENTIVO';
+
+const FILTROS: { key: Filtro; label: string }[] = [
+  { key: 'TODOS', label: 'Todos' },
+  { key: 'TRATAMENTO', label: 'Em tratamento' },
+  { key: 'PREVENTIVO', label: 'Preventivo' },
+];
+
+const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+const dataCurta = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 export function PacientesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
   const { data: pets, isLoading, isError, refetch } = useClinicPets();
+  const resumos = useResumosPlano((pets ?? []).map((p) => String(p.id)));
   const [busca, setBusca] = useState('');
+  const [filtro, setFiltro] = useState<Filtro>('TODOS');
 
   const filtered = useMemo(() => {
     if (!pets) return [];
-    const termo = busca.trim().toLowerCase();
-    if (!termo) return pets;
-    return pets.filter(
-      (p) =>
-        p.nome.toLowerCase().includes(termo) ||
-        (p.raca ?? '').toLowerCase().includes(termo)
-    );
-  }, [pets, busca]);
+    const termo = semAcento(busca.trim());
+    return pets.filter((p) => {
+      const categoria = resumos[String(p.id)]?.categoria;
+      const emTratamento = categoria === 'TRATAMENTO' || categoria === 'POS_CIRURGICO';
+      if (filtro === 'TRATAMENTO' && !emTratamento) return false;
+      if (filtro === 'PREVENTIVO' && categoria !== 'PREVENTIVO') return false;
+      if (!termo) return true;
+      return (
+        semAcento(p.nome).includes(termo) ||
+        semAcento(p.responsavelNome ?? '').includes(termo)
+      );
+    });
+  }, [pets, busca, filtro, resumos]);
 
   if (isLoading) {
     return <LoadingIndicator label="Carregando pacientes..." />;
@@ -36,15 +56,13 @@ export function PacientesScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 130 }]}>
-      {/* Sprint 4: reativar quando /pacientes-clinica estiver disponível
-      <Text style={styles.subtitle}>
-        {patients.length} planos ativos · {averageAdherence}% de adesão
+      <Text style={styles.count}>
+        {filtered.length} {filtered.length === 1 ? 'paciente' : 'pacientes'}
       </Text>
-      */}
 
       <TextInput
         style={styles.searchBar}
-        placeholder="Buscar pet ou raça"
+        placeholder="Buscar pet ou responsável"
         placeholderTextColor={colors.textMuted}
         value={busca}
         onChangeText={setBusca}
@@ -52,29 +70,47 @@ export function PacientesScreen() {
         clearButtonMode="while-editing"
       />
 
-      {/* Sprint 4: reativar filtros de adesão quando /pacientes-clinica estiver disponível
       <View style={styles.filters}>
-        {FILTERS.map((filter) => { ... })}
+        {FILTROS.map((f) => {
+          const active = f.key === filtro;
+          return (
+            <Pressable
+              key={f.key}
+              onPress={() => setFiltro(f.key)}
+              style={[styles.chip, active && styles.chipActive]}
+            >
+              <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
-      */}
 
       <View style={styles.list}>
         {filtered.length === 0 ? (
           <Text style={styles.emptyText}>Nenhum paciente encontrado.</Text>
         ) : (
-          filtered.map((pet) => (
-            <Pressable
-              key={pet.id}
-              onPress={() => navigation.navigate('DetalhesPet', { petId: pet.id! })}
-            >
-              <Card>
-                <Text style={styles.petNome}>{pet.nome}</Text>
-                <Text style={styles.petMeta}>
-                  {rotuloEspecie(pet.especie)} · {rotuloRaca(pet.raca)}
-                </Text>
-              </Card>
-            </Pressable>
-          ))
+          filtered.map((pet) => {
+            const resumo = resumos[String(pet.id)];
+            const emTratamento = resumo?.categoria === 'TRATAMENTO' || resumo?.categoria === 'POS_CIRURGICO';
+            const pilula = !resumo
+              ? null
+              : emTratamento
+                ? {
+                    label: resumo.ultimaData ? `em tratamento até ${dataCurta(resumo.ultimaData)}` : 'em tratamento',
+                    tratamento: true,
+                  }
+                : { label: 'preventivo', tratamento: false };
+            return (
+              <PatientCard
+                key={pet.id}
+                petName={pet.nome}
+                descricao={`${rotuloEspecie(pet.especie)} · ${rotuloRaca(pet.raca)}`}
+                responsavel={pet.responsavelNome}
+                pilula={pilula}
+                onPress={() => navigation.navigate('DetalhesPet', { petId: pet.id! })}
+              />
+            );
+          })
         )}
       </View>
     </ScrollView>
@@ -91,6 +127,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingBottom: spacing.xl,
   },
+  count: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
   searchBar: {
     height: 52,
     borderRadius: radii.md,
@@ -101,18 +141,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textPrimary,
   },
-  list: {
+  filters: {
+    flexDirection: 'row',
     gap: spacing.sm,
   },
-  petNome: {
-    ...typography.body,
-    fontWeight: '700',
-    color: colors.textPrimary,
+  chip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  petMeta: {
-    ...typography.caption,
+  chipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.textSecondary,
-    marginTop: 2,
+  },
+  chipTextActive: {
+    color: colors.textLight,
+  },
+  list: {
+    gap: spacing.sm,
   },
   emptyText: {
     fontSize: 14,

@@ -21,7 +21,7 @@ export function PacientesTabStack() {
       <Stack.Screen
         name="DetalhesPet"
         component={DetalhesPetScreen}
-        options={{ title: 'Prontuário' }}
+        options={{ title: 'Ficha' }}
       />
       <Stack.Screen
         name="ProntuarioForm"
