@@ -7,10 +7,10 @@ interface NoPlanStateProps {
   onSchedule?: () => void;
 }
 
-export function NoPlanState({ petName, onSchedule }: NoPlanStateProps) {
+export function NoPlanState({ onSchedule }: NoPlanStateProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>O plano do {petName} ainda não foi criado</Text>
+      <Text style={styles.title}>O plano nasce na consulta: a veterinária monta os cuidados e eles aparecem aqui.</Text>
       {onSchedule ? (
         <Button
           label="Agendar consulta"
