@@ -49,7 +49,7 @@ export function ProntuarioFormScreen({ route }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View>
+          <View style={styles.banner}>
             <Text style={styles.title}>{form.pet?.nome ?? 'Atendimento'}</Text>
             <Text style={styles.context}>{contexto}</Text>
           </View>
@@ -132,7 +132,7 @@ export function ProntuarioFormScreen({ route }: Props) {
             )}
           </View>
 
-          <Button label="Assinar e concluir" onPress={revisar} style={styles.primary} />
+          <Button label="Assinar e concluir" backgroundColor={colors.action} onPress={revisar} style={styles.primary} />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -143,7 +143,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   content: { padding: spacing.lg, gap: spacing.sm },
-  title: { fontSize: 28, fontWeight: '700', letterSpacing: -0.5, color: colors.textPrimary },
+  banner: { backgroundColor: colors.cardChia, borderRadius: radii.lg, padding: spacing.md },
+  title: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, color: colors.textPrimary },
   context: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
   section: { fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginTop: spacing.sm },
   group: { gap: spacing.sm },

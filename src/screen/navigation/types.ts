@@ -57,6 +57,7 @@ export type TutorTabParamList = {
 
 export type HojeTabParamList = {
   AgendaClinica: undefined;
+  AtenderAgora: undefined;
 };
 
 
@@ -69,7 +70,7 @@ export type PacientesTabParamList = {
   Prescricao: { animalId: string; novaRegra?: RegraDraft };
   NovaRegra: { animalId: string };
   AssinarPrescricao: { fechamento: FechamentoDraft };
-  CheckoutAtendimento: { petName: string; comPrescricao: boolean };
+  CheckoutAtendimento: { petName: string };
 };
 
 

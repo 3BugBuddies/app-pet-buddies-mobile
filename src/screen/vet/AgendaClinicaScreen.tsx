@@ -2,8 +2,8 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useContext, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useContext, useMemo } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ActivePlansCard } from '../../component/vet-agenda/ActivePlansCard';
 import { AgendaHeroCard } from '../../component/vet-agenda/AgendaHeroCard';
@@ -17,7 +17,7 @@ import { useClinicPets } from '../../control/usePetsControl';
 import { abrirFechamento } from '../navigation/abrirFechamento';
 import type { HojeTabParamList, VetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing, typography } from '../../styles/theme';
+import { colors, radii, spacing, typography } from '../../styles/theme';
 import { formatAppointmentDate } from '../../model/formatDate';
 
 type AgendaClinicaNavigationProp = CompositeNavigationProp<
@@ -32,9 +32,6 @@ export function AgendaClinicaScreen() {
   const { sair } = useLogoutControl();
   const { data: appointments, isLoading: isLoadingAppts, isError: isApptsError } = useAppointments();
   const { data: pets, isLoading: isLoadingPets } = useClinicPets();
-
-  const [walkInModalVisible, setWalkInModalVisible] = useState(false);
-  const [busca, setBusca] = useState('');
 
   const items: NextPatientItem[] = useMemo(() => {
     if (!appointments || !pets) return [];
@@ -58,17 +55,6 @@ export function AgendaClinicaScreen() {
       });
   }, [appointments, pets]);
 
-  const filteredPets = useMemo(() => {
-    if (!pets) return [];
-    const termo = busca.trim().toLowerCase();
-    if (!termo) return pets;
-    return pets.filter(
-      (p) =>
-        p.nome.toLowerCase().includes(termo) ||
-        (p.raca ?? '').toLowerCase().includes(termo)
-    );
-  }, [pets, busca]);
-
   if (isLoadingAppts || isLoadingPets) {
     return <LoadingIndicator label="Carregando a agenda..." />;
   }
@@ -85,11 +71,6 @@ export function AgendaClinicaScreen() {
   const iniciarFechamento = (params: { petId: string; consultaId?: string }) => {
     const tabs = navigation.getParent<BottomTabNavigationProp<VetTabParamList>>();
     if (tabs) abrirFechamento(tabs, params);
-  };
-
-  const handleStartWalkIn = (petId: string) => {
-    setWalkInModalVisible(false);
-    iniciarFechamento({ petId });
   };
 
   const dateLabel = new Intl.DateTimeFormat('pt-BR', {
@@ -116,14 +97,6 @@ export function AgendaClinicaScreen() {
           </View>
         </View>
 
-        <Pressable
-          style={styles.walkInButton}
-          onPress={() => setWalkInModalVisible(true)}
-        >
-          <Ionicons name="flash" size={24} color={colors.textLight} />
-          <Text style={styles.walkInText}>ATENDIMENTO IMEDIATO</Text>
-        </Pressable>
-
         <AgendaHeroCard
           remaining={remaining}
           seenCount={seenCount}
@@ -131,59 +104,23 @@ export function AgendaClinicaScreen() {
           nextTime={nextItem?.time}
         />
 
+        <Pressable
+          accessibilityRole="button"
+          style={styles.walkInButton}
+          onPress={() => navigation.navigate('AtenderAgora')}
+        >
+          <Ionicons name="flash-outline" size={22} color={colors.textLight} />
+          <Text style={styles.walkInText}>Atender agora · sem agenda</Text>
+        </Pressable>
+
         <NextPatientsCard
           items={items}
           onOpenPatient={(petId, consultaId) => navigation.navigate('PacientesTab', { screen: 'DetalhesPet', params: { petId, consultaId } })}
           onAtender={(petId, consultaId) => iniciarFechamento({ petId, consultaId })}
-          onToggle={() => {}}
         />
 
-        <Text
-          style={styles.patientsLink}
-          onPress={() => navigation.navigate('PacientesTab', { screen: 'Pacientes' })}
-        >
-          Ver todos os pacientes
-        </Text>
       </ScrollView>
 
-      {walkInModalVisible && (
-        <View style={[styles.modalOverlay, { paddingTop: insets.top }]}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Encaixe Rápido</Text>
-              <Pressable onPress={() => setWalkInModalVisible(false)} style={{ padding: 4 }}>
-                <Ionicons name="close" size={28} color={colors.textPrimary} />
-              </Pressable>
-            </View>
-            <Text style={styles.modalSubtitle}>Selecione o paciente para iniciar o prontuário imediatamente.</Text>
-            
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color={colors.textMuted} style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Buscar pet por nome..."
-                placeholderTextColor={colors.textMuted}
-                value={busca}
-                onChangeText={setBusca}
-                autoFocus
-              />
-            </View>
-
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}>
-              {filteredPets.length === 0 ? (
-                <Text style={styles.emptyText}>Nenhum pet encontrado.</Text>
-              ) : (
-                filteredPets.map(pet => (
-                  <Pressable key={pet.id} style={styles.petCard} onPress={() => handleStartWalkIn(pet.id!)}>
-                    <Text style={styles.petCardName}>{pet.nome}</Text>
-                    <Text style={styles.petCardDetail}>{pet.raca || pet.especie}</Text>
-                  </Pressable>
-                ))
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      )}
     </>
   );
 }
@@ -232,103 +169,18 @@ const styles = StyleSheet.create({
   half: {
     flex: 1,
   },
-  patientsLink: {
-    alignSelf: 'center',
-    marginTop: spacing.sm,
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
   walkInButton: {
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.md,
-    borderRadius: spacing.sm,
+    borderRadius: radii.md,
     gap: spacing.sm,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
   },
   walkInText: {
     color: colors.textLight,
     fontWeight: '700',
-    fontSize: 16,
-    letterSpacing: 0.5,
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0, bottom: 0, left: 0, right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: spacing.lg,
-    borderTopRightRadius: spacing.lg,
-    height: '80%',
-    paddingTop: spacing.lg,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.xs,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.lg,
-    borderRadius: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  searchIcon: {
-    marginRight: spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    height: 48,
-    fontSize: 16,
-    color: colors.textPrimary,
-  },
-  petCard: {
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  petCardName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  petCardDetail: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: colors.textSecondary,
-    marginTop: spacing.xl,
+    fontSize: 17,
   }
 });

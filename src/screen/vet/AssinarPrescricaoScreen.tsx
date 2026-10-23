@@ -30,7 +30,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
         index: 1,
         routes: [
           { name: 'Pacientes' },
-          { name: 'CheckoutAtendimento', params: { petName: fechamento.petNome, comPrescricao: !!draft } },
+          { name: 'CheckoutAtendimento', params: { petName: fechamento.petNome } },
         ],
       })
     );
@@ -73,13 +73,6 @@ export function AssinarPrescricaoScreen({ route }: Props) {
             </Text>
           </View>
 
-          {draft.orientacao ? (
-            <View style={styles.card}>
-              <Text style={styles.sectionLabel}>Orientação</Text>
-              <Text style={styles.orientacaoText}>{draft.orientacao}</Text>
-            </View>
-          ) : null}
-
           {draft.regras.length > 0 ? (
             <View style={styles.card}>
               <Text style={styles.sectionLabel}>Regras condicionais</Text>
@@ -96,13 +89,6 @@ export function AssinarPrescricaoScreen({ route }: Props) {
               ))}
             </View>
           ) : null}
-
-          <View style={styles.footNote}>
-            <View style={styles.footNoteDot} />
-            <Text style={styles.footNoteText}>
-              Relato sem regra correspondente cai em <Text style={styles.bold}>«confirmar com a clínica»</Text>, nunca em dose.
-            </Text>
-          </View>
         </>
       ) : null}
 
@@ -119,7 +105,13 @@ export function AssinarPrescricaoScreen({ route }: Props) {
               </Text>
             </>
           ) : null}
-          <Button label="Assinar e concluir" loading={concluindo} onPress={handleSign} style={{ width: '100%' }} />
+          <Button
+            label="Assinar e concluir"
+            backgroundColor={colors.action}
+            loading={concluindo}
+            onPress={handleSign}
+            style={{ width: '100%' }}
+          />
         </View>
       </View>
     </ScrollView>
@@ -191,30 +183,6 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.border,
-  },
-  footNote: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    backgroundColor: colors.background,
-    borderRadius: radii.sm,
-    padding: spacing.md,
-  },
-  footNoteDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.warning,
-    marginTop: 6,
-  },
-  footNoteText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
-  },
-  bold: {
-    color: colors.textPrimary,
-    fontWeight: '700',
   },
   signCard: {
     backgroundColor: colors.surface,
