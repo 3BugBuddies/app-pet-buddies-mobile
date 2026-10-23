@@ -19,6 +19,7 @@ export function CheckInResultScreen({ route }: Props) {
 
   const safeDoseLabel = result.doseLabel || 'Dose recomendada';
   const ruleApplied = result.ruleApplied !== false;
+  const suspended = result.suspended === true;
 
   const handleFinish = () => {
     // Limpa o stack do PlanoTab para a aba Cuidados não reter as telas do check-in.
@@ -34,7 +35,7 @@ export function CheckInResultScreen({ route }: Props) {
     .filter(Boolean)
     .join(' · ');
 
-  const dosedFor = [result.medicationLabel, pet?.nome, ruleApplied ? 'a dose vem da regra' : 'dose padrão da receita']
+  const dosedFor = [result.medicationLabel, pet?.nome, suspended ? 'a regra suspendeu a dose de hoje' : ruleApplied ? 'a dose vem da regra' : 'dose padrão da receita']
     .filter(Boolean)
     .join(' · ');
 
@@ -49,7 +50,7 @@ export function CheckInResultScreen({ route }: Props) {
         </Text>
         <Text style={styles.doseRange}>{dosedFor}</Text>
 
-        {!ruleApplied ? (
+        {!ruleApplied && !suspended ? (
           <View style={styles.normalStatusBox}>
             <Ionicons name="checkmark-circle-outline" size={20} color={colors.textPrimary} />
             <Text style={styles.normalStatusText}>Orientação padrão mantida. Tudo sob controle!</Text>
@@ -69,7 +70,7 @@ export function CheckInResultScreen({ route }: Props) {
           </View>
           <Text style={styles.recordText}>Item do plano</Text>
           <View style={styles.recordPill}>
-            <Text style={styles.recordPillText}>dose dada</Text>
+            <Text style={styles.recordPillText}>{suspended ? 'sem dose' : 'dose dada'}</Text>
           </View>
         </View>
       ) : null}

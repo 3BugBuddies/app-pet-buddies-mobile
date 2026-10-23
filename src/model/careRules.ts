@@ -185,6 +185,28 @@ export function resolveCheckInResponse(
     (d) => d.desfecho === 'DOSE_CALCULADA' && d.doseAplicada != null,
   );
 
+  const semDose = desfechos.filter((d) => d.desfecho === 'SEM_DOSE');
+
+  if (comDose.length === 0 && semDose.length > 0) {
+    const medications = semDose.map((d) => d.medicamento).join(', ');
+    const suspended: CheckInDoseResult = {
+      status: 'DOSE',
+      doseLabel: 'Sem dose hoje',
+      doseRangeLabel: '',
+      ruleDescription: `Regra da prescrição · ${medications} · suspende a dose de hoje`,
+      ruleConfirmedAtLabel: response.registradoEm
+        ? new Date(response.registradoEm).toLocaleDateString('pt-BR')
+        : '',
+      ...prescriber(semDose[0]),
+      pointsEarned: 0,
+      ruleApplied: semDose.some((d) => d.regraAplicadaId != null),
+      medicationLabel: medications,
+      itemClosed: semDose.some((d) => d.itemPlanoCuidadoId != null),
+      suspended: true,
+    };
+    return suspended;
+  }
+
   if (comDose.length === 0) {
     const { vetName, vetCrmv } = prescriber(desfechos[0]);
     const noRule: CheckInNoRuleResult = {

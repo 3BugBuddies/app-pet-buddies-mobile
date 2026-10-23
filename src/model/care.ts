@@ -147,6 +147,8 @@ export interface CheckInDoseResult {
   medicationLabel?: string;
   // O desfecho gravou o status de um item do plano (itemPlanoCuidadoId presente).
   itemClosed?: boolean;
+  // A regra aplicada suspendeu a dose de hoje (desfecho SEM_DOSE): não há dose a dar.
+  suspended?: boolean;
 }
 
 export interface CheckInEscalationResult {
