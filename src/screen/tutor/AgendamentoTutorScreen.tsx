@@ -14,6 +14,7 @@ import type { AgendaTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<AgendaTabParamList, 'AgendamentoTutor'>;
 
 const MOTIVOS = ['Consulta de Rotina', 'Vacinação', 'Exames', 'Pet Doente', 'Retorno'];
@@ -44,6 +45,7 @@ function gerarProximosDias(quantidade: number) {
 export function AgendamentoTutorScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<AgendaTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pets, isLoading } = usePets();
   const createAppointment = useCreateAppointment();
   const { activePetId, setActivePetId } = useActivePetId();
@@ -100,7 +102,7 @@ export function AgendamentoTutorScreen({ route }: Props) {
         <CheckInTopBar title="Nova Consulta" />
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]} showsVerticalScrollIndicator={false}>
 
         {proxima ? (
           <View style={styles.proximaCard}>

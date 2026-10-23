@@ -9,11 +9,13 @@ import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PacientesTabParamList, 'PlanoPaciente'>;
 
 export function PlanoPacienteScreen({ route }: Props) {
   const { petId } = route.params;
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pet, isLoading: isLoadingPet } = usePet(petId);
   const { data: plan, isLoading: isLoadingPlan, isError } = useCarePlan(petId);
 
@@ -32,7 +34,7 @@ export function PlanoPacienteScreen({ route }: Props) {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}
+      contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}
     >
       <Text style={styles.title}>Cuidados de {pet.nome}</Text>
       <CareItemsSection

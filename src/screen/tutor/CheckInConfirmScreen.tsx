@@ -11,12 +11,14 @@ import type { PlanoTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInConfirm'>;
 
 export function CheckInConfirmScreen({ route }: Props) {
   const { petId, extracaoResponse } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const confirmCheckIn = useConfirmCheckIn();
 
   const condicoesSeguras = extracaoResponse.condicoes || [];
@@ -84,7 +86,7 @@ export function CheckInConfirmScreen({ route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
       <CheckInTopBar title="Check-in" stepLabel="2 de 3" />
 
       <View style={styles.headline}>

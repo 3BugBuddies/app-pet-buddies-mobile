@@ -34,6 +34,7 @@ import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 const ACAO_LABEL: Record<string, string> = {
   DOSE_MIN: 'dose mínima',
   DOSE_MAX: 'dose máxima',
@@ -60,6 +61,7 @@ export function PrescricaoScreen({ route }: Props) {
   const { animalId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   
   const { data: pet } = usePet(animalId);
   const { data: patients } = usePatients();
@@ -354,7 +356,7 @@ export function PrescricaoScreen({ route }: Props) {
 
   return (
     <>
-    <ScrollView keyboardDismissMode="on-drag" style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]} keyboardShouldPersistTaps="handled">
+    <ScrollView keyboardDismissMode="on-drag" style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]} keyboardShouldPersistTaps="handled">
       <CheckInTopBar
         title="Prescrição"
         subtitle={pet ? `${pet.nome}${tutorName ? ` • ${tutorName}` : ''}` : undefined}

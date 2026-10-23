@@ -11,6 +11,7 @@ import { useActivePetId, usePet, usePets } from '../../control/usePetsControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CarePlan'>;
 
 export function CarePlanScreen({ route }: Props) {
@@ -24,6 +25,8 @@ export function CarePlanScreen({ route }: Props) {
   const { data: pet } = usePet(petId);
 
   const insets = useSafeAreaInsets();
+
+  const tabBarSpace = useTabBarSpace();
 
   if (isLoadingPets || isLoadingPlan) {
     return <LoadingIndicator label="Carregando evolução..." />;
@@ -67,7 +70,7 @@ export function CarePlanScreen({ route }: Props) {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
       >
         <CareItemsSection
           title="Preventivo"

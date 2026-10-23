@@ -12,9 +12,11 @@ import type { PetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 export function MeusPetsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PetTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pets, isLoading, isError, refetch, isRefetching } = usePets();
 
   if (isLoading) {
@@ -30,7 +32,7 @@ export function MeusPetsScreen() {
       <FlatList
         data={pets}
         keyExtractor={(pet) => pet.id!}
-        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 200 }]}
+        contentContainerStyle={[styles.listContent, { paddingBottom: tabBarSpace }]}
         refreshing={isRefetching}
         onRefresh={refetch}
         ListEmptyComponent={

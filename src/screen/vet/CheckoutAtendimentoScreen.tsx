@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PacientesTabParamList, 'CheckoutAtendimento'>;
 type CheckoutNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<PacientesTabParamList, 'CheckoutAtendimento'>,
@@ -19,6 +20,7 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
   const { petName } = route.params;
   const navigation = useNavigation<CheckoutNavigationProp>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
 
   const handleFinish = () => {
     navigation.popToTop();
@@ -26,7 +28,7 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 40), paddingBottom: insets.bottom + 120 }]}>
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 40), paddingBottom: tabBarSpace }]}>
       <View style={styles.content}>
         <View style={styles.iconCircle}>
           <Ionicons name="checkmark-circle" size={80} color={colors.success} />

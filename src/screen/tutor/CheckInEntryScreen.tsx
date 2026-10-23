@@ -22,6 +22,7 @@ import { useExtractCheckIn } from '../../control/useCheckInControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 const QUICK_OPTIONS = ['Deu o remédio', 'Comeu bem', 'Comeu pouco', 'Evacuou', 'Fezes moles', 'Não evacuou'];
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInEntry'>;
@@ -30,6 +31,7 @@ export function CheckInEntryScreen({ route }: Props) {
   const { petId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pet, isLoading: isLoadingPet } = usePet(petId);
   const [narrative, setNarrative] = useState('');
   const extractCheckIn = useExtractCheckIn();
@@ -150,7 +152,7 @@ export function CheckInEntryScreen({ route }: Props) {
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView keyboardDismissMode="on-drag"
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]}
+          contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.headline}>

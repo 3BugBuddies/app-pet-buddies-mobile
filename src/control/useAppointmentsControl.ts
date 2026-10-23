@@ -36,7 +36,7 @@ export function useAppointments(petId?: string) {
 export function useAllPetsAppointments(petIds: string[]) {
   const results = useQueries({
     queries: petIds.map((id) => ({
-      queryKey: [APPOINTMENTS_KEY, id],
+      queryKey: [APPOINTMENTS_KEY, 'pet', id],
       queryFn: () => getAllAppointments(id),
       enabled: !!id,
     })),
@@ -46,7 +46,7 @@ export function useAllPetsAppointments(petIds: string[]) {
 
 export function useAppointment(id: string) {
   return useQuery({
-    queryKey: [APPOINTMENTS_KEY, id],
+    queryKey: [APPOINTMENTS_KEY, 'detalhe', id],
     queryFn: () => getAppointmentById(id),
     enabled: !!id,
   });
@@ -72,7 +72,7 @@ export function useUpdateAppointment() {
       updateAppointment(id, payload),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
-      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY, variables.id] });
+      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY, 'detalhe', variables.id] });
     },
   });
 }
