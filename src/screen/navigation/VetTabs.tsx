@@ -84,9 +84,12 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
   },
+  // O contêiner do ícone tem largura fixa; padding aqui zerava a largura do ícone.
   iconPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
+    width: 56,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: radii.pill,
   },
   iconPillActive: {
