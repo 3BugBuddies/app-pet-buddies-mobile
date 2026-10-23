@@ -72,17 +72,17 @@ export interface StatusDisplay {
 export function statusDisplay(status: CareItemStatus, medication: boolean, overdue: boolean): StatusDisplay {
   switch (status) {
     case 'REALIZADO':
-      return { label: medication ? 'dose dada' : 'realizado', tone: 'success' };
+      return { label: medication ? 'Dose dada' : 'Feito', tone: 'success' };
     case 'SUSPENSO':
-      return { label: 'sem dose', tone: 'warning' };
+      return { label: 'Sem dose', tone: 'warning' };
     case 'ENCAMINHADO':
-      return { label: 'clínica acionada', tone: 'alert' };
+      return { label: 'Clínica acionada', tone: 'alert' };
     case 'ATRASADO':
-      return { label: 'atrasado', tone: 'alert' };
+      return { label: 'Atrasado', tone: 'alert' };
     case 'CANCELADO':
-      return { label: 'cancelado', tone: 'neutral' };
+      return { label: 'Cancelado', tone: 'neutral' };
     case 'PENDENTE':
-      return overdue ? { label: 'atrasado', tone: 'alert' } : { label: 'pendente', tone: 'neutral' };
+      return overdue ? { label: 'Atrasado', tone: 'alert' } : { label: 'Pendente', tone: 'neutral' };
   }
 }
 
@@ -154,6 +154,9 @@ export interface CheckInDoseResult {
 export interface CheckInEscalationResult {
   status: 'ESCALATION';
   reasonLabel: string;
+  // true = reasonLabel lista condições do catálogo; false = texto do relato.
+  reasonFromConditions?: boolean;
+  clinicPhone?: string;
   ruleDescription: string;
   vetName: string;
   vetCrmv: string;
@@ -186,6 +189,7 @@ export interface CondicaoObservadaExtracao {
   confianca: number; // 0.0 – 1.0
   rotulo?: string | null;
   unidade?: string | null;
+  critica?: boolean;
 }
 
 // Corpo cru da resposta de /checkin/extracao — sem envelope HATEOAS.
@@ -242,6 +246,7 @@ export interface CheckinResponse {
 export interface ConfirmCheckInInput {
   payload: CheckInRequest;
   redFlags: string[];
+  alarmLabels?: string[];
 }
 
 // Payload completo de POST /api/checkin (check-in em dois passos).
@@ -266,4 +271,47 @@ export function planStateLabel(plan: CarePlan | null | undefined, today: string)
     return `Tratamento · dia ${current} de ${total}`;
   }
   return plan.items.length > 0 ? 'Preventivo' : undefined;
+}
+
+const WEEKDAYS_PT = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+
+export function dayAndWeekday(iso: string, today: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  const weekday = iso === today ? 'hoje' : WEEKDAYS_PT[new Date(year, month - 1, day).getDay()];
+  return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')} · ${weekday}`;
+}
+
+export interface TreatmentGroup {
+  name: string;
+  rangeLabel: string;
+  perDay: number;
+  items: CareItem[];
+}
+
+// perDay só aparece quando o plano traz mais de um item do mesmo remédio no mesmo dia.
+export function groupTreatments(items: CareItem[]): TreatmentGroup[] {
+  const byName = new Map<string, CareItem[]>();
+  for (const item of items) byName.set(item.title, [...(byName.get(item.title) ?? []), item]);
+  return [...byName.entries()].map(([name, group]) => {
+    const sorted = [...group].sort((a, b) => a.dateIso.localeCompare(b.dateIso));
+    const counts = new Map<string, number>();
+    for (const item of sorted) counts.set(item.dateIso, (counts.get(item.dateIso) ?? 0) + 1);
+    const short = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+    const first = sorted[0].dateIso;
+    const last = sorted[sorted.length - 1].dateIso;
+    return {
+      name,
+      rangeLabel: first === last ? short(first) : `${first.slice(8, 10)} a ${short(last)}`,
+      perDay: Math.max(...counts.values()),
+      items: sorted,
+    };
+  });
+}
+
+export function activePlansLabel(items: CareItem[]): string {
+  const parts: string[] = [];
+  if (items.some((item) => !item.treatment)) parts.push('Preventivo');
+  const names = [...new Set(items.filter((item) => item.treatment).map((item) => item.title))];
+  if (names.length > 0) parts.push(`Tratamento com ${names.join(', ')}`);
+  return parts.join(' · ');
 }

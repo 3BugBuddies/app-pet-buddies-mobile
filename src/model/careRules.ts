@@ -81,9 +81,15 @@ function prescriber(d: CheckinDesfecho | undefined): { vetName: string; vetCrmv:
   };
 }
 
+// O back manda o telefone dentro da mensagem ("… Procure a clínica: (11) 4002-8922.").
+export function extractPhone(text: string): string | undefined {
+  return text.match(/\(\d{2}\)\s?\d{4,5}-\d{4}/)?.[0];
+}
+
 export function resolveCheckInResponse(
   response: CheckinResponse,
   redFlags: string[],
+  alarmLabels: string[] = [],
 ): CheckInResult {
   const desfechos = response.desfechos ?? [];
   const acionar = desfechos.find((d) => d.desfecho === 'ACIONAR_CLINICA');
@@ -92,7 +98,10 @@ export function resolveCheckInResponse(
     const { vetName, vetCrmv } = prescriber(acionar ?? desfechos[0]);
     const escalation: CheckInEscalationResult = {
       status: 'ESCALATION',
-      reasonLabel: redFlags.length > 0 ? redFlags.join(', ') : 'um sinal de alerta',
+      reasonLabel:
+        alarmLabels.length > 0 ? alarmLabels.join(', ') : redFlags.length > 0 ? redFlags.join(', ') : 'um sinal de alerta',
+      reasonFromConditions: alarmLabels.length > 0,
+      clinicPhone: extractPhone(JSON.stringify(response)),
       ruleDescription: acionar
         ? `Regra de ${acionar.medicamento} · acionar a clínica`
         : 'Regra da prescrição · acionar a clínica',

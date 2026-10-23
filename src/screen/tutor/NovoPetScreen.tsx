@@ -237,6 +237,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
         <View style={styles.footer}>
           <Button
             label={petId ? 'Salvar alterações' : 'Salvar pet'}
+            backgroundColor={colors.action}
             loading={isSaving}
             onPress={salvar}
           />

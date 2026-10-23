@@ -26,6 +26,13 @@ function isoLocal(d: Date): string {
   return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
+function shortDayLabel(iso: string): string {
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  const nomes = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const d = new Date(ano, mes - 1, dia);
+  return `${nomes[d.getDay()]} ${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}`;
+}
+
 function gerarProximosDias(quantidade: number) {
   const dias: { iso: string; diaSemana: string; numeroDia: string }[] = [];
   const nomes = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -75,6 +82,11 @@ export function AgendamentoTutorScreen({ route }: Props) {
     setSelectedJanelaId(null);
   }, [selectedDate, veterinarioId]);
 
+  const selectedJanela = janelasLivres?.find((j) => j.id === selectedJanelaId);
+  const confirmLabel = selectedJanela
+    ? `Confirmar · ${shortDayLabel(selectedDate)} às ${selectedJanela.horaInicio.substring(0, 5)}`
+    : 'Escolha dia e horário';
+
   const handleSave = async () => {
     if (!petIdAtivo || !reason || !selectedDate || !selectedJanelaId) return;
     try {
@@ -99,7 +111,7 @@ export function AgendamentoTutorScreen({ route }: Props) {
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
       <View style={styles.topBar}>
-        <CheckInTopBar title="Nova Consulta" />
+        <CheckInTopBar title="Agendar consulta" />
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]} showsVerticalScrollIndicator={false}>
@@ -142,12 +154,7 @@ export function AgendamentoTutorScreen({ route }: Props) {
         {/* Seção 2: Motivo */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Motivo</Text>
-          <QuickChips options={MOTIVOS} onSelect={setReason} />
-          {reason ? (
-            <View style={styles.motivoTag}>
-              <Text style={styles.motivoTagText}>{reason}</Text>
-            </View>
-          ) : null}
+          <QuickChips options={MOTIVOS} onSelect={setReason} selected={reason} hideLabel />
         </View>
 
         {/* Seção 3: Dia */}
@@ -209,8 +216,9 @@ export function AgendamentoTutorScreen({ route }: Props) {
         </View>
 
         <Button
-          label="Confirmar Agendamento"
+          label={confirmLabel}
           onPress={handleSave}
+          backgroundColor={selectedJanela ? colors.action : undefined}
           disabled={!petIdAtivo || !reason || !selectedDate || !selectedJanelaId}
           loading={createAppointment.isPending}
         />
@@ -291,18 +299,6 @@ const styles = StyleSheet.create({
   },
   petNameActive: {
     color: colors.textLight,
-  },
-  motivoTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    backgroundColor: `${colors.primary}1A`,
-  },
-  motivoTagText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
   },
   diasGrid: {
     flexDirection: 'row',
