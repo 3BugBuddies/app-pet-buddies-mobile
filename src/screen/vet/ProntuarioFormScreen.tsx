@@ -2,237 +2,138 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ProcedureCard } from '../../component/closing/ProcedureCard';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Input } from '../../component/ui/Input';
-import useMedicalRecordControl, { type RecordType } from '../../control/useMedicalRecordControl';
+import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
+import { useClosingForm } from '../../control/useClosingControl';
+import type { ProcedureSection } from '../../model/closing';
+import { formatAppointmentDate } from '../../model/formatDate';
 import type { PacientesTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
-const RECORD_TYPES: { key: RecordType; label: string }[] = [
-  { key: 'CONSULTA', label: 'Consulta' },
-  { key: 'VACINA', label: 'Vacina' },
-  { key: 'EXAME', label: 'Exame' },
-  { key: 'PROCEDIMENTO', label: 'Procedimento' },
+const SECTIONS: { section: ProcedureSection; title: string; addLabel: string }[] = [
+  { section: 'VACINA_VERMIFUGO', title: 'Vacina e vermífugo', addLabel: 'Adicionar vacina ou vermífugo' },
+  { section: 'EXAME', title: 'Exames', addLabel: 'Adicionar exame' },
+  { section: 'PROCEDIMENTO', title: 'Procedimentos', addLabel: 'Adicionar procedimento' },
 ];
-
-const ANAMNESE_CHIPS = ['Sem alterações', 'Rotina', 'Retorno'];
-const DIAGNOSTICO_CHIPS = ['Saudável', 'Otite', 'Dermatite', 'Gastroenterite'];
-const VACINA_CHIPS = ['V10', 'Antirrábica', 'Gripe', 'Giárdia'];
-const EXAME_CHIPS = ['Hemograma', 'Ultrassom', 'Raio-X', 'Fezes'];
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'ProntuarioForm'>;
 
 export function ProntuarioFormScreen({ route }: Props) {
-  const { petId, consultaId } = route.params;
+  const { petId, consultaId, prescricao } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
 
-  const {
-    recordType, setRecordType,
-    anamnese, setAnamnese,
-    diagnostico, setDiagnostico,
-    observacao, setObservacao,
-    nomeVacina, setNomeVacina,
-    loteVacina, setLoteVacina,
-    nomeExame, setNomeExame,
-    nomeProcedimento, setNomeProcedimento,
-    weight, handleWeightChange,
-    diagnosticoErro,
-    isSaving,
-    salvar,
-  } = useMedicalRecordControl(
-    petId,
-    (registro, consultaIdResult) => navigation.navigate('Prescricao', { animalId: petId, consultaId: consultaIdResult || consultaId || '', prontuario: registro }),
-    () => navigation.goBack(),
-    consultaId,
-  );
+  const form = useClosingForm(petId, consultaId, prescricao ?? null);
 
-  const renderDynamicFields = () => {
-    switch (recordType) {
-      case 'VACINA':
-        return (
-          <>
-            <Input
-              label="Nome da Vacina *"
-              placeholder="ex.: V10, Antirrábica"
-              value={nomeVacina}
-              onChangeText={setNomeVacina}
-              hasError={!!diagnosticoErro}
-            />
-            <View style={styles.chipsRow}>
-              {VACINA_CHIPS.map((chip) => (
-                <Pressable key={chip} onPress={() => setNomeVacina(chip)} style={styles.chip}>
-                  <Text style={styles.chipText}>{chip}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <FieldError message={diagnosticoErro ?? undefined} />
+  if (form.loadingAppointment) {
+    return <LoadingIndicator label="Carregando o atendimento..." />;
+  }
 
-            <Input
-              label="Lote / Marca (opcional)"
-              placeholder="ex.: Zoetis Lote 12345"
-              value={loteVacina}
-              onChangeText={setLoteVacina}
-            />
-          </>
-        );
+  const context = form.appointment
+    ? `Esta consulta · ${formatAppointmentDate(form.appointment.date).timeLabel}`
+    : 'Atendimento imediato';
 
-      case 'EXAME':
-        return (
-          <>
-            <Input
-              label="Qual exame foi realizado? *"
-              placeholder="ex.: Coleta de Sangue"
-              value={nomeExame}
-              onChangeText={setNomeExame}
-              hasError={!!diagnosticoErro}
-            />
-            <View style={styles.chipsRow}>
-              {EXAME_CHIPS.map((chip) => (
-                <Pressable key={chip} onPress={() => setNomeExame(chip)} style={styles.chip}>
-                  <Text style={styles.chipText}>{chip}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <FieldError message={diagnosticoErro ?? undefined} />
-
-            <Input
-              label="Suspeita Clínica / Motivo (opcional)"
-              placeholder="ex.: Investigação de anemia"
-              value={diagnostico}
-              onChangeText={setDiagnostico}
-            />
-          </>
-        );
-
-      case 'PROCEDIMENTO':
-        return (
-          <>
-            <Input
-              label="Nome do Procedimento *"
-              placeholder="ex.: Limpeza de Tártaro"
-              value={nomeProcedimento}
-              onChangeText={setNomeProcedimento}
-              hasError={!!diagnosticoErro}
-            />
-            <FieldError message={diagnosticoErro ?? undefined} />
-          </>
-        );
-
-      case 'CONSULTA':
-      default:
-        return (
-          <>
-            <Input
-              label="Anamnese (opcional)"
-              placeholder="ex.: Tutora relata coceira no ouvido há 3 dias"
-              value={anamnese}
-              onChangeText={setAnamnese}
-              multiline
-              numberOfLines={3}
-              style={styles.notesInput}
-            />
-            <View style={styles.chipsRow}>
-              {ANAMNESE_CHIPS.map((chip) => (
-                <Pressable key={chip} onPress={() => setAnamnese(chip)} style={styles.chip}>
-                  <Text style={styles.chipText}>{chip}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <Input
-              label="Diagnóstico *"
-              placeholder="ex.: Otite leve no ouvido direito"
-              value={diagnostico}
-              onChangeText={setDiagnostico}
-              hasError={!!diagnosticoErro}
-            />
-            <View style={styles.chipsRow}>
-              {DIAGNOSTICO_CHIPS.map((chip) => (
-                <Pressable key={chip} onPress={() => setDiagnostico(chip)} style={styles.chip}>
-                  <Text style={styles.chipText}>{chip}</Text>
-                </Pressable>
-              ))}
-            </View>
-            <FieldError message={diagnosticoErro ?? undefined} />
-          </>
-        );
-    }
+  const review = () => {
+    const closing = form.build();
+    if (closing) navigation.navigate('AssinarPrescricao', { closing });
   };
 
   return (
-    <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
-      <Text style={styles.title}>O que aconteceu?</Text>
-
+    <View style={[styles.root, { paddingTop: spacing.md }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
-
-          <View style={styles.typeGrid}>
-            {RECORD_TYPES.map((type) => {
-              const active = type.key === recordType;
-              return (
-                <Pressable
-                  key={type.key}
-                  onPress={() => setRecordType(type.key)}
-                  style={[styles.typeButton, active && styles.typeButtonActive]}
-                >
-                  <Text style={[styles.typeButtonText, active && styles.typeButtonTextActive]}>
-                    {type.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.banner}>
+            <Text style={styles.title}>{form.pet?.nome ?? 'Atendimento'}</Text>
+            <Text style={styles.context}>{context}</Text>
           </View>
 
-          {renderDynamicFields()}
-
+          <Text style={styles.section}>Registro</Text>
+          <Input
+            label="Motivo do atendimento"
+            placeholder="ex.: Responsável relata coceira no ouvido há 3 dias"
+            value={form.reason}
+            onChangeText={form.setReason}
+            multiline
+            style={styles.notes}
+          />
+          <Input
+            label="Observações (opcional)"
+            placeholder="ex.: Retorno em 10 dias"
+            value={form.notes}
+            onChangeText={form.setNotes}
+            multiline
+            style={styles.notes}
+          />
           <Input
             label="Peso (kg)"
             placeholder="ex.: 17,2"
-            value={weight}
-            onChangeText={handleWeightChange}
+            value={form.weight}
+            onChangeText={form.handleWeightChange}
             keyboardType="decimal-pad"
+            hasError={!!form.errors.weight}
           />
+          <FieldError message={form.errors.weight} />
 
-          <Input
-            label={recordType === 'VACINA' ? 'Reações / Observações' : 'Observações (opcional)'}
-            placeholder={recordType === 'VACINA' ? 'ex.: Animal agitado' : 'ex.: Retorno em 10 dias'}
-            value={observacao}
-            onChangeText={setObservacao}
-            multiline
-            numberOfLines={3}
-            style={styles.notesInput}
-          />
+          {SECTIONS.map(({ section, title, addLabel }) => (
+            <View key={section} style={styles.group}>
+              <Text style={styles.section}>{title}</Text>
+              {form.procedures
+                .filter((p) => p.section === section)
+                .map((p) => (
+                  <ProcedureCard
+                    key={p.key}
+                    draft={p}
+                    items={form.availableItems(p)}
+                    error={form.errors[p.key]}
+                    onChange={(patch) => form.update(p.key, patch)}
+                    onRemove={() => form.remove(p.key)}
+                  />
+                ))}
+              <Pressable accessibilityRole="button" onPress={() => form.add(section)} style={styles.addButton}>
+                <Text style={styles.addText}>+ {addLabel}</Text>
+              </Pressable>
+            </View>
+          ))}
 
-          <View style={styles.actionRow}>
-            {recordType === 'VACINA' ? (
-              <Button
-                label="Registrar Vacina"
-                loading={isSaving}
-                onPress={() => salvar(false)}
-              />
+          <View style={styles.group}>
+            <Text style={styles.section}>Prescrição</Text>
+            {prescricao ? (
+              <View style={styles.prescricaoCard}>
+                <Text style={styles.prescricaoNome}>
+                  {prescricao.medicamento} · {prescricao.doseMin}–{prescricao.doseMax} {prescricao.unidade}
+                </Text>
+                <Text style={styles.prescricaoSub}>
+                  {prescricao.frequenciaDia}×/dia · {prescricao.duracaoDias} dias · {prescricao.regras.length} regra(s)
+                </Text>
+                <View style={styles.prescricaoActions}>
+                  <Pressable onPress={() => navigation.navigate('Prescricao', { animalId: petId })}>
+                    <Text style={styles.addText}>Trocar prescrição</Text>
+                  </Pressable>
+                  <Pressable onPress={() => navigation.setParams({ prescricao: undefined })}>
+                    <Text style={styles.removeText}>Remover</Text>
+                  </Pressable>
+                </View>
+              </View>
             ) : (
-              <>
-                <View style={styles.actionHalf}>
-                  <Button
-                    variant="secondary"
-                    label="Apenas Salvar"
-                    loading={isSaving}
-                    onPress={() => salvar(false)}
-                  />
-                </View>
-                <View style={styles.actionHalf}>
-                  <Button
-                    label="Salvar e Prescrever"
-                    loading={isSaving}
-                    onPress={() => salvar(true)}
-                  />
-                </View>
-              </>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => navigation.navigate('Prescricao', { animalId: petId })}
+                style={styles.addButton}
+              >
+                <Text style={styles.addText}>+ Adicionar prescrição</Text>
+              </Pressable>
             )}
           </View>
 
+          <Button label="Assinar e concluir" backgroundColor={colors.action} onPress={review} style={styles.primary} />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -240,82 +141,35 @@ export function ProntuarioFormScreen({ route }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    color: colors.textPrimary,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.xs,
-  },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  typeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  typeButton: {
-    flexBasis: '47%',
-    height: 48,
+  root: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
+  content: { padding: spacing.lg, gap: spacing.sm },
+  banner: { backgroundColor: colors.cardChia, borderRadius: radii.lg, padding: spacing.md },
+  title: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, color: colors.textPrimary },
+  context: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
+  section: { fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginTop: spacing.sm },
+  group: { gap: spacing.sm },
+  notes: { minHeight: 80, textAlignVertical: 'top' },
+  addButton: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.borderStrong,
     borderRadius: radii.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  addText: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  removeText: { fontSize: 14, fontWeight: '600', color: colors.error },
+  prescricaoCard: {
     backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: 2,
   },
-  typeButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  typeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  typeButtonTextActive: {
-    color: colors.textLight,
-  },
-  notesInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: -spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    backgroundColor: colors.cardChia,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  actionHalf: {
-    flex: 1,
-  },
+  prescricaoNome: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
+  prescricaoSub: { fontSize: 13, color: colors.textSecondary },
+  prescricaoActions: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
+  primary: { marginTop: spacing.md },
 });

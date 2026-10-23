@@ -10,6 +10,8 @@ export interface Appointment {
   date: string;
   reason: string;
   status: AppointmentStatus;
+  animalNome?: string | null;
+  veterinarioNome?: string | null;
 }
 
 export interface CreateAppointmentInput {

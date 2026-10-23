@@ -6,6 +6,7 @@ import type {
   CheckInInterpretation,
   CheckInNoRuleResult,
 } from '../../model/care';
+import type { ClosingDraft } from '../../model/closing';
 import type { PrescricaoDraft } from '../../model/prescription';
 import type { RegraDraft } from '../../model/prescriptionRule';
 
@@ -19,7 +20,6 @@ export type AuthStackParamList = {
 
 export type HomeTabParamList = {
   HomeTutor: undefined;
-  Score: { petId: string };
 };
 
 
@@ -30,7 +30,6 @@ export type PlanoTabParamList = {
   CheckInResult: { petId: string; result: CheckInDoseResult; itemPlanoCuidadoId?: number };
   CheckInEscalation: { petId: string; result: CheckInEscalationResult; itemPlanoCuidadoId?: number };
   CheckInNoRule: { petId: string; result: CheckInNoRuleResult; narrative: string; itemPlanoCuidadoId?: number };
-  AssistantNotice: { petId: string };
 };
 
 
@@ -56,19 +55,20 @@ export type TutorTabParamList = {
 
 export type HojeTabParamList = {
   AgendaClinica: undefined;
+  AtenderAgora: undefined;
 };
 
 
 export type PacientesTabParamList = {
   Pacientes: undefined;
   DetalhesPet: { petId: string; consultaId?: string };
-  ProntuarioForm: { petId: string; consultaId?: string };
+  ProntuarioForm: { petId: string; consultaId?: string; prescricao?: PrescricaoDraft };
   PlanoPaciente: { petId: string };
-  // Fluxo de prescricao do veterinario: Prescricao <-> NovaRegra -> AssinarPrescricao.
-  Prescricao: { animalId: string; consultaId: string; prontuario: any; novaRegra?: RegraDraft };
-  NovaRegra: { animalId: string; consultaId: string; prontuario: any };
-  AssinarPrescricao: { draft: PrescricaoDraft; consultaId: string; prontuario: any };
-  CheckoutAtendimento: { petName: string; resumoPrescricao: string };
+  // Closing: ProntuarioForm -> (Prescricao opcional, volta ao form) -> AssinarPrescricao -> CheckoutAtendimento.
+  Prescricao: { animalId: string; novaRegra?: RegraDraft };
+  NovaRegra: { animalId: string };
+  AssinarPrescricao: { closing: ClosingDraft };
+  CheckoutAtendimento: { petName: string };
 };
 
 
