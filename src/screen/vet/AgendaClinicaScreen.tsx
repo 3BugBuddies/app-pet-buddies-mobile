@@ -10,7 +10,7 @@ import { AgendaHeroCard } from '../../component/vet-agenda/AgendaHeroCard';
 import { HomePendingCard } from '../../component/vet-agenda/HomePendingCard';
 import { NextPatientsCard, type NextPatientItem } from '../../component/vet-agenda/NextPatientsCard';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useAppointments } from '../../control/useAppointmentsControl';
+import { useAppointments, useVetCrmv } from '../../control/useAppointmentsControl';
 import { AuthContext } from '../../context/authContext';
 import { useLogoutControl } from '../../control/authControl';
 import { useClinicPets } from '../../control/usePetsControl';
@@ -32,6 +32,7 @@ export function AgendaClinicaScreen() {
   const tabBarSpace = useTabBarSpace();
   const { session } = useContext(AuthContext);
   const { sair } = useLogoutControl();
+  const crmv = useVetCrmv();
   const { data: appointments, isLoading: isLoadingAppts, isError: isApptsError } = useAppointments();
   const { data: pets, isLoading: isLoadingPets } = useClinicPets();
 
@@ -91,6 +92,7 @@ export function AgendaClinicaScreen() {
           <View>
             <Text style={styles.dateLabel}>{dateLabel}</Text>
             <Text style={styles.vetName}>Dra. {session?.nome ?? 'vet'}</Text>
+            {crmv ? <Text style={styles.crmv}>CRMV {crmv}</Text> : null}
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
             <View style={styles.avatar}>
@@ -154,6 +156,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: -0.5,
     color: colors.textPrimary,
+  },
+  crmv: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   avatar: {
     width: 52,

@@ -5,9 +5,10 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'r
 import { Button } from '../../component/ui/Button';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
+import { useAppointment } from '../../control/useAppointmentsControl';
 import { usePet } from '../../control/usePetsControl';
 import { usePlanSummary } from '../../control/usePatientsControl';
-import { formatDateBR } from '../../model/formatDate';
+import { formatAppointmentDate, formatDateBR, formatShortDate } from '../../model/formatDate';
 import { breedLabel, sexLabel } from '../../model/pet';
 import type { PacientesTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
@@ -16,6 +17,11 @@ import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PacientesTabParamList, 'DetalhesPet'>;
 
 const MAX_CARES = 3;
+
+function isoToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function openLink(url: string) {
   Linking.openURL(url).catch(() => Alert.alert('Não foi possível abrir o link.'));
@@ -27,6 +33,7 @@ export function DetalhesPetScreen({ route }: Props) {
   const tabBarSpace = useTabBarSpace();
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
   const { data: summary } = usePlanSummary(petId);
+  const { data: consulta } = useAppointment(consultaId ?? '');
 
   if (isLoadingPet) {
     return <LoadingIndicator label="Carregando o pet..." />;
@@ -43,7 +50,7 @@ export function DetalhesPetScreen({ route }: Props) {
     );
   }
 
-  const nascimento = pet.dataNascimento ? `nascido em ${pet.dataNascimento.slice(0, 4)}` : null;
+  const nascimento = pet.dataNascimento ? `${pet.sexo === 'FEMEA' ? 'nascida' : 'nascido'} em ${pet.dataNascimento.slice(0, 4)}` : null;
   const details = [breedLabel(pet.raca), sexLabel(pet.sexo).toLowerCase(), nascimento]
     .filter(Boolean)
     .join(' · ');
@@ -51,8 +58,28 @@ export function DetalhesPetScreen({ route }: Props) {
   const endereco = pet.responsavelEndereco;
   const upcoming = (summary?.upcoming ?? []).slice(0, MAX_CARES);
 
+  const consultaHoje = consulta ? consulta.date.slice(0, 10) === isoToday() : false;
+  const faixaConsulta = consulta
+    ? [
+        consultaHoje
+          ? `Consulta de hoje · ${formatAppointmentDate(consulta.date).timeLabel}`
+          : `Consulta de ${formatShortDate(consulta.date)} · ${formatAppointmentDate(consulta.date).timeLabel}`,
+        consulta.reason.trim(),
+        pet.responsavelNome,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : null;
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]} showsVerticalScrollIndicator={false}>
+      {faixaConsulta ? (
+        <View style={styles.consultaBand}>
+          <Ionicons name="calendar-outline" size={18} color={colors.textPrimary} />
+          <Text style={styles.consultaBandText}>{faixaConsulta}</Text>
+        </View>
+      ) : null}
+
       <View style={styles.hero}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{pet.nome.charAt(0).toUpperCase()}</Text>
@@ -129,7 +156,8 @@ export function DetalhesPetScreen({ route }: Props) {
 
       <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
         <Button
-          label="Atendimento"
+          label={consultaId ? 'Iniciar atendimento desta consulta' : 'Atendimento imediato'}
+          backgroundColor={colors.action}
           onPress={() => navigation.navigate('ProntuarioForm', { petId, consultaId })}
           style={{ flex: 1 }}
         />
@@ -148,6 +176,17 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   flex: { flex: 1 },
+  consultaBand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  consultaBandText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.textPrimary },
   hero: {
     backgroundColor: colors.cardChia,
     borderRadius: radii.lg,
