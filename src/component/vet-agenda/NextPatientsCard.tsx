@@ -9,6 +9,7 @@ export interface NextPatientItem {
   petName: string;
   reason: string;
   seen: boolean;
+  isToday: boolean;
 }
 
 interface NextPatientsCardProps {

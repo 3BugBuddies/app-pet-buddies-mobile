@@ -35,11 +35,11 @@ export function AgendaClinicaScreen() {
 
   const items: NextPatientItem[] = useMemo(() => {
     if (!appointments || !pets) return [];
-    const agora = new Date();
-    const hoje = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     return appointments
       .slice()
-      .filter((a) => a.status !== 'CANCELED' && a.date?.slice(0, 10) >= hoje)
+      .filter((a) => a.status !== 'CANCELED' && a.date?.slice(0, 10) >= today)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((appointment) => {
         const pet = pets.find((p) => p.id === appointment.petId);
@@ -51,6 +51,7 @@ export function AgendaClinicaScreen() {
           petName: appointment.animalNome ?? pet?.nome ?? 'Paciente',
           reason: appointment.reason,
           seen: appointment.status === 'COMPLETED',
+          isToday: appointment.date.slice(0, 10) === today,
         };
       });
   }, [appointments, pets]);
@@ -63,10 +64,12 @@ export function AgendaClinicaScreen() {
     return <LoadingIndicator label="Não foi possível carregar a agenda." />;
   }
 
-  const seenCount = items.filter((item) => item.seen).length;
-  const totalCount = items.length;
+  // O resumo do card conta só as consultas de hoje; a lista abaixo segue mostrando as futuras.
+  const todayItems = items.filter((item) => item.isToday);
+  const seenCount = todayItems.filter((item) => item.seen).length;
+  const totalCount = todayItems.length;
   const remaining = totalCount - seenCount;
-  const nextItem = items.find((item) => !item.seen);
+  const nextItem = todayItems.find((item) => !item.seen);
 
   const startClosing = (params: { petId: string; consultaId?: string }) => {
     const tabs = navigation.getParent<BottomTabNavigationProp<VetTabParamList>>();
