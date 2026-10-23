@@ -10,6 +10,7 @@ import {
   getAppointmentById,
   updateAppointment,
   getFreeWindows,
+  getFreeDates,
 } from '../repository/appointmentRepository';
 import { getVeterinarians } from '../repository/veterinarianRepository';
 import type { CreateAppointmentInput } from '../model/appointment';
@@ -59,6 +60,7 @@ export function useCreateAppointment() {
       queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
       // A janela agendada deixa de estar livre: a grade precisa ser buscada de novo.
       queryClient.invalidateQueries({ queryKey: ['freeWindows'] });
+      queryClient.invalidateQueries({ queryKey: ['freeDates'] });
     },
   });
 }
@@ -94,6 +96,14 @@ export function useFreeWindows(veterinarioId?: string | number, dataISO?: string
     queryKey: ['freeWindows', veterinarioId, dataISO],
     queryFn: () => getFreeWindows(veterinarioId!, dataISO!),
     enabled: !!veterinarioId && !!dataISO,
+  });
+}
+
+export function useFreeDates(veterinarioId?: string | number, de?: string, ate?: string) {
+  return useQuery({
+    queryKey: ['freeDates', veterinarioId, de, ate],
+    queryFn: () => getFreeDates(veterinarioId!, de!, ate!),
+    enabled: !!veterinarioId && !!de && !!ate,
   });
 }
 

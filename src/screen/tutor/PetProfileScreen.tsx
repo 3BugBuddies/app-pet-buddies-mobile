@@ -1,30 +1,23 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { HeroCard } from '../../component/pet-profile/HeroCard';
-import { InfoTintCard } from '../../component/pet-profile/InfoTintCard';
 import { StatsRow } from '../../component/pet-profile/StatsRow';
-import { VaccineListCard } from '../../component/pet-profile/VaccineListCard';
+import { TreatmentCard } from '../../component/pet-profile/TreatmentCard';
 import { Button } from '../../component/ui/Button';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useLogoutControl } from '../../control/authControl';
 import { useActivePetId, useDeletePet, usePet, usePets } from '../../control/usePetsControl';
-import { useProcedures } from '../../control/useProcedureControl';
+import { usePlanSummary } from '../../control/usePatientsControl';
 import useMedicalRecordControl from '../../control/useMedicalRecordControl';
-import type { PetVaccine } from '../../model/care';
+import { formatShortDate } from '../../model/formatDate';
+import { speciesLabel, breedLabel, sexLabel } from '../../model/pet';
 import type { PetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PetTabParamList, 'PetProfile'>;
-
-function formatDataBR(dataISO?: string | null): string {
-  if (!dataISO) return '';
-  const [ano, mes, dia] = dataISO.slice(0, 10).split('-');
-  return `${dia}/${mes}/${ano}`;
-}
 
 function calcIdadeLabel(dataNascimento?: string | null): string {
   if (!dataNascimento) return 'Idade desconhecida';
@@ -50,12 +43,11 @@ function calcIdadeLabel(dataNascimento?: string | null): string {
 export function PetProfileScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<PetTabParamList>>();
   const insets = useSafeAreaInsets();
-  const { sair } = useLogoutControl();
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
   const { activePetId } = useActivePetId();
   const petId = route.params?.petId ?? activePetId ?? '';
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
-  const { data: procedimentos, isLoading: isLoadingProcedimentos } = useProcedures(petId);
+  const { data: summary } = usePlanSummary(petId);
   const { registros, carregandoRegistros } = useMedicalRecordControl(petId);
   const deletePet = useDeletePet();
 
@@ -81,22 +73,9 @@ export function PetProfileScreen({ route }: Props) {
     );
   };
 
-  // Mapeia vacinas reais vindas da API
-  const vaccinesList = (procedimentos || [])
-    .filter((p) => p.tipo === 'VACINACAO')
-    .map((p): PetVaccine => {
-      const aplicada = p.status === 'REALIZADO';
-      return {
-        id: p.id.toString(),
-        name: p.nome,
-        status: aplicada ? 'APPLIED' : 'SCHEDULED',
-        dateLabel: `${formatDataBR(p.dataPrevistaInicio)} • ${aplicada ? 'aplicada' : 'agendada'}`,
-      };
-    });
-
   if (deletePet.isPending) return <LoadingIndicator label="Excluindo pet..." />;
 
-  if (isLoadingPets || isLoadingPet || isLoadingProcedimentos || carregandoRegistros) {
+  if (isLoadingPets || isLoadingPet || carregandoRegistros) {
     return <LoadingIndicator label="Carregando o perfil..." />;
   }
 
@@ -113,7 +92,7 @@ export function PetProfileScreen({ route }: Props) {
 
   const pesoLabel = pet.peso ? `${pet.peso.toString().replace('.', ',')} kg` : 'N/A';
   const idadeLabel = calcIdadeLabel(pet.dataNascimento);
-  const sexoLabel = pet.sexo === 'MACHO' ? 'Macho' : 'Fêmea';
+  const inTreatment = summary?.category === 'TRATAMENTO' || summary?.category === 'POS_CIRURGICO';
   const castradoLabel = pet.castrado ? 'Sim' : 'Não';
 
   return (
@@ -130,7 +109,7 @@ export function PetProfileScreen({ route }: Props) {
 
       <HeroCard
         petName={pet.nome}
-        breedLabel={`${pet.raca} · ${pet.especie} · ${sexoLabel}`}
+        breedLabel={`${breedLabel(pet.raca)} · ${speciesLabel(pet.especie).toLowerCase()} · ${sexLabel(pet.sexo).toLowerCase()}`}
         planStatusLabel="Perfil do pet"
         imageUrl={pet.foto}
       />
@@ -143,24 +122,11 @@ export function PetProfileScreen({ route }: Props) {
         ]}
       />
 
-      {vaccinesList.length > 0 && <VaccineListCard vaccines={vaccinesList} />}
+      {inTreatment && summary?.upcoming[0] ? (
+        <TreatmentCard name={summary.upcoming[0].name} until={summary.lastDate ? formatShortDate(summary.lastDate) : null} />
+      ) : null}
 
-      <View style={styles.tintRow}>
-        <InfoTintCard
-          label="Alergias"
-          value={pet.alergias || 'Nenhuma registrada'}
-          subLabel="histórico do pet"
-          tone="alert"
-        />
-        <InfoTintCard
-          label="Condição Crônica"
-          value={pet.condicaoCronica ? 'Sim' : 'Não'}
-          subLabel="histórico do pet"
-          tone="casa"
-        />
-      </View>
-
-      <Text style={styles.sectionTitle}>Histórico Clínico</Text>
+      <Text style={styles.sectionTitle}>Histórico</Text>
 
       {!registros || registros.length === 0 ? (
         <Text style={styles.emptyText}>Nenhuma consulta registrada.</Text>
@@ -168,12 +134,13 @@ export function PetProfileScreen({ route }: Props) {
         <View style={{ gap: spacing.sm }}>
           {registros.map((record) => (
             <View key={record.id} style={styles.recordCard}>
-              <Text style={styles.recordDate}>{formatDataBR(record.dataAtendimento)}</Text>
-              <Text style={styles.recordTitle}>{record.diagnostico}</Text>
-              <Text style={styles.recordBody}>{record.tratamento}</Text>
-              {record.observacao ? (
-                <Text style={styles.recordNote}>{record.observacao}</Text>
-              ) : null}
+              <Text style={styles.recordDate}>{formatShortDate(record.dataAtendimento)}</Text>
+              <View style={styles.recordText}>
+                <Text style={styles.recordTitle}>Atendimento</Text>
+                {record.tratamento ? (
+                  <Text style={styles.recordBody} numberOfLines={1}>{record.tratamento}</Text>
+                ) : null}
+              </View>
             </View>
           ))}
         </View>
@@ -194,9 +161,6 @@ export function PetProfileScreen({ route }: Props) {
         />
       </View>
 
-      <Pressable style={styles.logoutButton} onPress={sair}>
-        <Text style={styles.logoutText}>Sair da conta</Text>
-      </Pressable>
     </ScrollView>
   );
 }
@@ -217,10 +181,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
   },
-  tintRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
@@ -232,42 +192,28 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   recordCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    flexDirection: 'row',
+    gap: spacing.md,
+    backgroundColor: colors.border,
     borderRadius: radii.md,
     padding: spacing.md,
   },
   recordDate: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.textPrimary,
+    color: colors.textSecondary,
+  },
+  recordText: {
+    flex: 1,
+    gap: 2,
   },
   recordTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.textPrimary,
-    marginTop: 4,
   },
   recordBody: {
     fontSize: 14,
     color: colors.textSecondary,
-    marginTop: 2,
-  },
-  recordNote: {
-    fontSize: 13,
-    fontStyle: 'italic',
-    color: colors.textMuted,
-    marginTop: 8,
-  },
-  logoutButton: {
-    marginTop: spacing.md,
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  logoutText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.error,
   },
 });

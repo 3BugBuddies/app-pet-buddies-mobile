@@ -1,39 +1,32 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
-import type { ClinicPatient } from '../../model/patient';
 
 interface PatientCardProps {
-  patient: ClinicPatient;
+  petName: string;
+  description: string;
+  tutorName?: string | null;
+  pill?: { label: string; treatment: boolean } | null;
   onPress: () => void;
 }
 
-export function PatientCard({ patient, onPress }: PatientCardProps) {
-  const tone = patient.alert ? colors.warning : colors.success;
-  const toneTint = patient.alert ? colors.cardMax : `${colors.success}1F`;
-
+export function PatientCard({ petName, description, tutorName, pill, onPress }: PatientCardProps) {
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={[styles.avatar, { backgroundColor: toneTint }]}>
-        <Text style={[styles.avatarText, { color: patient.alert ? colors.textPrimary : colors.success }]}>
-          {patient.petName.charAt(0).toUpperCase()}
-        </Text>
+    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
+      <View style={styles.avatar}>
+        <Text style={styles.avatarText}>{petName.charAt(0).toUpperCase()}</Text>
       </View>
       <View style={styles.textBlock}>
-        <View style={styles.headRow}>
-          <Text style={styles.name}>
-            {patient.petName} <Text style={styles.idText}>#{patient.petId}</Text>
-          </Text>
-          <Text style={styles.meta}>
-            {patient.tutorName} · {patient.weekLabel}
-          </Text>
-        </View>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${patient.adherencePct}%`, backgroundColor: tone }]} />
-        </View>
-        <Text style={[styles.note, { color: patient.alert ? colors.warning : colors.textSecondary }]}>
-          {patient.note}
-        </Text>
+        <Text style={styles.name}>{petName}</Text>
+        <Text style={styles.meta}>{description}</Text>
+        {tutorName ? <Text style={styles.meta}>Responsável · {tutorName}</Text> : null}
+        {pill ? (
+          <View style={[styles.pill, pill.treatment ? styles.pillTreatment : styles.pillPreventive]}>
+            <Text style={styles.pillText}>{pill.label}</Text>
+          </View>
+        ) : null}
       </View>
+      <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
     </Pressable>
   );
 }
@@ -41,8 +34,6 @@ export function PatientCard({ patient, onPress }: PatientCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radii.lg,
     padding: spacing.md,
     flexDirection: 'row',
@@ -52,44 +43,23 @@ const styles = StyleSheet.create({
   avatar: {
     width: 52,
     height: 52,
-    borderRadius: radii.sm,
+    borderRadius: radii.pill,
+    backgroundColor: colors.cardChia,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontWeight: '700',
-    fontSize: 20,
+  avatarText: { fontWeight: '700', fontSize: 20, color: colors.textPrimary },
+  textBlock: { flex: 1, gap: 2 },
+  name: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
+  meta: { fontSize: 13, color: colors.textSecondary },
+  pill: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radii.pill,
   },
-  textBlock: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  headRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-  },
-  name: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  meta: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  track: {
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.background,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  note: {
-    fontSize: 13,
-  },
-  idText: { fontSize: 12, color: colors.textMuted, fontWeight: '400' },
+  pillTreatment: { backgroundColor: colors.cardMax },
+  pillPreventive: { backgroundColor: colors.cardChia },
+  pillText: { fontSize: 12, fontWeight: '700', color: colors.textPrimary },
 });
