@@ -23,13 +23,11 @@ import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
 import { planStateLabel } from '../../model/care';
-import type { Pet } from '../../model/pet';
+import { breedLabel, sexLabel, type Pet } from '../../model/pet';
 
 function petDetails(pet: Pet): string {
-  const raca = pet.raca && pet.raca !== 'SEM_RACA' ? pet.raca : 'Sem raça definida';
-  const sexo = pet.sexo === 'FEMEA' ? 'fêmea' : 'macho';
-  const peso = pet.peso ? `${String(pet.peso).replace('.', ',')} kg` : null;
-  return [raca, sexo, peso].filter(Boolean).join(' · ');
+  const weight = pet.peso ? `${String(pet.peso).replace('.', ',')} kg` : null;
+  return [breedLabel(pet.raca), sexLabel(pet.sexo).toLowerCase(), weight].filter(Boolean).join(' · ');
 }
 
 type HomeTutorNavigationProp = CompositeNavigationProp<
@@ -56,13 +54,13 @@ export function HomeTutorScreen() {
   const { data: appointments, isLoading: isLoadingAppointments } = useAppointments(activePet?.id ?? undefined);
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError, refetch: refetchPlan } = useCarePlan(activePet?.id ?? '');
 
-  const medicacoes = plan?.tasks.filter((t) => t.origem === 'PRESCRICAO') ?? [];
+  const medications = plan?.tasks.filter((t) => t.origin === 'PRESCRICAO') ?? [];
 
   const handleStartCheckIn = () => {
     if (activePet?.id) {
       // Liga o check-in ao primeiro item de medicação de hoje ainda pendente (id numérico = item
       // da API; ids do mock não são numéricos e seguem sem vínculo).
-      const pendente = medicacoes.find((t) => !t.completed);
+      const pendente = medications.find((t) => !t.completed);
       const itemId = pendente ? Number(pendente.id) : NaN;
       navigation.navigate('PlanoTab', {
         screen: 'CheckInEntry',
@@ -144,8 +142,8 @@ export function HomeTutorScreen() {
   const doneCount = hasPlan ? plan.tasks.filter((task) => task.completed).length : 0;
   const totalCount = hasPlan ? plan.tasks.length : 0;
   const tasks = hasPlan ? plan.tasks : [];
-  const medicacoesPendentes = medicacoes.some((task) => !task.completed);
-  const isCheckInDone = medicacoes.length > 0 && !medicacoesPendentes;
+  const hasPendingMedication = medications.some((task) => !task.completed);
+  const isCheckInDone = medications.length > 0 && !hasPendingMedication;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
@@ -221,7 +219,7 @@ export function HomeTutorScreen() {
                   done: task.completed,
                 }))}
               />
-              {medicacoesPendentes ? (
+              {hasPendingMedication ? (
                 <Button
                   label={`Fazer Check-in do ${activePet.nome} →`}
                   backgroundColor={colors.action}

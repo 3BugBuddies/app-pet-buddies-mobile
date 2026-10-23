@@ -13,11 +13,11 @@ export interface NextPatientItem {
 
 interface NextPatientsCardProps {
   items: NextPatientItem[];
-  onOpenPatient: (petId: string, consultaId?: string) => void;
-  onAtender: (petId: string, consultaId: string) => void;
+  onOpenPatient: (petId: string, appointmentId?: string) => void;
+  onAttend: (petId: string, appointmentId: string) => void;
 }
 
-export function NextPatientsCard({ items, onOpenPatient, onAtender }: NextPatientsCardProps) {
+export function NextPatientsCard({ items, onOpenPatient, onAttend }: NextPatientsCardProps) {
   return (
     <View style={styles.list}>
       <Text style={styles.title}>PRÓXIMOS</Text>
@@ -44,10 +44,10 @@ export function NextPatientsCard({ items, onOpenPatient, onAtender }: NextPatien
             <Pressable
               accessibilityRole="button"
               hitSlop={6}
-              style={styles.atenderButton}
-              onPress={() => onAtender(item.petId, item.id)}
+              style={styles.attendButton}
+              onPress={() => onAttend(item.petId, item.id)}
             >
-              <Text style={styles.atenderText}>Atender</Text>
+              <Text style={styles.attendText}>Atender</Text>
             </Pressable>
           )}
         </Pressable>
@@ -117,13 +117,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  atenderButton: {
+  attendButton: {
     paddingHorizontal: spacing.md,
     paddingVertical: 10,
     borderRadius: radii.pill,
     backgroundColor: colors.primary,
   },
-  atenderText: {
+  attendText: {
     fontSize: 14,
     fontWeight: '700',
     color: colors.textLight,

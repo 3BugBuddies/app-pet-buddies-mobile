@@ -4,7 +4,7 @@ import type {
   CarePlan,
   CareHistoryItem,
   CareItem,
-  StatusItem,
+  CareItemStatus,
   CheckInEscalationResult,
   CheckinExtracaoRequest,
   CheckinExtracaoResponse,
@@ -12,7 +12,7 @@ import type {
   ConfirmCheckInInput,
   CheckInResult,
 } from '../model/care';
-import { isStatusConcluido } from '../model/care';
+import { isStatusClosed } from '../model/care';
 import { resolveCheckInResponse } from '../model/careRules';
 import {
   getFakeCarePlan,
@@ -31,7 +31,7 @@ interface ItemPlanoApi {
   tipo: string;
   nome: string;
   dataAlvo: string;
-  status: StatusItem;
+  status: CareItemStatus;
   origem?: string | null;
   vencido?: boolean;
 }
@@ -65,8 +65,8 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
         description: e.tipo === 'MEDICACAO' ? 'Medicação prescrita' : e.tipo,
         time: 'conforme prescrição',
         points: 10,
-        completed: isStatusConcluido(e.status),
-        origem: e.origem,
+        completed: isStatusClosed(e.status),
+        origin: e.origem,
       }));
 
     // weekDays = próximos 7 dias a partir de hoje com dot se houver evento
@@ -112,7 +112,7 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
           dateLabel: `${dia}/${mes}`,
           dayLabel: `Dia ${Math.max(1, diffDias)}`,
           title: e.nome,
-          completed: isStatusConcluido(e.status),
+          completed: isStatusClosed(e.status),
         };
       });
 
@@ -125,10 +125,10 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
           title: e.nome,
           dateIso: e.dataAlvo,
           dateLabel: `${dia}/${mes}/${ano}`,
-          tipo: e.tipo,
+          type: e.tipo,
           status: e.status,
-          vencido: e.vencido ?? false,
-          tratamento: e.origem === 'PRESCRICAO' || e.tipo === 'MEDICACAO',
+          overdue: e.vencido ?? false,
+          treatment: e.origem === 'PRESCRICAO' || e.tipo === 'MEDICACAO',
         };
       });
 

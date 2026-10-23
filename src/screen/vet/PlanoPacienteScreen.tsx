@@ -37,12 +37,12 @@ export function PlanoPacienteScreen({ route }: Props) {
       <Text style={styles.title}>Cuidados de {pet.nome}</Text>
       <CareItemsSection
         title="Preventivo"
-        items={plan.items.filter((item) => !item.tratamento)}
+        items={plan.items.filter((item) => !item.treatment)}
         emptyText="Nenhum cuidado preventivo agendado."
       />
       <CareItemsSection
         title="Tratamento"
-        items={plan.items.filter((item) => item.tratamento)}
+        items={plan.items.filter((item) => item.treatment)}
         emptyText="Nenhum tratamento em andamento."
       />
     </ScrollView>

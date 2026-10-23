@@ -6,34 +6,28 @@ import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useClinicPets } from '../../control/usePetsControl';
-import type { Pet } from '../../model/pet';
-import { abrirFechamento } from '../navigation/abrirFechamento';
+import { normalizeSearch } from '../../model/text';
+import { openClosing } from '../navigation/openClosing';
 import type { HojeTabParamList, VetTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
-
-const responsavelDe = (pet: Pet): string =>
-  'responsavelNome' in pet && typeof pet.responsavelNome === 'string' ? pet.responsavelNome : '';
-
-const semAcento = (texto: string) =>
-  texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export function AtenderAgoraScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<HojeTabParamList, 'AtenderAgora'>>();
   const { data: pets, isLoading } = useClinicPets();
-  const [busca, setBusca] = useState('');
+  const [search, setSearch] = useState('');
 
-  const filtrados = useMemo(() => {
-    const termo = semAcento(busca.trim());
+  const filtered = useMemo(() => {
+    const term = normalizeSearch(search.trim());
     if (!pets) return [];
-    if (!termo) return pets;
-    return pets.filter((p) => semAcento(`${p.nome} ${responsavelDe(p)}`).includes(termo));
-  }, [pets, busca]);
+    if (!term) return pets;
+    return pets.filter((p) => normalizeSearch(`${p.nome} ${p.responsavelNome ?? ''}`).includes(term));
+  }, [pets, search]);
 
-  const atender = (petId: string) => {
+  const attend = (petId: string) => {
     const tabs = navigation.getParent<BottomTabNavigationProp<VetTabParamList>>();
     if (!tabs) return;
     navigation.goBack();
-    abrirFechamento(tabs, { petId });
+    openClosing(tabs, { petId });
   };
 
   if (isLoading) return <LoadingIndicator label="Carregando os pacientes..." />;
@@ -46,15 +40,15 @@ export function AtenderAgoraScreen() {
           style={styles.searchInput}
           placeholder="Buscar pet ou responsável"
           placeholderTextColor={colors.textMuted}
-          value={busca}
-          onChangeText={setBusca}
+          value={search}
+          onChangeText={setSearch}
           autoFocus
         />
       </View>
 
       <Text style={styles.label}>PACIENTES</Text>
       <FlatList
-        data={filtrados}
+        data={filtered}
         keyExtractor={(pet) => String(pet.id)}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
@@ -63,14 +57,14 @@ export function AtenderAgoraScreen() {
           <Text style={styles.hint}>Escolha o paciente para registrar o atendimento, sem agenda.</Text>
         }
         renderItem={({ item: pet }) => (
-          <Pressable style={styles.card} onPress={() => atender(String(pet.id))}>
+          <Pressable style={styles.card} onPress={() => attend(String(pet.id))}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{pet.nome.charAt(0).toUpperCase()}</Text>
             </View>
             <View style={styles.cardText}>
               <Text style={styles.name}>{pet.nome}</Text>
               <Text style={styles.detail}>
-                {[pet.raca || pet.especie, responsavelDe(pet)].filter(Boolean).join(' · ')}
+                {[pet.raca || pet.especie, pet.responsavelNome].filter(Boolean).join(' · ')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />

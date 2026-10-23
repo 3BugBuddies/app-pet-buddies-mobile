@@ -1,33 +1,32 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FieldError } from '../forms/FieldError';
 import { Input } from '../ui/Input';
-import type { ItemAbertoPlano, ProcedimentoDraft } from '../../model/fechamento';
+import type { OpenPlanItem, ProcedureDraft } from '../../model/closing';
+import { formatDateBR } from '../../model/formatDate';
 import { colors, radii, spacing } from '../../styles/theme';
 
-interface ProcedimentoCardProps {
-  draft: ProcedimentoDraft;
-  itens: ItemAbertoPlano[];
-  erro?: string;
-  onChange: (patch: Partial<ProcedimentoDraft>) => void;
+interface ProcedureCardProps {
+  draft: ProcedureDraft;
+  items: OpenPlanItem[];
+  error?: string;
+  onChange: (patch: Partial<ProcedureDraft>) => void;
   onRemove: () => void;
 }
 
-const dataCurta = (iso: string) => iso.split('-').reverse().join('/');
-
-const ROTULO_NOME: Record<ProcedimentoDraft['secao'], { label: string; placeholder: string }> = {
+const NAME_LABELS: Record<ProcedureDraft['section'], { label: string; placeholder: string }> = {
   VACINA_VERMIFUGO: { label: 'Nome *', placeholder: 'ex.: Antirrábica, Vermífugo' },
   EXAME: { label: 'Exame realizado *', placeholder: 'ex.: Hemograma' },
   PROCEDIMENTO: { label: 'Procedimento *', placeholder: 'ex.: Limpeza de tártaro' },
 };
 
-export function ProcedimentoCard({ draft, itens, erro, onChange, onRemove }: ProcedimentoCardProps) {
-  const ehVacina = draft.secao === 'VACINA_VERMIFUGO';
-  const rotulo = ROTULO_NOME[draft.secao];
+export function ProcedureCard({ draft, items, error, onChange, onRemove }: ProcedureCardProps) {
+  const isVaccine = draft.section === 'VACINA_VERMIFUGO';
+  const nameLabel = NAME_LABELS[draft.section];
 
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        {ehVacina ? (
+        {isVaccine ? (
           <View style={styles.chips}>
             {(['VACINACAO', 'VERMIFUGACAO'] as const).map((tipo) => (
               <Pressable
@@ -50,41 +49,41 @@ export function ProcedimentoCard({ draft, itens, erro, onChange, onRemove }: Pro
       </View>
 
       <Input
-        label={rotulo.label}
-        placeholder={rotulo.placeholder}
+        label={nameLabel.label}
+        placeholder={nameLabel.placeholder}
         value={draft.nome}
         onChangeText={(nome) => onChange({ nome })}
-        hasError={!!erro}
+        hasError={!!error}
       />
-      <FieldError message={erro} />
+      <FieldError message={error} />
 
-      {ehVacina ? (
+      {isVaccine ? (
         <>
           <Input
             label="Lote / marca (opcional)"
             placeholder="ex.: Zoetis, lote 12345"
-            value={draft.lote}
-            onChangeText={(lote) => onChange({ lote })}
+            value={draft.batch}
+            onChangeText={(batch) => onChange({ batch })}
           />
           <Text style={styles.sub}>Item do plano</Text>
-          <View style={styles.itens}>
+          <View style={styles.items}>
             <Pressable
-              onPress={() => onChange({ itemPlanoId: null, itemManual: true })}
+              onPress={() => onChange({ itemPlanoId: null, manualItem: true })}
               style={[styles.item, draft.itemPlanoId == null && styles.itemActive]}
             >
-              <Text style={styles.itemNome}>Avulsa</Text>
-              <Text style={styles.itemSub}>não baixa nenhum item do plano</Text>
+              <Text style={styles.itemName}>Avulsa</Text>
+              <Text style={styles.itemSubtitle}>não baixa nenhum item do plano</Text>
             </Pressable>
-            {itens.map((item) => (
+            {items.map((item) => (
               <Pressable
                 key={item.id}
-                onPress={() => onChange({ itemPlanoId: item.id, itemManual: true })}
+                onPress={() => onChange({ itemPlanoId: item.id, manualItem: true })}
                 style={[styles.item, draft.itemPlanoId === item.id && styles.itemActive]}
               >
-                <Text style={styles.itemNome}>{item.nome}</Text>
-                <Text style={styles.itemSub}>
+                <Text style={styles.itemName}>{item.nome}</Text>
+                <Text style={styles.itemSubtitle}>
                   {item.vencido ? 'vencido · ' : 'previsto · '}
-                  {dataCurta(item.dataAlvo)}
+                  {formatDateBR(item.dataAlvo)}
                 </Text>
               </Pressable>
             ))}
@@ -93,10 +92,10 @@ export function ProcedimentoCard({ draft, itens, erro, onChange, onRemove }: Pro
       ) : null}
 
       <Input
-        label={ehVacina ? 'Reações / observações (opcional)' : 'Observações (opcional)'}
-        placeholder={ehVacina ? 'ex.: animal agitado' : 'ex.: resultado em 48 h'}
-        value={draft.observacao}
-        onChangeText={(observacao) => onChange({ observacao })}
+        label={isVaccine ? 'Reações / observações (opcional)' : 'Observações (opcional)'}
+        placeholder={isVaccine ? 'ex.: animal agitado' : 'ex.: resultado em 48 h'}
+        value={draft.notes}
+        onChangeText={(notes) => onChange({ notes })}
         multiline
         style={styles.notes}
       />
@@ -130,7 +129,7 @@ const styles = StyleSheet.create({
   chipTextActive: { color: colors.textLight },
   remove: { fontSize: 13, fontWeight: '600', color: colors.error },
   sub: { fontSize: 14, color: colors.textSecondary, marginBottom: spacing.xs },
-  itens: { gap: spacing.xs, marginBottom: spacing.md },
+  items: { gap: spacing.xs, marginBottom: spacing.md },
   item: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -138,7 +137,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   itemActive: { borderColor: colors.primary, backgroundColor: colors.cardChia },
-  itemNome: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
-  itemSub: { fontSize: 12, color: colors.textSecondary },
+  itemName: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  itemSubtitle: { fontSize: 12, color: colors.textSecondary },
   notes: { minHeight: 64, textAlignVertical: 'top' },
 });

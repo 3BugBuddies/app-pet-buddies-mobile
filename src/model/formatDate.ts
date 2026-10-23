@@ -32,3 +32,9 @@ export function formatTodayLabel(date: Date = new Date()): string {
   const mes = String(date.getMonth() + 1).padStart(2, '0');
   return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${dia}/${mes}`;
 }
+
+// "AAAA-MM-DD[THH:mm...]" -> "DD/MM/AAAA", sem passar por Date.
+export function formatDateBR(iso: string): string {
+  const [ano, mes, dia] = iso.slice(0, 10).split('-');
+  return ano && mes && dia ? `${dia}/${mes}/${ano}` : '';
+}

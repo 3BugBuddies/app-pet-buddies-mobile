@@ -4,23 +4,20 @@ import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { HeroCard } from '../../component/pet-profile/HeroCard';
 import { StatsRow } from '../../component/pet-profile/StatsRow';
-import { TratamentoCard } from '../../component/pet-profile/TratamentoCard';
+import { TreatmentCard } from '../../component/pet-profile/TreatmentCard';
 import { Button } from '../../component/ui/Button';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useActivePetId, useDeletePet, usePet, usePets } from '../../control/usePetsControl';
-import { useResumoPlano } from '../../control/usePatientsControl';
+import { usePlanSummary } from '../../control/usePatientsControl';
 import useMedicalRecordControl from '../../control/useMedicalRecordControl';
-import { rotuloEspecie, rotuloRaca, rotuloSexo } from '../../model/pet';
+import { formatShortDate } from '../../model/formatDate';
+import { speciesLabel, breedLabel, sexLabel } from '../../model/pet';
 import type { PetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PetTabParamList, 'PetProfile'>;
-
-function formatDataCurta(dataISO: string): string {
-  return `${dataISO.slice(8, 10)}/${dataISO.slice(5, 7)}`;
-}
 
 function calcIdadeLabel(dataNascimento?: string | null): string {
   if (!dataNascimento) return 'Idade desconhecida';
@@ -50,7 +47,7 @@ export function PetProfileScreen({ route }: Props) {
   const { activePetId } = useActivePetId();
   const petId = route.params?.petId ?? activePetId ?? '';
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
-  const { data: resumo } = useResumoPlano(petId);
+  const { data: summary } = usePlanSummary(petId);
   const { registros, carregandoRegistros } = useMedicalRecordControl(petId);
   const deletePet = useDeletePet();
 
@@ -95,7 +92,7 @@ export function PetProfileScreen({ route }: Props) {
 
   const pesoLabel = pet.peso ? `${pet.peso.toString().replace('.', ',')} kg` : 'N/A';
   const idadeLabel = calcIdadeLabel(pet.dataNascimento);
-  const emTratamento = resumo?.categoria === 'TRATAMENTO' || resumo?.categoria === 'POS_CIRURGICO';
+  const inTreatment = summary?.category === 'TRATAMENTO' || summary?.category === 'POS_CIRURGICO';
   const castradoLabel = pet.castrado ? 'Sim' : 'Não';
 
   return (
@@ -112,7 +109,7 @@ export function PetProfileScreen({ route }: Props) {
 
       <HeroCard
         petName={pet.nome}
-        breedLabel={`${rotuloRaca(pet.raca)} · ${rotuloEspecie(pet.especie).toLowerCase()} · ${rotuloSexo(pet.sexo).toLowerCase()}`}
+        breedLabel={`${breedLabel(pet.raca)} · ${speciesLabel(pet.especie).toLowerCase()} · ${sexLabel(pet.sexo).toLowerCase()}`}
         planStatusLabel="Perfil do pet"
         imageUrl={pet.foto}
       />
@@ -125,8 +122,8 @@ export function PetProfileScreen({ route }: Props) {
         ]}
       />
 
-      {emTratamento && resumo?.proximos[0] ? (
-        <TratamentoCard nome={resumo.proximos[0].nome} ate={resumo.ultimaData ? formatDataCurta(resumo.ultimaData) : null} />
+      {inTreatment && summary?.upcoming[0] ? (
+        <TreatmentCard name={summary.upcoming[0].name} until={summary.lastDate ? formatShortDate(summary.lastDate) : null} />
       ) : null}
 
       <Text style={styles.sectionTitle}>Histórico</Text>
@@ -137,7 +134,7 @@ export function PetProfileScreen({ route }: Props) {
         <View style={{ gap: spacing.sm }}>
           {registros.map((record) => (
             <View key={record.id} style={styles.recordCard}>
-              <Text style={styles.recordDate}>{formatDataCurta(record.dataAtendimento)}</Text>
+              <Text style={styles.recordDate}>{formatShortDate(record.dataAtendimento)}</Text>
               <View style={styles.recordText}>
                 <Text style={styles.recordTitle}>Atendimento</Text>
                 {record.tratamento ? (

@@ -7,7 +7,7 @@ import { Card } from '../../component/ui/Card';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { usePets } from '../../control/usePetsControl';
-import { rotuloEspecie, rotuloRaca, rotuloSexo, type Pet } from '../../model/pet';
+import { speciesLabel, breedLabel, sexLabel, type Pet } from '../../model/pet';
 import type { PetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../styles/theme';
@@ -51,7 +51,7 @@ export function MeusPetsScreen() {
                 {item.nome}
               </Text>
               <Text style={styles.petBreed} numberOfLines={1}>
-                {`${rotuloRaca(item.raca)} · ${rotuloEspecie(item.especie).toLowerCase()} · ${rotuloSexo(item.sexo).toLowerCase()}`}
+                {`${breedLabel(item.raca)} · ${speciesLabel(item.especie).toLowerCase()} · ${sexLabel(item.sexo).toLowerCase()}`}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />

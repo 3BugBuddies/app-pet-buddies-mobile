@@ -18,7 +18,7 @@ export function CheckInResultScreen({ route }: Props) {
   const { data: pet } = usePet(petId);
 
   const safeDoseLabel = result.doseLabel || 'Dose recomendada';
-  const regraAplicada = result.regraAplicada !== false;
+  const ruleApplied = result.ruleApplied !== false;
 
   const handleFinish = () => {
     // Limpa o stack do PlanoTab para a aba Cuidados não reter as telas do check-in.
@@ -34,7 +34,7 @@ export function CheckInResultScreen({ route }: Props) {
     .filter(Boolean)
     .join(' · ');
 
-  const dosedFor = [result.medicationLabel, pet?.nome, regraAplicada ? 'a dose vem da regra' : 'dose padrão da receita']
+  const dosedFor = [result.medicationLabel, pet?.nome, ruleApplied ? 'a dose vem da regra' : 'dose padrão da receita']
     .filter(Boolean)
     .join(' · ');
 
@@ -49,7 +49,7 @@ export function CheckInResultScreen({ route }: Props) {
         </Text>
         <Text style={styles.doseRange}>{dosedFor}</Text>
 
-        {!regraAplicada ? (
+        {!ruleApplied ? (
           <View style={styles.normalStatusBox}>
             <Ionicons name="checkmark-circle-outline" size={20} color={colors.textPrimary} />
             <Text style={styles.normalStatusText}>Orientação padrão mantida. Tudo sob controle!</Text>
@@ -62,7 +62,7 @@ export function CheckInResultScreen({ route }: Props) {
         <Text style={styles.ruleCode}>{result.ruleDescription || 'Orientação padrão sem alteração de dosagem'}</Text>
       </View>
 
-      {result.itemEncerrado ? (
+      {result.itemClosed ? (
         <View style={styles.recordRow}>
           <View style={styles.recordCheck}>
             <Ionicons name="checkmark" size={14} color={colors.textPrimary} />

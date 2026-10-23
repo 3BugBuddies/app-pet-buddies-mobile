@@ -55,7 +55,7 @@ const petSchema = object({
 
 type Pet = InferType<typeof petSchema>;
 
-const ESPECIE_LABEL: Record<string, string> = {
+const SPECIES_LABELS: Record<string, string> = {
   CACHORRO: 'Cachorro',
   GATO: 'Gato',
   PASSARO: 'Pássaro',
@@ -64,7 +64,7 @@ const ESPECIE_LABEL: Record<string, string> = {
   OUTRO: 'Outro',
 };
 
-const PORTE_LABEL: Record<string, string> = {
+const SIZE_LABELS: Record<string, string> = {
   MINI: 'Mini',
   PEQUENO: 'Pequeno',
   MEDIO: 'Médio',
@@ -72,24 +72,24 @@ const PORTE_LABEL: Record<string, string> = {
   GIGANTE: 'Gigante',
 };
 
-const SEXO_LABEL: Record<string, string> = { MACHO: 'Macho', FEMEA: 'Fêmea' };
+const SEX_LABELS: Record<string, string> = { MACHO: 'Macho', FEMEA: 'Fêmea' };
 
-const rotuloEspecie = (especie?: string | null): string =>
-  (especie && ESPECIE_LABEL[especie]) || especie || '';
+const speciesLabel = (species?: string | null): string =>
+  (species && SPECIES_LABELS[species]) || species || '';
 
-const rotuloPorte = (porte?: string | null): string => (porte && PORTE_LABEL[porte]) || porte || '';
+const sizeLabel = (size?: string | null): string => (size && SIZE_LABELS[size]) || size || '';
 
-const rotuloSexo = (sexo?: string | null): string => (sexo && SEXO_LABEL[sexo]) || sexo || '';
+const sexLabel = (sex?: string | null): string => (sex && SEX_LABELS[sex]) || sex || '';
 
-const rotuloRaca = (raca?: string | null): string =>
-  !raca || raca === 'SEM_RACA' ? 'Sem raça definida' : raca;
+const breedLabel = (breed?: string | null): string =>
+  !breed || breed === 'SEM_RACA' ? 'Sem raça definida' : breed;
 
-const rotuloConsultasRestantes = (n: number): string =>
+const remainingAppointmentsLabel = (n: number): string =>
   `${n} ${n === 1 ? 'consulta restante' : 'consultas restantes'}`;
 
 type PetPayload = Omit<Pet, 'responsavelNome' | 'responsavelTelefone' | 'responsavelEndereco'>;
 
-const semCamposDeLeitura = (pet: Pet): PetPayload => {
+const withoutReadOnlyFields = (pet: Pet): PetPayload => {
   const { responsavelNome: _n, responsavelTelefone: _t, responsavelEndereco: _e, ...resto } = pet;
   return resto;
 };
@@ -100,10 +100,10 @@ export {
   ESPECIES,
   PORTES,
   SEXOS,
-  rotuloEspecie,
-  rotuloPorte,
-  rotuloSexo,
-  rotuloRaca,
-  rotuloConsultasRestantes,
-  semCamposDeLeitura,
+  speciesLabel,
+  sizeLabel,
+  sexLabel,
+  breedLabel,
+  remainingAppointmentsLabel,
+  withoutReadOnlyFields,
 };

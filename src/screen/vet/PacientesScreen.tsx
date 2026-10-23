@@ -5,48 +5,46 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { PatientCard } from '../../component/patients/PatientCard';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useResumosPlano } from '../../control/usePatientsControl';
+import { usePlanSummaries } from '../../control/usePatientsControl';
 import { useClinicPets } from '../../control/usePetsControl';
-import { rotuloEspecie, rotuloRaca } from '../../model/pet';
+import { formatShortDate } from '../../model/formatDate';
+import { speciesLabel, breedLabel } from '../../model/pet';
+import { normalizeSearch } from '../../model/text';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
-type Filtro = 'TODOS' | 'TRATAMENTO' | 'PREVENTIVO';
+type Filter = 'TODOS' | 'TRATAMENTO' | 'PREVENTIVO';
 
-const FILTROS: { key: Filtro; label: string }[] = [
+const FILTERS: { key: Filter; label: string }[] = [
   { key: 'TODOS', label: 'Todos' },
   { key: 'TRATAMENTO', label: 'Em tratamento' },
   { key: 'PREVENTIVO', label: 'Preventivo' },
 ];
 
-const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-
-const dataCurta = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
-
 export function PacientesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
   const { data: pets, isLoading, isError, refetch } = useClinicPets();
-  const resumos = useResumosPlano((pets ?? []).map((p) => String(p.id)));
-  const [busca, setBusca] = useState('');
-  const [filtro, setFiltro] = useState<Filtro>('TODOS');
+  const summaries = usePlanSummaries((pets ?? []).map((p) => String(p.id)));
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<Filter>('TODOS');
 
   const filtered = useMemo(() => {
     if (!pets) return [];
-    const termo = semAcento(busca.trim());
+    const term = normalizeSearch(search.trim());
     return pets.filter((p) => {
-      const categoria = resumos[String(p.id)]?.categoria;
-      const emTratamento = categoria === 'TRATAMENTO' || categoria === 'POS_CIRURGICO';
-      if (filtro === 'TRATAMENTO' && !emTratamento) return false;
-      if (filtro === 'PREVENTIVO' && categoria !== 'PREVENTIVO') return false;
-      if (!termo) return true;
+      const category = summaries[String(p.id)]?.category;
+      const inTreatment = category === 'TRATAMENTO' || category === 'POS_CIRURGICO';
+      if (filter === 'TRATAMENTO' && !inTreatment) return false;
+      if (filter === 'PREVENTIVO' && category !== 'PREVENTIVO') return false;
+      if (!term) return true;
       return (
-        semAcento(p.nome).includes(termo) ||
-        semAcento(p.responsavelNome ?? '').includes(termo)
+        normalizeSearch(p.nome).includes(term) ||
+        normalizeSearch(p.responsavelNome ?? '').includes(term)
       );
     });
-  }, [pets, busca, filtro, resumos]);
+  }, [pets, search, filter, summaries]);
 
   if (isLoading) {
     return <LoadingIndicator label="Carregando pacientes..." />;
@@ -64,19 +62,19 @@ export function PacientesScreen() {
         style={styles.searchBar}
         placeholder="Buscar pet ou responsável"
         placeholderTextColor={colors.textMuted}
-        value={busca}
-        onChangeText={setBusca}
+        value={search}
+        onChangeText={setSearch}
         returnKeyType="search"
         clearButtonMode="while-editing"
       />
 
       <View style={styles.filters}>
-        {FILTROS.map((f) => {
-          const active = f.key === filtro;
+        {FILTERS.map((f) => {
+          const active = f.key === filter;
           return (
             <Pressable
               key={f.key}
-              onPress={() => setFiltro(f.key)}
+              onPress={() => setFilter(f.key)}
               style={[styles.chip, active && styles.chipActive]}
             >
               <Text style={[styles.chipText, active && styles.chipTextActive]}>{f.label}</Text>
@@ -90,23 +88,23 @@ export function PacientesScreen() {
           <Text style={styles.emptyText}>Nenhum paciente encontrado.</Text>
         ) : (
           filtered.map((pet) => {
-            const resumo = resumos[String(pet.id)];
-            const emTratamento = resumo?.categoria === 'TRATAMENTO' || resumo?.categoria === 'POS_CIRURGICO';
-            const pilula = !resumo
+            const summary = summaries[String(pet.id)];
+            const inTreatment = summary?.category === 'TRATAMENTO' || summary?.category === 'POS_CIRURGICO';
+            const pill = !summary
               ? null
-              : emTratamento
+              : inTreatment
                 ? {
-                    label: resumo.ultimaData ? `em tratamento até ${dataCurta(resumo.ultimaData)}` : 'em tratamento',
-                    tratamento: true,
+                    label: summary.lastDate ? `em tratamento até ${formatShortDate(summary.lastDate)}` : 'em tratamento',
+                    treatment: true,
                   }
-                : { label: 'preventivo', tratamento: false };
+                : { label: 'preventivo', treatment: false };
             return (
               <PatientCard
                 key={pet.id}
                 petName={pet.nome}
-                descricao={`${rotuloEspecie(pet.especie)} · ${rotuloRaca(pet.raca)}`}
-                responsavel={pet.responsavelNome}
-                pilula={pilula}
+                description={`${speciesLabel(pet.especie)} · ${breedLabel(pet.raca)}`}
+                tutorName={pet.responsavelNome}
+                pill={pill}
                 onPress={() => navigation.navigate('DetalhesPet', { petId: pet.id! })}
               />
             );

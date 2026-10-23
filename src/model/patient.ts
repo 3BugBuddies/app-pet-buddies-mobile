@@ -7,15 +7,15 @@ export interface ClinicPatient {
   telefone?: string;
 }
 
-export interface CuidadoPendente {
+export interface PendingCare {
   id: string;
-  nome: string;
-  dataAlvo: string;
+  name: string;
+  targetDate: string;
 }
 
 // Resumo do plano ativo do animal (GET /motor/plano/{id}).
-export interface ResumoPlano {
-  categoria: 'PREVENTIVO' | 'TRATAMENTO' | 'POS_CIRURGICO';
-  proximos: CuidadoPendente[];
-  ultimaData: string | null;
+export interface PlanSummary {
+  category: 'PREVENTIVO' | 'TRATAMENTO' | 'POS_CIRURGICO';
+  upcoming: PendingCare[];
+  lastDate: string | null;
 }

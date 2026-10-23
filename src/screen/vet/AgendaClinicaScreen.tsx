@@ -14,7 +14,7 @@ import { useAppointments } from '../../control/useAppointmentsControl';
 import { AuthContext } from '../../context/authContext';
 import { useLogoutControl } from '../../control/authControl';
 import { useClinicPets } from '../../control/usePetsControl';
-import { abrirFechamento } from '../navigation/abrirFechamento';
+import { openClosing } from '../navigation/openClosing';
 import type { HojeTabParamList, VetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../styles/theme';
@@ -68,9 +68,9 @@ export function AgendaClinicaScreen() {
   const remaining = totalCount - seenCount;
   const nextItem = items.find((item) => !item.seen);
 
-  const iniciarFechamento = (params: { petId: string; consultaId?: string }) => {
+  const startClosing = (params: { petId: string; consultaId?: string }) => {
     const tabs = navigation.getParent<BottomTabNavigationProp<VetTabParamList>>();
-    if (tabs) abrirFechamento(tabs, params);
+    if (tabs) openClosing(tabs, params);
   };
 
   const dateLabel = new Intl.DateTimeFormat('pt-BR', {
@@ -116,7 +116,7 @@ export function AgendaClinicaScreen() {
         <NextPatientsCard
           items={items}
           onOpenPatient={(petId, consultaId) => navigation.navigate('PacientesTab', { screen: 'DetalhesPet', params: { petId, consultaId } })}
-          onAtender={(petId, consultaId) => iniciarFechamento({ petId, consultaId })}
+          onAttend={(petId, consultaId) => startClosing({ petId, consultaId })}
         />
 
       </ScrollView>

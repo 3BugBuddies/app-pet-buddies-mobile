@@ -23,7 +23,7 @@ export function CareItemsSection({ title, items, emptyText }: CareItemsSectionPr
         <Text style={styles.empty}>{emptyText}</Text>
       ) : (
         items.map((item) => {
-          const display = statusDisplay(item.status, item.tipo === 'MEDICACAO', item.vencido);
+          const display = statusDisplay(item.status, item.type === 'MEDICACAO', item.overdue);
           return (
             <View key={item.id} style={styles.row}>
               <View style={styles.textBlock}>

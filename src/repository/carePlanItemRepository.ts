@@ -1,7 +1,7 @@
 import { apiJava, USE_API } from './apiClient';
-import type { ItemAbertoPlano } from '../model/fechamento';
+import type { OpenPlanItem } from '../model/closing';
 
-interface ItemPlanoDto {
+interface PlanItemDto {
   id: number;
   tipo: string;
   nome: string;
@@ -9,14 +9,14 @@ interface ItemPlanoDto {
   vencido?: boolean;
 }
 
-interface PaginaItensDto {
-  content?: ItemPlanoDto[];
+interface ItemsPageDto {
+  content?: PlanItemDto[];
 }
 
 // tipo repetido na URL: o axios serializaria o array como tipo[]=..., que o Spring não liga.
-const getItensAbertosVacinaVermifugo = async (animalId: string): Promise<ItemAbertoPlano[]> => {
+const getOpenPreventiveItems = async (animalId: string): Promise<OpenPlanItem[]> => {
   if (!USE_API) return [];
-  const response = await apiJava.get<PaginaItensDto>(
+  const response = await apiJava.get<ItemsPageDto>(
     `/motor/plano/${animalId}/eventos?tipo=VACINACAO&tipo=VERMIFUGACAO&abertos=true&size=50`
   );
   return (response.data.content ?? []).flatMap((item) =>
@@ -26,4 +26,4 @@ const getItensAbertosVacinaVermifugo = async (animalId: string): Promise<ItemAbe
   );
 };
 
-export { getItensAbertosVacinaVermifugo };
+export { getOpenPreventiveItems };

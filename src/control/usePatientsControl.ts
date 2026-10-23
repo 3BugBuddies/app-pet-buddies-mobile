@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { getClinicPatients, getResumoPlano } from '../repository/patientRepository';
+import { getClinicPatients, getPlanSummary } from '../repository/patientRepository';
 
 export function usePatients() {
   return useQuery({
@@ -8,23 +8,23 @@ export function usePatients() {
   });
 }
 
-const resumoKey = (petId: string) => ['resumoPlano', petId];
+const summaryKey = (petId: string) => ['planSummary', petId];
 
-export function useResumoPlano(petId: string) {
+export function usePlanSummary(petId: string) {
   return useQuery({
-    queryKey: resumoKey(petId),
-    queryFn: () => getResumoPlano(petId),
+    queryKey: summaryKey(petId),
+    queryFn: () => getPlanSummary(petId),
     enabled: !!petId,
     retry: false,
   });
 }
 
 // Um GET por paciente: a API não tem a visão agregada da clínica.
-export function useResumosPlano(petIds: string[]) {
+export function usePlanSummaries(petIds: string[]) {
   const results = useQueries({
     queries: petIds.map((id) => ({
-      queryKey: resumoKey(id),
-      queryFn: () => getResumoPlano(id),
+      queryKey: summaryKey(id),
+      queryFn: () => getPlanSummary(id),
       retry: false,
     })),
   });

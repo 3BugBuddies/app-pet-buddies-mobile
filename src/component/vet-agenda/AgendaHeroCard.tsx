@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { rotuloConsultasRestantes } from '../../model/pet';
+import { remainingAppointmentsLabel } from '../../model/pet';
 import { colors, radii, spacing } from '../../styles/theme';
 
 const RING_SIZE = 84;
@@ -26,7 +26,7 @@ export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: A
         <Text style={styles.value}>{seenCount} de {totalCount}</Text>
         <Text style={styles.sub}>consultas atendidas</Text>
         <Text style={styles.sub}>
-          {rotuloConsultasRestantes(remaining)}{nextTime ? ` · próxima às ${nextTime}` : ''}
+          {remainingAppointmentsLabel(remaining)}{nextTime ? ` · próxima às ${nextTime}` : ''}
         </Text>
       </View>
 

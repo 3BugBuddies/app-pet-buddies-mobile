@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
-import { useConcluirAtendimento, comporObservacao } from '../../control/useFechamentoControl';
+import { useCompleteAppointment, composeNotes } from '../../control/useClosingControl';
 import { descreverCondicao } from '../../model/prescriptionRule';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,15 +13,15 @@ import { colors, radii, spacing } from '../../styles/theme';
 type Props = NativeStackScreenProps<PacientesTabParamList, 'AssinarPrescricao'>;
 
 export function AssinarPrescricaoScreen({ route }: Props) {
-  const { fechamento } = route.params;
-  const draft = fechamento.prescricao;
+  const { closing } = route.params;
+  const draft = closing.prescription;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList, 'AssinarPrescricao'>>();
   const insets = useSafeAreaInsets();
-  const { concluir, concluindo } = useConcluirAtendimento();
+  const { complete, completing } = useCompleteAppointment();
 
   const handleSign = async () => {
     try {
-      await concluir(fechamento);
+      await complete(closing);
     } catch {
       return; // o erro já foi mostrado pelo onError da mutation
     }
@@ -30,7 +30,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
         index: 1,
         routes: [
           { name: 'Pacientes' },
-          { name: 'CheckoutAtendimento', params: { petName: fechamento.petNome } },
+          { name: 'CheckoutAtendimento', params: { petName: closing.petName } },
         ],
       })
     );
@@ -38,24 +38,24 @@ export function AssinarPrescricaoScreen({ route }: Props) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
-      <CheckInTopBar title="Assinar e concluir" subtitle={fechamento.petNome} />
+      <CheckInTopBar title="Assinar e concluir" subtitle={closing.petName} />
 
-      {fechamento.motivo.trim() || fechamento.observacao.trim() || fechamento.peso ? (
+      {closing.reason.trim() || closing.notes.trim() || closing.weight ? (
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Registro</Text>
-          {fechamento.motivo.trim() ? <Text style={styles.orientacaoText}>{fechamento.motivo.trim()}</Text> : null}
-          {fechamento.observacao.trim() ? <Text style={styles.orientacaoText}>{fechamento.observacao.trim()}</Text> : null}
-          {fechamento.peso ? <Text style={styles.orientacaoText}>Peso: {fechamento.peso} kg</Text> : null}
+          {closing.reason.trim() ? <Text style={styles.orientacaoText}>{closing.reason.trim()}</Text> : null}
+          {closing.notes.trim() ? <Text style={styles.orientacaoText}>{closing.notes.trim()}</Text> : null}
+          {closing.weight ? <Text style={styles.orientacaoText}>Peso: {closing.weight} kg</Text> : null}
         </View>
       ) : null}
 
-      {fechamento.procedimentos.length > 0 ? (
+      {closing.procedures.length > 0 ? (
         <View style={styles.card}>
           <Text style={styles.sectionLabel}>Procedimentos</Text>
-          {fechamento.procedimentos.map((p) => (
-            <View key={p.chave}>
+          {closing.procedures.map((p) => (
+            <View key={p.key}>
               <Text style={styles.orientacaoText}>{p.nome.trim()}</Text>
-              {comporObservacao(p) ? <Text style={styles.subtitle}>{comporObservacao(p)}</Text> : null}
+              {composeNotes(p) ? <Text style={styles.subtitle}>{composeNotes(p)}</Text> : null}
               {p.itemPlanoId != null ? <Text style={styles.subtitle}>Baixa o item do plano</Text> : null}
             </View>
           ))}
@@ -108,7 +108,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
           <Button
             label="Assinar e concluir"
             backgroundColor={colors.action}
-            loading={concluindo}
+            loading={completing}
             onPress={handleSign}
             style={{ width: '100%' }}
           />

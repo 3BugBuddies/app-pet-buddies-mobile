@@ -35,7 +35,7 @@ export interface CareTask {
   points: number;
   completed: boolean;
   // PRESCRICAO = medicação (tem check-in); PROTOCOLO = vacina/vermífugo do plano preventivo.
-  origem?: string | null;
+  origin?: string | null;
   // % de adesão histórica do tutor nesse item — só usado na visão da vet
   // (PlanoPacienteScreen); ausente na visão do tutor.
   adherencePct?: number;
@@ -49,7 +49,7 @@ export interface ClinicalMilestone {
   done: boolean;
 }
 
-export type StatusItem =
+export type CareItemStatus =
   | 'PENDENTE'
   | 'REALIZADO'
   | 'SUSPENSO'
@@ -58,9 +58,9 @@ export type StatusItem =
   | 'ATRASADO';
 
 // REALIZADO, SUSPENSO e ENCAMINHADO encerram o item (o check-in grava um deles por desfecho).
-export const STATUS_CONCLUIDOS: readonly StatusItem[] = ['REALIZADO', 'SUSPENSO', 'ENCAMINHADO'];
+export const CLOSED_STATUSES: readonly CareItemStatus[] = ['REALIZADO', 'SUSPENSO', 'ENCAMINHADO'];
 
-export const isStatusConcluido = (status: StatusItem): boolean => STATUS_CONCLUIDOS.includes(status);
+export const isStatusClosed = (status: CareItemStatus): boolean => CLOSED_STATUSES.includes(status);
 
 export type StatusTone = 'success' | 'warning' | 'alert' | 'neutral';
 
@@ -69,10 +69,10 @@ export interface StatusDisplay {
   tone: StatusTone;
 }
 
-export function statusDisplay(status: StatusItem, medicacao: boolean, vencido: boolean): StatusDisplay {
+export function statusDisplay(status: CareItemStatus, medication: boolean, overdue: boolean): StatusDisplay {
   switch (status) {
     case 'REALIZADO':
-      return { label: medicacao ? 'dose dada' : 'realizado', tone: 'success' };
+      return { label: medication ? 'dose dada' : 'realizado', tone: 'success' };
     case 'SUSPENSO':
       return { label: 'sem dose', tone: 'warning' };
     case 'ENCAMINHADO':
@@ -82,20 +82,20 @@ export function statusDisplay(status: StatusItem, medicacao: boolean, vencido: b
     case 'CANCELADO':
       return { label: 'cancelado', tone: 'neutral' };
     case 'PENDENTE':
-      return vencido ? { label: 'atrasado', tone: 'alert' } : { label: 'pendente', tone: 'neutral' };
+      return overdue ? { label: 'atrasado', tone: 'alert' } : { label: 'pendente', tone: 'neutral' };
   }
 }
 
-// Item do plano para a aba Cuidados. `tratamento` = item nascido de prescrição.
+// Item do plano para a aba Cuidados. `treatment` = item nascido de prescrição.
 export interface CareItem {
   id: string;
   title: string;
   dateIso: string;
   dateLabel: string;
-  tipo: string;
-  status: StatusItem;
-  vencido: boolean;
-  tratamento: boolean;
+  type: string;
+  status: CareItemStatus;
+  overdue: boolean;
+  treatment: boolean;
 }
 
 export interface CareHistoryItem {
@@ -143,10 +143,10 @@ export interface CheckInDoseResult {
   prescriptionDateLabel: string;
   pointsEarned: number;
   // false = nenhuma regra casou (dose-base da receita). Ausente nos resultados locais/mock.
-  regraAplicada?: boolean;
+  ruleApplied?: boolean;
   medicationLabel?: string;
   // O desfecho gravou o status de um item do plano (itemPlanoCuidadoId presente).
-  itemEncerrado?: boolean;
+  itemClosed?: boolean;
 }
 
 export interface CheckInEscalationResult {
@@ -252,16 +252,16 @@ export interface CheckInRequest {
 }
 
 // Etiqueta de estado do hero da home, derivada dos itens do plano (sem dado fixo).
-export function planStateLabel(plan: CarePlan | null | undefined, hoje: string): string | undefined {
+export function planStateLabel(plan: CarePlan | null | undefined, today: string): string | undefined {
   if (!plan) return undefined;
-  const tratamento = plan.items.filter((item) => item.tratamento).map((item) => item.dateIso).sort();
-  const primeira = tratamento[0];
-  const ultima = tratamento[tratamento.length - 1];
-  if (primeira && ultima && ultima >= hoje) {
-    const dia = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))) / 86400000;
-    const total = dia(ultima) - dia(primeira) + 1;
-    const atual = Math.min(total, Math.max(1, dia(hoje) - dia(primeira) + 1));
-    return `Tratamento · dia ${atual} de ${total}`;
+  const treatmentDates = plan.items.filter((item) => item.treatment).map((item) => item.dateIso).sort();
+  const first = treatmentDates[0];
+  const last = treatmentDates[treatmentDates.length - 1];
+  if (first && last && last >= today) {
+    const day = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))) / 86400000;
+    const total = day(last) - day(first) + 1;
+    const current = Math.min(total, Math.max(1, day(today) - day(first) + 1));
+    return `Tratamento · dia ${current} de ${total}`;
   }
   return plan.items.length > 0 ? 'Preventivo' : undefined;
 }

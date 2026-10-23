@@ -151,7 +151,7 @@ const CLINICA_PADRAO = 'Clínica Veterinária';
 // Traduz a resposta real de POST /checkin (`escalado` + `desfechos[]`) para o resultado que
 // as telas desenham. A API não devolve faixa de dose nem pontos. Nome, CRMV e data da
 // prescrição vêm do desfecho (campos opcionais); na ausência, as telas usam o texto padrão.
-function prescritor(d: CheckinDesfecho | undefined): { vetName: string; vetCrmv: string; prescriptionDateLabel: string } {
+function prescriber(d: CheckinDesfecho | undefined): { vetName: string; vetCrmv: string; prescriptionDateLabel: string } {
   return {
     vetName: d?.veterinarioNome || d?.clinicaNome || CLINICA_PADRAO,
     vetCrmv: d?.veterinarioCrmv ?? '',
@@ -167,7 +167,7 @@ export function resolveCheckInResponse(
   const acionar = desfechos.find((d) => d.desfecho === 'ACIONAR_CLINICA');
 
   if (response.escalado) {
-    const { vetName, vetCrmv } = prescritor(acionar ?? desfechos[0]);
+    const { vetName, vetCrmv } = prescriber(acionar ?? desfechos[0]);
     const escalation: CheckInEscalationResult = {
       status: 'ESCALATION',
       reasonLabel: redFlags.length > 0 ? redFlags.join(', ') : 'um sinal de alerta',
@@ -186,7 +186,7 @@ export function resolveCheckInResponse(
   );
 
   if (comDose.length === 0) {
-    const { vetName, vetCrmv } = prescritor(desfechos[0]);
+    const { vetName, vetCrmv } = prescriber(desfechos[0]);
     const noRule: CheckInNoRuleResult = {
       status: 'NO_RULE',
       vetName,
@@ -208,11 +208,11 @@ export function resolveCheckInResponse(
     ruleConfirmedAtLabel: response.registradoEm
       ? new Date(response.registradoEm).toLocaleDateString('pt-BR')
       : '',
-    ...prescritor(comDose[0]),
+    ...prescriber(comDose[0]),
     pointsEarned: 0,
-    regraAplicada: comDose.some((d) => d.regraAplicadaId != null),
+    ruleApplied: comDose.some((d) => d.regraAplicadaId != null),
     medicationLabel: comDose.map((d) => d.medicamento).join(', '),
-    itemEncerrado: comDose.some((d) => d.itemPlanoCuidadoId != null),
+    itemClosed: comDose.some((d) => d.itemPlanoCuidadoId != null),
   };
   return dose;
 }

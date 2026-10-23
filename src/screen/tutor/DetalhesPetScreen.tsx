@@ -6,22 +6,18 @@ import { Button } from '../../component/ui/Button';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { usePet } from '../../control/usePetsControl';
-import { useResumoPlano } from '../../control/usePatientsControl';
-import { rotuloRaca, rotuloSexo } from '../../model/pet';
+import { usePlanSummary } from '../../control/usePatientsControl';
+import { formatDateBR } from '../../model/formatDate';
+import { breedLabel, sexLabel } from '../../model/pet';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'DetalhesPet'>;
 
-const MAX_CUIDADOS = 3;
+const MAX_CARES = 3;
 
-function formatDataBR(dataISO: string): string {
-  const [ano, mes, dia] = dataISO.slice(0, 10).split('-');
-  return `${dia}/${mes}/${ano}`;
-}
-
-function abrirLink(url: string) {
+function openLink(url: string) {
   Linking.openURL(url).catch(() => Alert.alert('Não foi possível abrir o link.'));
 }
 
@@ -30,7 +26,7 @@ export function DetalhesPetScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
-  const { data: resumo } = useResumoPlano(petId);
+  const { data: summary } = usePlanSummary(petId);
 
   if (isLoadingPet) {
     return <LoadingIndicator label="Carregando o pet..." />;
@@ -48,12 +44,12 @@ export function DetalhesPetScreen({ route }: Props) {
   }
 
   const nascimento = pet.dataNascimento ? `nascido em ${pet.dataNascimento.slice(0, 4)}` : null;
-  const detalhe = [rotuloRaca(pet.raca), rotuloSexo(pet.sexo).toLowerCase(), nascimento]
+  const details = [breedLabel(pet.raca), sexLabel(pet.sexo).toLowerCase(), nascimento]
     .filter(Boolean)
     .join(' · ');
   const telefone = pet.responsavelTelefone;
   const endereco = pet.responsavelEndereco;
-  const proximos = (resumo?.proximos ?? []).slice(0, MAX_CUIDADOS);
+  const upcoming = (summary?.upcoming ?? []).slice(0, MAX_CARES);
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]} showsVerticalScrollIndicator={false}>
@@ -63,7 +59,7 @@ export function DetalhesPetScreen({ route }: Props) {
         </View>
         <View style={styles.heroText}>
           <Text style={styles.name}>{pet.nome}</Text>
-          <Text style={styles.detail}>{detalhe}</Text>
+          <Text style={styles.detail}>{details}</Text>
         </View>
       </View>
 
@@ -78,7 +74,7 @@ export function DetalhesPetScreen({ route }: Props) {
             {telefone ? (
               <Pressable
                 accessibilityRole="button"
-                onPress={() => abrirLink(`tel:${telefone.replace(/\D/g, '')}`)}
+                onPress={() => openLink(`tel:${telefone.replace(/\D/g, '')}`)}
                 style={styles.ligar}
               >
                 <Ionicons name="call-outline" size={18} color={colors.textPrimary} />
@@ -97,14 +93,14 @@ export function DetalhesPetScreen({ route }: Props) {
                   label="Maps"
                   style={styles.rotaButton}
                   onPress={() =>
-                    abrirLink(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`)
+                    openLink(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(endereco)}`)
                   }
                 />
                 <Button
                   variant="secondary"
                   label="Waze"
                   style={styles.rotaButton}
-                  onPress={() => abrirLink(`https://waze.com/ul?q=${encodeURIComponent(endereco)}&navigate=yes`)}
+                  onPress={() => openLink(`https://waze.com/ul?q=${encodeURIComponent(endereco)}&navigate=yes`)}
                 />
               </View>
             </View>
@@ -119,13 +115,13 @@ export function DetalhesPetScreen({ route }: Props) {
             <Text style={styles.link}>Ver plano</Text>
           </Pressable>
         </View>
-        {proximos.length === 0 ? (
+        {upcoming.length === 0 ? (
           <Text style={styles.detail}>Nenhum cuidado pendente no plano.</Text>
         ) : (
-          proximos.map((c) => (
+          upcoming.map((c) => (
             <View key={c.id} style={styles.cuidadoRow}>
-              <Text style={styles.cuidadoNome}>{c.nome}</Text>
-              <Text style={styles.detail}>{formatDataBR(c.dataAlvo)}</Text>
+              <Text style={styles.cuidadoNome}>{c.name}</Text>
+              <Text style={styles.detail}>{formatDateBR(c.targetDate)}</Text>
             </View>
           ))
         )}

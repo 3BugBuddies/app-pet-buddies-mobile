@@ -2,21 +2,21 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ProcedimentoCard } from '../../component/fechamento/ProcedimentoCard';
+import { ProcedureCard } from '../../component/closing/ProcedureCard';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Input } from '../../component/ui/Input';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useFechamentoForm } from '../../control/useFechamentoControl';
-import type { SecaoProcedimento } from '../../model/fechamento';
+import { useClosingForm } from '../../control/useClosingControl';
+import type { ProcedureSection } from '../../model/closing';
 import { formatAppointmentDate } from '../../model/formatDate';
 import type { PacientesTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
-const SECOES: { secao: SecaoProcedimento; titulo: string; adicionar: string }[] = [
-  { secao: 'VACINA_VERMIFUGO', titulo: 'Vacina e vermífugo', adicionar: 'Adicionar vacina ou vermífugo' },
-  { secao: 'EXAME', titulo: 'Exames', adicionar: 'Adicionar exame' },
-  { secao: 'PROCEDIMENTO', titulo: 'Procedimentos', adicionar: 'Adicionar procedimento' },
+const SECTIONS: { section: ProcedureSection; title: string; addLabel: string }[] = [
+  { section: 'VACINA_VERMIFUGO', title: 'Vacina e vermífugo', addLabel: 'Adicionar vacina ou vermífugo' },
+  { section: 'EXAME', title: 'Exames', addLabel: 'Adicionar exame' },
+  { section: 'PROCEDIMENTO', title: 'Procedimentos', addLabel: 'Adicionar procedimento' },
 ];
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'ProntuarioForm'>;
@@ -26,19 +26,19 @@ export function ProntuarioFormScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
 
-  const form = useFechamentoForm(petId, consultaId, prescricao ?? null);
+  const form = useClosingForm(petId, consultaId, prescricao ?? null);
 
-  if (form.carregandoConsulta) {
+  if (form.loadingAppointment) {
     return <LoadingIndicator label="Carregando o atendimento..." />;
   }
 
-  const contexto = form.consulta
-    ? `Esta consulta · ${formatAppointmentDate(form.consulta.date).timeLabel}`
+  const context = form.appointment
+    ? `Esta consulta · ${formatAppointmentDate(form.appointment.date).timeLabel}`
     : 'Atendimento imediato';
 
-  const revisar = () => {
-    const fechamento = form.montar();
-    if (fechamento) navigation.navigate('AssinarPrescricao', { fechamento });
+  const review = () => {
+    const closing = form.build();
+    if (closing) navigation.navigate('AssinarPrescricao', { closing });
   };
 
   return (
@@ -51,53 +51,53 @@ export function ProntuarioFormScreen({ route }: Props) {
         >
           <View style={styles.banner}>
             <Text style={styles.title}>{form.pet?.nome ?? 'Atendimento'}</Text>
-            <Text style={styles.context}>{contexto}</Text>
+            <Text style={styles.context}>{context}</Text>
           </View>
 
           <Text style={styles.section}>Registro</Text>
           <Input
             label="Motivo do atendimento"
             placeholder="ex.: Responsável relata coceira no ouvido há 3 dias"
-            value={form.motivo}
-            onChangeText={form.setMotivo}
+            value={form.reason}
+            onChangeText={form.setReason}
             multiline
             style={styles.notes}
           />
           <Input
             label="Observações (opcional)"
             placeholder="ex.: Retorno em 10 dias"
-            value={form.observacao}
-            onChangeText={form.setObservacao}
+            value={form.notes}
+            onChangeText={form.setNotes}
             multiline
             style={styles.notes}
           />
           <Input
             label="Peso (kg)"
             placeholder="ex.: 17,2"
-            value={form.peso}
-            onChangeText={form.handlePesoChange}
+            value={form.weight}
+            onChangeText={form.handleWeightChange}
             keyboardType="decimal-pad"
-            hasError={!!form.erros.peso}
+            hasError={!!form.errors.weight}
           />
-          <FieldError message={form.erros.peso} />
+          <FieldError message={form.errors.weight} />
 
-          {SECOES.map(({ secao, titulo, adicionar }) => (
-            <View key={secao} style={styles.group}>
-              <Text style={styles.section}>{titulo}</Text>
-              {form.procedimentos
-                .filter((p) => p.secao === secao)
+          {SECTIONS.map(({ section, title, addLabel }) => (
+            <View key={section} style={styles.group}>
+              <Text style={styles.section}>{title}</Text>
+              {form.procedures
+                .filter((p) => p.section === section)
                 .map((p) => (
-                  <ProcedimentoCard
-                    key={p.chave}
+                  <ProcedureCard
+                    key={p.key}
                     draft={p}
-                    itens={form.itensDisponiveis(p)}
-                    erro={form.erros[p.chave]}
-                    onChange={(patch) => form.atualizar(p.chave, patch)}
-                    onRemove={() => form.remover(p.chave)}
+                    items={form.availableItems(p)}
+                    error={form.errors[p.key]}
+                    onChange={(patch) => form.update(p.key, patch)}
+                    onRemove={() => form.remove(p.key)}
                   />
                 ))}
-              <Pressable accessibilityRole="button" onPress={() => form.adicionar(secao)} style={styles.addButton}>
-                <Text style={styles.addText}>+ {adicionar}</Text>
+              <Pressable accessibilityRole="button" onPress={() => form.add(section)} style={styles.addButton}>
+                <Text style={styles.addText}>+ {addLabel}</Text>
               </Pressable>
             </View>
           ))}
@@ -132,7 +132,7 @@ export function ProntuarioFormScreen({ route }: Props) {
             )}
           </View>
 
-          <Button label="Assinar e concluir" backgroundColor={colors.action} onPress={revisar} style={styles.primary} />
+          <Button label="Assinar e concluir" backgroundColor={colors.action} onPress={review} style={styles.primary} />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

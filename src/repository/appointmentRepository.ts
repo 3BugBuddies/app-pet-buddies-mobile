@@ -1,7 +1,7 @@
 import { apiJava, USE_API } from './apiClient';
 import type { Appointment, CreateAppointmentInput } from '../model/appointment';
 import type { MedicalRecord } from '../model/medicalRecord';
-import type { FechamentoPayload } from '../model/fechamento';
+import type { ClosingPayload } from '../model/closing';
 import {
   addFakeAppointment,
   addFakePrescription,
@@ -148,7 +148,7 @@ const toRegistroFechamento = (registro: MedicalRecord) => ({
 
 // Fecha o atendimento via POST /{id}/fechamento (atômico: registro + procedimentos + prescrições).
 // A API só fecha consulta AGENDADA ou CONFIRMADA e exige `registroAtendimento`.
-const fecharAtendimento = async (id: string, payload: FechamentoPayload): Promise<void> => {
+const fecharAtendimento = async (id: string, payload: ClosingPayload): Promise<void> => {
   if (USE_API) {
     await apiJava.post(`/consulta/${id}/fechamento`, {
       registroAtendimento: toRegistroFechamento(payload.registroAtendimento),

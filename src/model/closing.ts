@@ -3,9 +3,9 @@ import type { PrescricaoDraft } from './prescription';
 import type { Operador, TipoAcao } from './prescriptionRule';
 import type { TipoProcedimento } from './procedure';
 
-type SecaoProcedimento = 'VACINA_VERMIFUGO' | 'EXAME' | 'PROCEDIMENTO';
+type ProcedureSection = 'VACINA_VERMIFUGO' | 'EXAME' | 'PROCEDIMENTO';
 
-interface ItemAbertoPlano {
+interface OpenPlanItem {
   id: number;
   tipo: 'VACINACAO' | 'VERMIFUGACAO';
   nome: string;
@@ -13,29 +13,29 @@ interface ItemAbertoPlano {
   vencido: boolean;
 }
 
-interface ProcedimentoDraft {
-  chave: string;
-  secao: SecaoProcedimento;
+interface ProcedureDraft {
+  key: string;
+  section: ProcedureSection;
   tipo: TipoProcedimento;
   nome: string;
-  lote: string;
-  observacao: string;
+  batch: string;
+  notes: string;
   itemPlanoId: number | null;
-  itemManual: boolean;
+  manualItem: boolean;
 }
 
-interface FechamentoDraft {
+interface ClosingDraft {
   petId: string;
-  petNome: string;
-  consultaId: string | null;
-  motivo: string;
-  observacao: string;
-  peso: string;
-  procedimentos: ProcedimentoDraft[];
-  prescricao: PrescricaoDraft | null;
+  petName: string;
+  appointmentId: string | null;
+  reason: string;
+  notes: string;
+  weight: string;
+  procedures: ProcedureDraft[];
+  prescription: PrescricaoDraft | null;
 }
 
-interface ProcedimentoFechamento {
+interface ClosingProcedure {
   tipo: TipoProcedimento;
   nome: string;
   observacao?: string;
@@ -44,7 +44,7 @@ interface ProcedimentoFechamento {
   itemPlanoId?: number;
 }
 
-interface RegraFechamento {
+interface ClosingRule {
   condicaoClinicaId: number;
   rotuloCongelado: string;
   operador?: Operador;
@@ -53,7 +53,7 @@ interface RegraFechamento {
   ordem: number;
 }
 
-interface PrescricaoFechamento {
+interface ClosingPrescription {
   medicamento: string;
   doseMin: number;
   doseMax: number;
@@ -62,22 +62,22 @@ interface PrescricaoFechamento {
   duracaoDias: number;
   dataInicio: string;
   orientacao?: string;
-  regras: RegraFechamento[];
+  regras: ClosingRule[];
 }
 
-interface FechamentoPayload {
+interface ClosingPayload {
   registroAtendimento: MedicalRecord;
-  procedimentos: ProcedimentoFechamento[];
-  prescricoes: PrescricaoFechamento[];
+  procedimentos: ClosingProcedure[];
+  prescricoes: ClosingPrescription[];
 }
 
 export type {
-  FechamentoDraft,
-  FechamentoPayload,
-  ItemAbertoPlano,
-  PrescricaoFechamento,
-  ProcedimentoDraft,
-  ProcedimentoFechamento,
-  RegraFechamento,
-  SecaoProcedimento,
+  ClosingDraft,
+  ClosingPayload,
+  ClosingPrescription,
+  ClosingProcedure,
+  ClosingRule,
+  OpenPlanItem,
+  ProcedureDraft,
+  ProcedureSection,
 };

@@ -6,7 +6,7 @@ import type {
   CheckInInterpretation,
   CheckInNoRuleResult,
 } from '../../model/care';
-import type { FechamentoDraft } from '../../model/fechamento';
+import type { ClosingDraft } from '../../model/closing';
 import type { PrescricaoDraft } from '../../model/prescription';
 import type { RegraDraft } from '../../model/prescriptionRule';
 
@@ -64,10 +64,10 @@ export type PacientesTabParamList = {
   DetalhesPet: { petId: string; consultaId?: string };
   ProntuarioForm: { petId: string; consultaId?: string; prescricao?: PrescricaoDraft };
   PlanoPaciente: { petId: string };
-  // Fechamento: ProntuarioForm -> (Prescricao opcional, volta ao form) -> AssinarPrescricao -> CheckoutAtendimento.
+  // Closing: ProntuarioForm -> (Prescricao opcional, volta ao form) -> AssinarPrescricao -> CheckoutAtendimento.
   Prescricao: { animalId: string; novaRegra?: RegraDraft };
   NovaRegra: { animalId: string };
-  AssinarPrescricao: { fechamento: FechamentoDraft };
+  AssinarPrescricao: { closing: ClosingDraft };
   CheckoutAtendimento: { petName: string };
 };
 

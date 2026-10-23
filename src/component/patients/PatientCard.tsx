@@ -4,13 +4,13 @@ import { colors, radii, spacing } from '../../styles/theme';
 
 interface PatientCardProps {
   petName: string;
-  descricao: string;
-  responsavel?: string | null;
-  pilula?: { label: string; tratamento: boolean } | null;
+  description: string;
+  tutorName?: string | null;
+  pill?: { label: string; treatment: boolean } | null;
   onPress: () => void;
 }
 
-export function PatientCard({ petName, descricao, responsavel, pilula, onPress }: PatientCardProps) {
+export function PatientCard({ petName, description, tutorName, pill, onPress }: PatientCardProps) {
   return (
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
       <View style={styles.avatar}>
@@ -18,11 +18,11 @@ export function PatientCard({ petName, descricao, responsavel, pilula, onPress }
       </View>
       <View style={styles.textBlock}>
         <Text style={styles.name}>{petName}</Text>
-        <Text style={styles.meta}>{descricao}</Text>
-        {responsavel ? <Text style={styles.meta}>Responsável · {responsavel}</Text> : null}
-        {pilula ? (
-          <View style={[styles.pill, pilula.tratamento ? styles.pillTratamento : styles.pillPreventivo]}>
-            <Text style={styles.pillText}>{pilula.label}</Text>
+        <Text style={styles.meta}>{description}</Text>
+        {tutorName ? <Text style={styles.meta}>Responsável · {tutorName}</Text> : null}
+        {pill ? (
+          <View style={[styles.pill, pill.treatment ? styles.pillTreatment : styles.pillPreventive]}>
+            <Text style={styles.pillText}>{pill.label}</Text>
           </View>
         ) : null}
       </View>
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: radii.pill,
   },
-  pillTratamento: { backgroundColor: colors.cardMax },
-  pillPreventivo: { backgroundColor: colors.cardChia },
+  pillTreatment: { backgroundColor: colors.cardMax },
+  pillPreventive: { backgroundColor: colors.cardChia },
   pillText: { fontSize: 12, fontWeight: '700', color: colors.textPrimary },
 });
