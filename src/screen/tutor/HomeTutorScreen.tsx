@@ -99,6 +99,7 @@ export function HomeTutorScreen() {
         <GreetingHeader
           greeting={greetingForNow()}
           userName={session?.nome?.split(' ')[0] ?? 'responsável'}
+          onLogout={sair}
         />
         <View style={styles.emptyStateContent}>
           <Image
