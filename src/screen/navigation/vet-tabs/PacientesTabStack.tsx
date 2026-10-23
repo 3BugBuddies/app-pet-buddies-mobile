@@ -12,7 +12,7 @@ const Stack = createNativeStackNavigator<PacientesTabParamList>();
 
 export function PacientesTabStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerBackTitle: 'Voltar' }}>
       <Stack.Screen
         name="Pacientes"
         component={PacientesScreen}
@@ -21,7 +21,7 @@ export function PacientesTabStack() {
       <Stack.Screen
         name="DetalhesPet"
         component={DetalhesPetScreen}
-        options={{ title: 'Prontuário' }}
+        options={{ title: 'Ficha' }}
       />
       <Stack.Screen
         name="ProntuarioForm"
@@ -46,7 +46,7 @@ export function PacientesTabStack() {
       <Stack.Screen
         name="CheckoutAtendimento"
         component={CheckoutAtendimentoScreen}
-        options={{ headerShown: false }}
+        options={{ headerShown: false, gestureEnabled: false }}
       />
     </Stack.Navigator>
   );

@@ -43,6 +43,7 @@ const register = async (dados: RegisterFormValues): Promise<AuthSession> => {
       email: dados.email.trim(),
       senha: dados.senha,
       telefone: dados.telefone ?? undefined, // obrigatório para TUTOR
+      endereco: dados.endereco?.trim() || undefined,
       crmv: dados.crmv ?? undefined,         // obrigatório para VET
     });
     return paraSessao(resposta.data);
