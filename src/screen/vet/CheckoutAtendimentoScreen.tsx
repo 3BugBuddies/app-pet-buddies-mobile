@@ -26,7 +26,7 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 40), paddingBottom: Math.max(insets.bottom, 40) }]}>
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 40), paddingBottom: insets.bottom + 120 }]}>
       <View style={styles.content}>
         <View style={styles.iconCircle}>
           <Ionicons name="checkmark-circle" size={80} color={colors.success} />
