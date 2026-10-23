@@ -13,6 +13,12 @@ interface OpenPlanItem {
   vencido: boolean;
 }
 
+// Origem opcional da prescrição (receita-modelo); a API exige os dois campos juntos ou nenhum.
+type ClosingPrescriptionDraft = PrescricaoDraft & {
+  receitaModeloId?: number | null;
+  receitaModeloVersao?: number | null;
+};
+
 interface ProcedureDraft {
   key: string;
   section: ProcedureSection;
@@ -32,7 +38,7 @@ interface ClosingDraft {
   notes: string;
   weight: string;
   procedures: ProcedureDraft[];
-  prescription: PrescricaoDraft | null;
+  prescription: ClosingPrescriptionDraft | null;
 }
 
 interface ClosingProcedure {
@@ -62,6 +68,8 @@ interface ClosingPrescription {
   duracaoDias: number;
   dataInicio: string;
   orientacao?: string;
+  receitaModeloId?: number;
+  receitaModeloVersao?: number;
   regras: ClosingRule[];
 }
 
@@ -75,6 +83,7 @@ export type {
   ClosingDraft,
   ClosingPayload,
   ClosingPrescription,
+  ClosingPrescriptionDraft,
   ClosingProcedure,
   ClosingRule,
   OpenPlanItem,

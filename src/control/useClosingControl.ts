@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
 import type {
   ClosingDraft,
+  ClosingPrescriptionDraft,
   OpenPlanItem,
   ClosingPrescription,
   ProcedureDraft,
@@ -12,7 +13,7 @@ import type {
   ProcedureSection,
 } from '../model/closing';
 import { medicalRecordSchema } from '../model/medicalRecord';
-import { prescriptionSchema, type PrescricaoDraft } from '../model/prescription';
+import { prescriptionSchema } from '../model/prescription';
 import type { TipoProcedimento } from '../model/procedure';
 import { normalizeSearch } from '../model/text';
 import {
@@ -54,7 +55,7 @@ const composeNotes = (p: ProcedureDraft) =>
     .filter(Boolean)
     .join(' · ') || undefined;
 
-const useClosingForm = (petId: string, initialAppointmentId: string | undefined, prescription: PrescricaoDraft | null) => {
+const useClosingForm = (petId: string, initialAppointmentId: string | undefined, prescription: ClosingPrescriptionDraft | null) => {
   const { session } = useContext(AuthContext);
   const veterinarioId = session?.veterinarioId;
   const { data: pet } = usePet(petId);
@@ -215,6 +216,9 @@ const useCompleteAppointment = () => {
             duracaoDias: p.duracaoDias,
             dataInicio: p.dataInicio,
             orientacao: p.orientacao ?? undefined,
+            ...(d.receitaModeloId != null && d.receitaModeloVersao != null
+              ? { receitaModeloId: d.receitaModeloId, receitaModeloVersao: d.receitaModeloVersao }
+              : {}),
             regras: d.regras.map((regra, index) => ({
               condicaoClinicaId: regra.condicaoClinicaId,
               rotuloCongelado: regra.rotuloCongelado,
