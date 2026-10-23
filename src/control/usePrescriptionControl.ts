@@ -150,9 +150,12 @@ const usePrescriptionTemplates = () =>
     queryFn: getPrescriptionTemplates,
   });
 
+type TipoRegra = 'RELATO' | 'MEDIDA';
+
 const useNovaRegraControl = (catalogo: CondicaoClinica[]) => {
   const [condicaoClinicaId, setCondicaoClinicaId] = useState<number | null>(null);
   const [busca, setBusca] = useState('');
+  const [tipoRegra, setTipoRegra] = useState<TipoRegra>('RELATO');
   const [acao, setAcao] = useState<TipoAcao>('DOSE_MIN');
   const [operador, setOperador] = useState<Operador>('MAIOR_QUE');
   const [limiteTexto, setLimiteTexto] = useState('');
@@ -160,8 +163,17 @@ const useNovaRegraControl = (catalogo: CondicaoClinica[]) => {
 
   const termo = normalizarTexto(busca);
   // Busca local sem acento e sem caixa; sinais de alarme aparecem, mas não são selecionáveis.
-  const filtradas = catalogo.filter((c) => !termo || normalizarTexto(c.rotulo).includes(termo));
-  const condicao = catalogo.find((c) => c.id === condicaoClinicaId && !c.critica);
+  const tipoDado = tipoRegra === 'MEDIDA' ? 'NUMERICO' : 'BOOLEANO';
+  const filtradas = catalogo.filter(
+    (c) => c.tipoDado === tipoDado && (!termo || normalizarTexto(c.rotulo).includes(termo))
+  );
+  const condicao = catalogo.find((c) => c.id === condicaoClinicaId && !c.critica && c.tipoDado === tipoDado);
+
+  const escolherTipoRegra = (tipo: TipoRegra) => {
+    setTipoRegra(tipo);
+    setCondicaoClinicaId(null);
+    setErro(null);
+  };
   const termoCriavel =
     termo && !catalogo.some((c) => normalizarTexto(c.rotulo) === termo) ? busca.trim() : null;
 
@@ -192,6 +204,7 @@ const useNovaRegraControl = (catalogo: CondicaoClinica[]) => {
   const reiniciar = () => {
     setCondicaoClinicaId(null);
     setBusca('');
+    setTipoRegra('RELATO');
     setAcao('DOSE_MIN');
     setOperador('MAIOR_QUE');
     setLimiteTexto('');
@@ -206,6 +219,8 @@ const useNovaRegraControl = (catalogo: CondicaoClinica[]) => {
     operadores: OPERADORES,
     busca,
     setBusca,
+    tipoRegra,
+    escolherTipoRegra,
     condicaoClinicaId,
     selecionarCondicao,
     acao,

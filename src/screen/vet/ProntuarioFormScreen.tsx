@@ -150,7 +150,7 @@ export function ProntuarioFormScreen({ route }: Props) {
             )}
           </View>
 
-          <Button label="Assinar e concluir" backgroundColor={colors.action} onPress={review} style={styles.primary} />
+          <Button label={prescricao ? 'Assinar e concluir' : 'Concluir atendimento'} backgroundColor={colors.action} onPress={review} style={styles.primary} />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
