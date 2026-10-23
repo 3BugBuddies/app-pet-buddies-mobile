@@ -1,7 +1,7 @@
+import { useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ProcedureCard } from '../../component/closing/ProcedureCard';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
@@ -13,6 +13,7 @@ import { formatAppointmentDate } from '../../model/formatDate';
 import type { PacientesTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 const SECTIONS: { section: ProcedureSection; title: string; addLabel: string }[] = [
   { section: 'VACINA_VERMIFUGO', title: 'Vacina e vermífugo', addLabel: 'Adicionar vacina ou vermífugo' },
   { section: 'EXAME', title: 'Exames', addLabel: 'Adicionar exame' },
@@ -24,9 +25,25 @@ type Props = NativeStackScreenProps<PacientesTabParamList, 'ProntuarioForm'>;
 export function ProntuarioFormScreen({ route }: Props) {
   const { petId, consultaId, prescricao } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
-  const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
 
   const form = useClosingForm(petId, consultaId, prescricao ?? null);
+  const dirty = !!(form.reason.trim() || form.notes.trim() || form.weight || form.procedures.length || prescricao);
+
+  // Tocar a aba ativa volta a pilha ao topo e descartava o atendimento preenchido sem aviso.
+  // Só pergunta com a tela em foco: o reset depois de assinar acontece com a assinatura na frente.
+  useEffect(
+    () =>
+      navigation.addListener('beforeRemove', (e) => {
+        if (!dirty || !navigation.isFocused()) return;
+        e.preventDefault();
+        Alert.alert('Descartar o atendimento?', 'O que você preencheu será perdido.', [
+          { text: 'Continuar atendimento', style: 'cancel' },
+          { text: 'Descartar', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+        ]);
+      }),
+    [navigation, dirty]
+  );
 
   if (form.loadingAppointment) {
     return <LoadingIndicator label="Carregando o atendimento..." />;
@@ -45,7 +62,7 @@ export function ProntuarioFormScreen({ route }: Props) {
     <View style={[styles.root, { paddingTop: spacing.md }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
+          contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}

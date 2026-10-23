@@ -9,6 +9,7 @@ import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PacientesTabParamList, 'AssinarPrescricao'>;
 
 export function AssinarPrescricaoScreen({ route }: Props) {
@@ -16,6 +17,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
   const draft = closing.prescription;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList, 'AssinarPrescricao'>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { complete, completing } = useCompleteAppointment();
 
   const handleSign = async () => {
@@ -36,7 +38,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
       <CheckInTopBar title="Assinar e concluir" subtitle={closing.petName} />
 
       {closing.reason.trim() || closing.notes.trim() || closing.weight ? (

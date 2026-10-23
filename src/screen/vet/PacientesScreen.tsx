@@ -14,6 +14,7 @@ import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Filter = 'TODOS' | 'TRATAMENTO' | 'PREVENTIVO';
 
 const FILTERS: { key: Filter; label: string }[] = [
@@ -25,6 +26,7 @@ const FILTERS: { key: Filter; label: string }[] = [
 export function PacientesScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pets, isLoading, isError, refetch } = useClinicPets();
   const summaries = usePlanSummaries((pets ?? []).map((p) => String(p.id)));
   const [search, setSearch] = useState('');
@@ -53,7 +55,7 @@ export function PacientesScreen() {
   if (isError || !pets) return <ErrorState type="500" message="Não foi possível carregar seus pacientes no momento." onRetry={() => refetch()} />;
 
   return (
-    <ScrollView keyboardDismissMode="on-drag" style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 130 }]}>
+    <ScrollView keyboardDismissMode="on-drag" style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
       <Text style={styles.count}>
         {filtered.length} {filtered.length === 1 ? 'paciente' : 'pacientes'}
       </Text>

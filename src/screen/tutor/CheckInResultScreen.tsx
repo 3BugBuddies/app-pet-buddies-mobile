@@ -9,12 +9,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInResult'>;
 
 export function CheckInResultScreen({ route }: Props) {
   const { petId, result } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pet } = usePet(petId);
 
   const safeDoseLabel = result.doseLabel || 'Dose recomendada';
@@ -40,7 +42,7 @@ export function CheckInResultScreen({ route }: Props) {
     .join(' · ');
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
       <CheckInTopBar title="Check-in" stepLabel="3 de 3" />
 
       <View style={styles.doseCard}>

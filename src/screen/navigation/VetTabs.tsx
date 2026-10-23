@@ -2,11 +2,11 @@ import type { ComponentProps } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii } from '../../styles/theme';
 import { HojeTabStack } from './vet-tabs/HojeTabStack';
 import { PacientesTabStack } from './vet-tabs/PacientesTabStack';
 import type { VetTabParamList } from './types';
+import { TAB_BAR_HEIGHT, useTabBarBottom } from './useTabBarSpace';
 
 const Tab = createBottomTabNavigator<VetTabParamList>();
 
@@ -27,15 +27,17 @@ function TabIcon({ name, color, size, focused }: TabIconProps) {
 }
 
 export function VetTabs() {
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useTabBarBottom();
 
   return (
     <Tab.Navigator
+      // A barra flutua: o recuo do safe-area dentro dela empurrava os rótulos para fora.
+      safeAreaInsets={{ bottom: 0 }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: [styles.tabBar, { bottom: Math.max(insets.bottom, 16) }],
+        tabBarStyle: [styles.tabBar, { bottom: tabBarBottom }],
         tabBarItemStyle: styles.tabItem,
         tabBarLabelStyle: styles.tabLabel,
       }}
@@ -69,8 +71,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    bottom: 24,
-    height: 64,
+    height: TAB_BAR_HEIGHT,
     borderRadius: radii.pill,
     borderTopWidth: 0,
     backgroundColor: colors.surface,

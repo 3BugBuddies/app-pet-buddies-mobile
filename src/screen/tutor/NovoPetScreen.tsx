@@ -10,7 +10,6 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Input } from '../../component/ui/Input';
@@ -19,6 +18,7 @@ import { usePetFormControl } from '../../control/usePetFormControl';
 import type { PetTabParamList } from '../navigation/types';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 // botao-passaro-1.png não existe nos assets — usando botao-passaro.png
 const ESPECIE_ICONS: Record<string, any> = {
   CACHORRO: require('../../../assets/botoes/botao-cachorro-1.png'),
@@ -41,7 +41,7 @@ const SEXO_LABEL: Record<string, string> = {
 type Props = NativeStackScreenProps<PetTabParamList, 'NovoPet'>;
 
 export function NovoPetScreen({ route, navigation }: Props) {
-  const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const petId = route.params?.petId;
 
   const {
@@ -80,7 +80,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
     >
       <ScrollView keyboardDismissMode="on-drag"
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

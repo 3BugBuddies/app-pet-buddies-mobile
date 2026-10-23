@@ -17,6 +17,7 @@ import type { PetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PetTabParamList, 'PetProfile'>;
 
 function calcIdadeLabel(dataNascimento?: string | null): string {
@@ -43,6 +44,7 @@ function calcIdadeLabel(dataNascimento?: string | null): string {
 export function PetProfileScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<PetTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
   const { activePetId } = useActivePetId();
   const petId = route.params?.petId ?? activePetId ?? '';
@@ -100,7 +102,7 @@ export function PetProfileScreen({ route }: Props) {
       style={styles.screen}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 },
+        { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace },
       ]}
     >
       <Text style={styles.allPetsLink} onPress={() => navigation.navigate('MeusPets')}>

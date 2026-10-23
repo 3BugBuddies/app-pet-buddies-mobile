@@ -25,6 +25,7 @@ import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
 import { planStateLabel } from '../../model/care';
 import { breedLabel, sexLabel, type Pet } from '../../model/pet';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 function petDetails(pet: Pet): string {
   const weight = pet.peso ? `${String(pet.peso).replace('.', ',')} kg` : null;
   return [breedLabel(pet.raca), sexLabel(pet.sexo).toLowerCase(), weight].filter(Boolean).join(' · ');
@@ -38,6 +39,7 @@ type HomeTutorNavigationProp = CompositeNavigationProp<
 export function HomeTutorScreen() {
   const navigation = useNavigation<HomeTutorNavigationProp>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { session } = useContext(AuthContext);
   const { sair } = useLogoutControl();
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
@@ -149,7 +151,7 @@ export function HomeTutorScreen() {
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
         showsVerticalScrollIndicator={false}
       >
         <GreetingHeader

@@ -10,9 +10,9 @@ import { usePlanSummary } from '../../control/usePatientsControl';
 import { formatDateBR } from '../../model/formatDate';
 import { breedLabel, sexLabel } from '../../model/pet';
 import type { PacientesTabParamList } from '../navigation/types';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PacientesTabParamList, 'DetalhesPet'>;
 
 const MAX_CARES = 3;
@@ -24,7 +24,7 @@ function openLink(url: string) {
 export function DetalhesPetScreen({ route }: Props) {
   const { petId, consultaId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
-  const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pet, isLoading: isLoadingPet, isError: isPetError } = usePet(petId);
   const { data: summary } = usePlanSummary(petId);
 
@@ -52,7 +52,7 @@ export function DetalhesPetScreen({ route }: Props) {
   const upcoming = (summary?.upcoming ?? []).slice(0, MAX_CARES);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]} showsVerticalScrollIndicator={false}>
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]} showsVerticalScrollIndicator={false}>
       <View style={styles.hero}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>{pet.nome.charAt(0).toUpperCase()}</Text>

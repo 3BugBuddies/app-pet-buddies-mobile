@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 import { formatAppointmentDate } from '../../model/formatDate';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type AgendaClinicaNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<HojeTabParamList, 'AgendaClinica'>,
   BottomTabNavigationProp<VetTabParamList>
@@ -28,6 +29,7 @@ type AgendaClinicaNavigationProp = CompositeNavigationProp<
 export function AgendaClinicaScreen() {
   const navigation = useNavigation<AgendaClinicaNavigationProp>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { session } = useContext(AuthContext);
   const { sair } = useLogoutControl();
   const { data: appointments, isLoading: isLoadingAppts, isError: isApptsError } = useAppointments();
@@ -84,7 +86,7 @@ export function AgendaClinicaScreen() {
 
   return (
     <>
-      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 130 }]}>
+      <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
         <View style={styles.header}>
           <View>
             <Text style={styles.dateLabel}>{dateLabel}</Text>
