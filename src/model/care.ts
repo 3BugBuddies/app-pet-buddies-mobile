@@ -154,6 +154,9 @@ export interface CheckInDoseResult {
 export interface CheckInEscalationResult {
   status: 'ESCALATION';
   reasonLabel: string;
+  // true = reasonLabel lista condições do catálogo; false = texto do relato.
+  reasonFromConditions?: boolean;
+  clinicPhone?: string;
   ruleDescription: string;
   vetName: string;
   vetCrmv: string;
@@ -242,6 +245,7 @@ export interface CheckinResponse {
 export interface ConfirmCheckInInput {
   payload: CheckInRequest;
   redFlags: string[];
+  alarmLabels?: string[];
 }
 
 // Payload completo de POST /api/checkin (check-in em dois passos).
