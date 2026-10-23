@@ -2,7 +2,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -18,14 +17,12 @@ import { Card } from '../../component/ui/Card';
 import { Input } from '../../component/ui/Input';
 import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useLoginControl } from '../../control/authControl';
-import { useNotificationsControl } from '../../control/useNotificationsControl';
 import type { AuthStackParamList } from '../navigation/types';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
 export function LoginScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { email, setEmail, senha, setSenha, erros, entrar, isEntrando } = useLoginControl();
-  const { triggerScheduled } = useNotificationsControl();
   const insets = useSafeAreaInsets();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -112,17 +109,6 @@ export function LoginScreen() {
                   <Text style={styles.demoChipText}>🩺 Vet (Dra. Ana)</Text>
                 </Pressable>
               </View>
-
-              {/* Botão de Teste 2: Notificação agendada em 5s */}
-              <Pressable
-                onPress={async () => {
-                  await triggerScheduled(5, '🐾 Pet Buddies', 'Teste 2: Notificação de 5 segundos recebida com sucesso!');
-                  Alert.alert('⏰ Notificação Agendada!', 'Minimize o aplicativo ou bloqueie a tela agora. Ela chegará em 5 segundos!');
-                }}
-                style={[styles.demoChip, { marginTop: spacing.sm, backgroundColor: '#FFE6CC', alignItems: 'center' }]}
-              >
-                <Text style={[styles.demoChipText, { color: '#D96500' }]}>🔔 Disparar Teste 2 (Chega em 5s)</Text>
-              </Pressable>
             </View>
           </Card>
 

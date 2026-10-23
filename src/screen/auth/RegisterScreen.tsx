@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
@@ -35,11 +35,7 @@ export function RegisterScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
-      <Image
-        source={require('../../../assets/images/logo-pb-bottom.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+      <Text style={styles.title}>Criar conta</Text>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView
@@ -130,7 +126,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   scrollContent: { flexGrow: 1, justifyContent: 'center', padding: spacing.lg, paddingBottom: spacing.xl },
-  logo: { width: 140, height: 56, alignSelf: 'center', marginBottom: spacing.lg },
+  title: { ...typography.title, color: colors.textPrimary, paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
   card: { gap: 0 },
   sectionLabel: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xs },
   perfilRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
