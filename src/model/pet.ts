@@ -47,8 +47,63 @@ const petSchema = object({
   alergias: string().nullable(),
   observacoes: string().nullable(),
   responsavelId: string().required('O pet precisa estar vinculado a um responsável'),
+  // Só leitura: vêm no AnimalResponse e não vão de volta em POST/PUT.
+  responsavelNome: string().nullable().optional(),
+  responsavelTelefone: string().nullable().optional(),
+  responsavelEndereco: string().nullable().optional(),
 });
 
 type Pet = InferType<typeof petSchema>;
 
-export { Pet, petSchema, ESPECIES, PORTES, SEXOS };
+const ESPECIE_LABEL: Record<string, string> = {
+  CACHORRO: 'Cachorro',
+  GATO: 'Gato',
+  PASSARO: 'Pássaro',
+  COELHO: 'Coelho',
+  HAMSTER: 'Hamster',
+  OUTRO: 'Outro',
+};
+
+const PORTE_LABEL: Record<string, string> = {
+  MINI: 'Mini',
+  PEQUENO: 'Pequeno',
+  MEDIO: 'Médio',
+  GRANDE: 'Grande',
+  GIGANTE: 'Gigante',
+};
+
+const SEXO_LABEL: Record<string, string> = { MACHO: 'Macho', FEMEA: 'Fêmea' };
+
+const rotuloEspecie = (especie?: string | null): string =>
+  (especie && ESPECIE_LABEL[especie]) || especie || '';
+
+const rotuloPorte = (porte?: string | null): string => (porte && PORTE_LABEL[porte]) || porte || '';
+
+const rotuloSexo = (sexo?: string | null): string => (sexo && SEXO_LABEL[sexo]) || sexo || '';
+
+const rotuloRaca = (raca?: string | null): string =>
+  !raca || raca === 'SEM_RACA' ? 'Sem raça definida' : raca;
+
+const rotuloConsultasRestantes = (n: number): string =>
+  `${n} ${n === 1 ? 'consulta restante' : 'consultas restantes'}`;
+
+type PetPayload = Omit<Pet, 'responsavelNome' | 'responsavelTelefone' | 'responsavelEndereco'>;
+
+const semCamposDeLeitura = (pet: Pet): PetPayload => {
+  const { responsavelNome: _n, responsavelTelefone: _t, responsavelEndereco: _e, ...resto } = pet;
+  return resto;
+};
+
+export {
+  Pet,
+  petSchema,
+  ESPECIES,
+  PORTES,
+  SEXOS,
+  rotuloEspecie,
+  rotuloPorte,
+  rotuloSexo,
+  rotuloRaca,
+  rotuloConsultasRestantes,
+  semCamposDeLeitura,
+};

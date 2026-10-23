@@ -8,7 +8,6 @@ import type { CarePlan, CheckInResult, CheckInInterpretation } from '../model/ca
 import type { MedicalRecord } from '../model/medicalRecord';
 import type { Prescription } from '../model/prescription';
 import type { PrescriptionRule } from '../model/prescriptionRule';
-import type { ClinicPatient } from '../model/patient';
 import type { Protocol } from '../model/legacyPrescription';
 
 // ---------------------------------------------------------------------------
@@ -213,24 +212,6 @@ export const addFakeRule = (rule: PrescriptionRule): PrescriptionRule => {
   _rules = [..._rules, rule];
   return rule;
 };
-
-// ---------------------------------------------------------------------------
-// Pacientes da Clínica (visão vet)
-// ---------------------------------------------------------------------------
-
-export const FAKE_CLINIC_PATIENTS: ClinicPatient[] = [
-  {
-    petId: 'pet-luna',
-    petName: 'Filó',
-    tutorName: 'Marina',
-    endereco: 'Av. Paulista, 1578 - Bela Vista, São Paulo - SP',
-    telefone: '(11) 98765-4321',
-    weekLabel: 'Semana 12 / 24',
-    adherencePct: 96,
-    note: 'Troca de curativo ok. Adesão excelente.',
-    alert: false,
-  },
-];
 
 // ---------------------------------------------------------------------------
 // Protocolos (visão vet)

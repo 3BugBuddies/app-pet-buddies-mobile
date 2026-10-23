@@ -7,7 +7,8 @@ import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useCreateAppointment, useFreeWindows, useVeterinarians } from '../../control/useAppointmentsControl';
+import { useAllPetsAppointments, useCreateAppointment, useFreeDates, useFreeWindows, useVeterinarians } from '../../control/useAppointmentsControl';
+import { formatAppointmentDate } from '../../model/formatDate';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { AgendaTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,14 +51,22 @@ export function AgendamentoTutorScreen({ route }: Props) {
 
   const DIAS = useMemo(() => gerarProximosDias(14), []);
   const [reason, setReason] = useState('');
-  const [selectedDate, setSelectedDate] = useState(DIAS[0].iso);
+  const todas = useAllPetsAppointments((pets ?? []).map((p) => String(p.id)));
+  const proxima = useMemo(() => {
+    const agora = Date.now();
+    return todas
+      .filter((a) => (a.status === 'SCHEDULED' || a.status === 'CONFIRMED') && new Date(a.date).getTime() >= agora)
+      .sort((a, b) => a.date.localeCompare(b.date))[0];
+  }, [todas]);
+  const [escolhida, setEscolhida] = useState<string | null>(null);
   const [selectedJanelaId, setSelectedJanelaId] = useState<number | null>(null);
-  const [vetEscolhidoId, setVetEscolhidoId] = useState<string | null>(null);
 
-  // A API só lista janelas de um veterinário específico: com um só na clínica ele é
-  // escolhido automaticamente; com vários, o tutor escolhe.
+  // A API só lista janelas de um veterinário específico: usa-se o primeiro da clínica.
   const { data: veterinarios, isLoading: isLoadingVets } = useVeterinarians();
-  const veterinarioId = vetEscolhidoId ?? veterinarios?.[0]?.id;
+  const veterinarioId = veterinarios?.[0]?.id;
+  const { data: diasLivres } = useFreeDates(veterinarioId, DIAS[0].iso, DIAS[DIAS.length - 1].iso);
+  const livres = useMemo(() => new Set(diasLivres ?? []), [diasLivres]);
+  const selectedDate = escolhida && livres.has(escolhida) ? escolhida : (diasLivres?.[0] ?? '');
   const { data: janelasLivres, isLoading: isLoadingJanelas } = useFreeWindows(veterinarioId, selectedDate);
 
   useEffect(() => {
@@ -92,6 +101,15 @@ export function AgendamentoTutorScreen({ route }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]} showsVerticalScrollIndicator={false}>
+
+        {proxima ? (
+          <View style={styles.proximaCard}>
+            <Text style={styles.proximaLabel}>Sua próxima consulta</Text>
+            <Text style={styles.proximaText}>
+              {`${proxima.reason || 'Consulta'} · ${formatAppointmentDate(proxima.date).dayLabel} · ${formatAppointmentDate(proxima.date).timeLabel} · ${pets.find((p) => p.id === proxima.petId)?.nome ?? ''}`}
+            </Text>
+          </View>
+        ) : null}
 
         {/* Seção 1: Qual pet? */}
         <View style={styles.section}>
@@ -130,61 +148,44 @@ export function AgendamentoTutorScreen({ route }: Props) {
           ) : null}
         </View>
 
-        {/* Seção: Veterinário (só quando há mais de um para escolher) */}
-        {veterinarios && veterinarios.length > 1 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Veterinário</Text>
-            <View style={styles.petsRow}>
-              {veterinarios.map((vet) => {
-                const active = vet.id === veterinarioId;
-                return (
-                  <Pressable
-                    key={vet.id}
-                    onPress={() => setVetEscolhidoId(vet.id)}
-                    style={[styles.petChip, active && styles.petChipActive]}
-                  >
-                    <Text style={[styles.petName, active && styles.petNameActive]} numberOfLines={1}>
-                      {vet.nome}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        )}
-
         {/* Seção 3: Dia */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Dia</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.diasRow}>
+          <View style={styles.diasGrid}>
+            {DIAS.slice(0, 7).map((dia) => (
+              <Text key={dia.iso} style={styles.diaCabecalho}>{dia.diaSemana}</Text>
+            ))}
             {DIAS.map((dia) => {
               const active = dia.iso === selectedDate;
+              const livre = livres.has(dia.iso);
               return (
                 <Pressable
                   key={dia.iso}
-                  onPress={() => setSelectedDate(dia.iso)}
-                  style={[styles.diaBlock, active && styles.diaBlockActive]}
+                  disabled={!livre}
+                  onPress={() => setEscolhida(dia.iso)}
+                  style={[styles.diaBlock, active && styles.diaBlockActive, !livre && styles.horarioBlockDisabled]}
                 >
-                  <Text style={[styles.diaSemana, active && styles.diaTextActive]}>{dia.diaSemana}</Text>
                   <Text style={[styles.diaNúmero, active && styles.diaTextActive]}>{dia.numeroDia}</Text>
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
         </View>
 
         {/* Seção 4: Horário */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Horário</Text>
+          <Text style={styles.sectionLabel}>
+            {selectedDate ? `Horários de ${formatAppointmentDate(`${selectedDate}T12:00:00`).dayLabel}` : 'Horário'}
+          </Text>
           {isLoadingVets || isLoadingJanelas ? (
             <LoadingIndicator label="Buscando horários..." />
           ) : !veterinarioId ? (
             <Text style={styles.emptyText}>
               Nenhum veterinário disponível na clínica no momento.
             </Text>
-          ) : !janelasLivres || janelasLivres.length === 0 ? (
+          ) : !selectedDate || !janelasLivres || janelasLivres.length === 0 ? (
             <Text style={styles.emptyText}>
-              Nenhum horário disponível para esta data. Selecione outro dia.
+              Nenhum horário disponível nos próximos dias.
             </Text>
           ) : (
             <View style={styles.horariosGrid}>
@@ -301,13 +302,39 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textPrimary,
   },
-  diasRow: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xs,
+  diasGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: spacing.sm,
+  },
+  diaCabecalho: {
+    width: `${100 / 7}%`,
+    textAlign: 'center',
+    fontSize: 12,
+    color: colors.textSecondary,
+    textTransform: 'lowercase',
+  },
+  proximaCard: {
+    backgroundColor: colors.cardChia,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  proximaLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  proximaText: {
+    ...typography.subtitle,
+    color: colors.textPrimary,
   },
   diaBlock: {
-    width: 56,
-    height: 64,
+    width: `${100 / 7 - 1}%`,
+    marginHorizontal: `${0.5}%`,
+    height: 48,
     borderRadius: radii.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
