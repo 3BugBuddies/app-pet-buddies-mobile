@@ -27,7 +27,7 @@ import {
 } from '../../control/usePrescriptionControl';
 import { extrairPrescricaoDaNarrativa } from '../../control/prescriptionExtractor';
 import type { PrescriptionTemplate } from '../../model/prescription';
-import { descreverCondicao, OPERADOR_SIMBOLO, type Operador, type RegraDraft, type TipoAcao } from '../../model/prescriptionRule';
+import { descreverCondicao, OPERADOR_SIMBOLO, rotuloAcao, type Operador, type RegraDraft, type TipoAcao } from '../../model/prescriptionRule';
 import { usePet } from '../../control/usePetsControl';
 import { usePatients } from '../../control/usePatientsControl';
 import type { PacientesTabParamList } from '../navigation/types';
@@ -35,13 +35,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
-const ACAO_LABEL: Record<string, string> = {
-  DOSE_MIN: 'dose mínima',
-  DOSE_MAX: 'dose máxima',
-  DOSE_PADRAO: 'dose padrão',
-  ACIONAR_CLINICA: 'acionar clínica',
-  SUSPENDER: 'suspender o medicamento',
-};
 
 // Regra proposta pela IA cuja condição ainda não existe na clínica: espera "Criar e usar" ou "Descartar".
 interface CondicaoNovaPendente {
@@ -531,7 +524,7 @@ export function PrescricaoScreen({ route }: Props) {
                 acao: nova.acao,
                 operador: nova.operador,
                 limite: nova.limite,
-              })} → {ACAO_LABEL[nova.acao] ?? nova.acao.toLowerCase()}
+              })} → {rotuloAcao(nova.acao)}
             </Text>
             <View style={styles.novaBandActions}>
               <Button
@@ -561,7 +554,7 @@ export function PrescricaoScreen({ route }: Props) {
               <Text style={styles.regraText} numberOfLines={2}>
                 Se <Text style={styles.regraBold}>{descreverCondicao(regra)}</Text>
                 <Text style={styles.regraArrow}> → </Text>
-                {ACAO_LABEL[regra.acao] ?? (regra.acao ? regra.acao.toLowerCase() : 'ação desconhecida')}
+                {rotuloAcao(regra.acao)}
               </Text>
             </View>
           ))
@@ -738,7 +731,7 @@ export function PrescricaoScreen({ route }: Props) {
                   onPress={() => setAcao(option)}
                   style={[styles.chip, acao === option && styles.chipActive]}
                 >
-                  <Text style={[styles.chipText, acao === option && styles.chipTextActive]}>{ACAO_LABEL[option]}</Text>
+                  <Text style={[styles.chipText, acao === option && styles.chipTextActive]}>{rotuloAcao(option)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -758,7 +751,7 @@ export function PrescricaoScreen({ route }: Props) {
                           : null,
                     })
                   )}{' '}
-                  → {ACAO_LABEL[acao]}
+                  → {rotuloAcao(acao)}
                 </Text>
               </View>
             ) : null}

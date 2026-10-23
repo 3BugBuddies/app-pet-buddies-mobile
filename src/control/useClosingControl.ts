@@ -31,6 +31,9 @@ import { usePet } from './usePetsControl';
 
 const openItemsKey = (petId: string) => ['planoItensAbertos', petId];
 
+const useOpenPlanItems = (petId: string) =>
+  useQuery({ queryKey: openItemsKey(petId), queryFn: () => getOpenPreventiveItems(petId) });
+
 const normalize = (text: string) => normalizeSearch(text.trim());
 
 const TYPE_BY_SECTION: Record<ProcedureSection, TipoProcedimento> = {
@@ -69,10 +72,7 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
   const appointment = initialAppointmentId ? scheduledAppointment.data : openAppointment.data;
   const loadingAppointment = initialAppointmentId ? scheduledAppointment.isLoading : openAppointment.isLoading;
 
-  const { data: items = [] } = useQuery({
-    queryKey: openItemsKey(petId),
-    queryFn: () => getOpenPreventiveItems(petId),
-  });
+  const { data: items = [] } = useOpenPlanItems(petId);
 
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
@@ -289,4 +289,4 @@ const useCompleteAppointment = () => {
   return { complete: mutation.mutateAsync, completing: mutation.isPending };
 };
 
-export { composeNotes, useCompleteAppointment, useClosingForm };
+export { composeNotes, useCompleteAppointment, useClosingForm, useOpenPlanItems };

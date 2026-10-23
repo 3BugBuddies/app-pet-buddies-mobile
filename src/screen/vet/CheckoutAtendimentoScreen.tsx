@@ -6,7 +6,7 @@ import type { PacientesTabParamList, VetTabParamList } from '../navigation/types
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, spacing } from '../../styles/theme';
+import { colors, radii, spacing } from '../../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
@@ -17,7 +17,7 @@ type CheckoutNavigationProp = CompositeNavigationProp<
 >;
 
 export function CheckoutAtendimentoScreen({ route }: Props) {
-  const { petName } = route.params;
+  const { petName, procedures = [], prescription } = route.params;
   const navigation = useNavigation<CheckoutNavigationProp>();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -38,11 +38,21 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
         <Text style={styles.subtitle}>
           O atendimento de <Text style={styles.bold}>{petName}</Text> foi salvo no histórico médico.
         </Text>
+
+        {procedures.length > 0 || prescription ? (
+          <View style={styles.summary}>
+            <Text style={styles.summaryLabel}>O que ficou registrado</Text>
+            {procedures.map((nome, index) => (
+              <Text key={`${nome}-${index}`} style={styles.summaryText}>{nome}</Text>
+            ))}
+            {prescription ? <Text style={styles.summaryText}>Receita · {prescription}</Text> : null}
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.footer}>
         <Button 
-          label="Voltar para a agenda"
+          label="Voltar para Hoje"
           backgroundColor={colors.action}
           onPress={handleFinish} 
         />
@@ -82,6 +92,28 @@ const styles = StyleSheet.create({
   },
   bold: {
     fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  summary: {
+    alignSelf: 'stretch',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    gap: spacing.xs,
+    marginTop: spacing.lg,
+  },
+  summaryLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  summaryText: {
+    fontSize: 14,
+    lineHeight: 20,
     color: colors.textPrimary,
   },
   footer: {
