@@ -83,7 +83,7 @@ export function LoginScreen() {
             {erros.geral ? <Text style={styles.apiError}>{erros.geral}</Text> : null}
 
             <View style={styles.buttonSpacing}>
-              <Button label="Entrar" loading={isEntrando} onPress={entrar} />
+              <Button label="Entrar" backgroundColor={colors.action} loading={isEntrando} onPress={entrar} />
             </View>
 
             {/* Atalhos para preenchimento rápido em testes/apresentação */}
