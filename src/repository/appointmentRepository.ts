@@ -1,6 +1,7 @@
 import { apiJava, USE_API } from './apiClient';
 import type { Appointment, CreateAppointmentInput } from '../model/appointment';
 import type { MedicalRecord } from '../model/medicalRecord';
+import type { FechamentoPayload } from '../model/fechamento';
 import {
   addFakeAppointment,
   addFakePrescription,
@@ -51,6 +52,8 @@ const getAllAppointments = async (
       date: c.dataHora,
       reason: c.observacao || '',
       status: mapStatus(c.status),
+      animalNome: c.animalNome ?? null,
+      veterinarioNome: c.veterinarioNome ?? null,
     }));
   }
   const all = getFakeAppointments();
@@ -69,6 +72,8 @@ const getAppointmentById = async (id: string): Promise<Appointment | undefined> 
       date: c.dataHora,
       reason: c.observacao || '',
       status: mapStatus(c.status),
+      animalNome: c.animalNome ?? null,
+      veterinarioNome: c.veterinarioNome ?? null,
     };
   }
   return getFakeAppointments().find((a) => a.id === id);
@@ -134,8 +139,8 @@ const toRegistroFechamento = (registro: MedicalRecord) => ({
     ? registro.dataAtendimento
     : `${registro.dataAtendimento}T${dateTimeLocal(new Date()).slice(11)}`,
   anamnese: registro.anamnese ?? undefined,
-  diagnostico: registro.diagnostico,
-  tratamento: registro.tratamento,
+  diagnostico: registro.diagnostico ?? undefined,
+  tratamento: registro.tratamento ?? undefined,
   observacao: registro.observacao ?? undefined,
   proximoRetorno: registro.proximoRetorno ?? undefined,
   proximaVacina: registro.proximaVacina ?? undefined,
@@ -143,15 +148,14 @@ const toRegistroFechamento = (registro: MedicalRecord) => ({
 
 // Fecha o atendimento via POST /{id}/fechamento (atômico: registro + procedimentos + prescrições).
 // A API só fecha consulta AGENDADA ou CONFIRMADA e exige `registroAtendimento`.
-const fecharAtendimento = async (id: string, payload: any): Promise<void> => {
+const fecharAtendimento = async (id: string, payload: FechamentoPayload): Promise<void> => {
   if (USE_API) {
-    const registro = payload?.registroAtendimento;
     await apiJava.post(`/consulta/${id}/fechamento`, {
-      ...payload,
-      registroAtendimento: registro ? toRegistroFechamento(registro) : registro,
-      prescricoes: (payload?.prescricoes ?? []).map((p: any) => ({
+      registroAtendimento: toRegistroFechamento(payload.registroAtendimento),
+      procedimentos: payload.procedimentos,
+      prescricoes: payload.prescricoes.map((p) => ({
         ...p,
-        regras: (p.regras ?? []).map(({ rotuloCongelado: _rotulo, ...regra }: any) => regra),
+        regras: p.regras.map(({ rotuloCongelado: _rotulo, ...regra }) => regra),
       })),
     });
     return;
@@ -161,8 +165,8 @@ const fecharAtendimento = async (id: string, payload: any): Promise<void> => {
   if (appt) {
     updateFakeAppointment(id, { status: 'COMPLETED' } as any);
   }
-  const registro = payload?.registroAtendimento;
-  (payload?.prescricoes ?? []).forEach((p: any, i: number) => {
+  const registro = payload.registroAtendimento;
+  payload.prescricoes.forEach((p, i) => {
     const prescricaoId = `presc-${Date.now()}-${i}`;
     addFakePrescription({
       id: prescricaoId,
@@ -176,11 +180,11 @@ const fecharAtendimento = async (id: string, payload: any): Promise<void> => {
       orientacao: p.orientacao ?? null,
       materialOrigemId: null,
       versaoOrigem: null,
-      animalId: String(registro?.animalId ?? appt?.petId ?? ''),
+      animalId: String(registro.animalId ?? appt?.petId ?? ''),
       veterinarioId: appt?.vetId ?? '',
-      registroAtendimentoId: registro?.id ? String(registro.id) : null,
+      registroAtendimentoId: registro.id ? String(registro.id) : null,
     });
-    (p.regras ?? []).forEach((r: any) =>
+    p.regras.forEach((r) =>
       addFakeRule({
         id: null,
         prescricaoId,
@@ -299,4 +303,6 @@ export {
   findTodaysOpenAppointment,
   createWalkInAppointment,
   getFreeWindows,
+  dateTimeLocal,
+  isoLocal,
 };

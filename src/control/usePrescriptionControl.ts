@@ -1,8 +1,5 @@
-import { useContext, useState } from 'react';
-import { Alert } from 'react-native';
-import { buildApiErrorMessage } from './apiErrorHelper';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AuthContext } from '../context/authContext';
+import { useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { prescriptionSchema, type NarrativaPrescricaoRequest, type PrescricaoDraft } from '../model/prescription';
 import {
   OPERADORES,
@@ -12,15 +9,8 @@ import {
   type RegraDraft,
   type TipoAcao,
 } from '../model/prescriptionRule';
-import { fecharAtendimento } from '../repository/appointmentRepository';
 import { getCondicoesClinicas } from '../repository/condicaoClinicaRepository';
 import { draftPrescription } from '../repository/prescriptionRepository';
-
-// Data local AAAA-MM-DD (toISOString usaria UTC e viraria o dia à noite no Brasil).
-const hojeIso = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 
 // So os campos que a PrescricaoScreen coleta — id/dataInicio/veterinarioId/animalId
 // entram depois, quando o rascunho vira prescricao de verdade (na assinatura).
@@ -144,85 +134,6 @@ const useNovaRegraControl = (condicoes: CondicaoClinica[]) => {
   };
 };
 
-// Único ponto que grava a prescrição: a API só a cria assinada, junto com o registro do
-// atendimento, numa chamada atômica (POST /consulta/{id}/fechamento). Se qualquer parte falha,
-// nada é gravado pela metade.
-const useAssinarPrescricaoControl = (draft: PrescricaoDraft, prontuario: any, consultaId: string) => {
-  const { session } = useContext(AuthContext);
-  const queryClient = useQueryClient();
-
-  const assinarMutation = useMutation({
-    mutationFn: async () => {
-      const consultaAtualId = consultaId || prontuario?.consultaId;
-      if (!consultaAtualId) {
-        throw new Error('Consulta não identificada. Volte ao prontuário e salve o atendimento de novo.');
-      }
-      if (!session?.veterinarioId) {
-        throw new Error('Sessão sem veterinário: entre novamente para assinar.');
-      }
-
-      const prescricao = await prescriptionSchema.validate(
-        {
-          id: null,
-          medicamento: draft.medicamento,
-          doseMin: draft.doseMin,
-          doseMax: draft.doseMax,
-          unidade: draft.unidade,
-          frequenciaDia: draft.frequenciaDia,
-          duracaoDias: draft.duracaoDias,
-          dataInicio: hojeIso(),
-          orientacao: draft.orientacao || undefined,
-          animalId: String(draft.animalId),
-          veterinarioId: String(session.veterinarioId),
-          registroAtendimentoId: null,
-          materialOrigemId: null,
-          versaoOrigem: null,
-        },
-        { abortEarly: false }
-      );
-
-      await fecharAtendimento(String(consultaAtualId), {
-        registroAtendimento: prontuario,
-        prescricoes: [
-          {
-            medicamento: prescricao.medicamento,
-            doseMin: prescricao.doseMin,
-            doseMax: prescricao.doseMax,
-            unidade: prescricao.unidade,
-            frequenciaDia: prescricao.frequenciaDia,
-            duracaoDias: prescricao.duracaoDias,
-            dataInicio: prescricao.dataInicio,
-            orientacao: prescricao.orientacao ?? undefined,
-            regras: (draft.regras ?? []).map((regra, indice) => ({
-              condicaoClinicaId: regra.condicaoClinicaId,
-              rotuloCongelado: regra.rotuloCongelado, // só o mock usa; removido antes de ir à API
-              operador: regra.operador ?? undefined,
-              limite: regra.limite ?? undefined,
-              acaoDose: regra.acao,
-              ordem: indice + 1,
-            })),
-          },
-        ],
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['appointments'] });
-      queryClient.invalidateQueries({ queryKey: ['prontuario'] });
-      queryClient.invalidateQueries({ queryKey: ['prescricao'] });
-      queryClient.invalidateQueries({ queryKey: ['carePlan'] });
-    },
-    onError: (error: any) => {
-      Alert.alert('Erro ao assinar prescrição', buildApiErrorMessage(error));
-    },
-  });
-
-  return {
-    assinar: () => assinarMutation.mutateAsync(),
-    isAssinando: assinarMutation.isPending,
-    erro: assinarMutation.isError ? 'Não foi possível assinar a prescrição.' : null,
-  };
-};
-
 // Envia narrativa do veterinário para a IA e recebe rascunho estruturado.
 // O chamador usa os campos retornados para preencher automaticamente o formulário.
 const useDraftPrescription = () => {
@@ -235,6 +146,5 @@ export {
   usePrescricaoDraftControl,
   useNovaRegraControl,
   useCondicoesClinicas,
-  useAssinarPrescricaoControl,
   useDraftPrescription,
 };

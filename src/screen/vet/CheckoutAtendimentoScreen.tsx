@@ -16,14 +16,14 @@ type CheckoutNavigationProp = CompositeNavigationProp<
 >;
 
 export function CheckoutAtendimentoScreen({ route }: Props) {
-  const { petName, resumoPrescricao } = route.params;
+  const { petName, comPrescricao } = route.params;
   const navigation = useNavigation<CheckoutNavigationProp>();
   const insets = useSafeAreaInsets();
 
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Receita Pet Buddies 🐾\nPaciente: ${petName}\n\nPrescrição:\n${resumoPrescricao}\n\nAcesse o App Pet Buddies para ver detalhes e dosagens exatas!`,
+        message: `Receita Pet Buddies 🐾\nPaciente: ${petName}\n\nAcesse o App Pet Buddies para ver detalhes e dosagens exatas!`,
         title: `Receita - ${petName}`, // Usado em alguns dispositivos/emails
       });
     } catch (error: any) {
@@ -32,6 +32,7 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
   };
 
   const handleFinish = () => {
+    navigation.popToTop();
     navigation.navigate('HojeTab', { screen: 'AgendaClinica' });
   };
 
@@ -42,15 +43,16 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
           <Ionicons name="checkmark-circle" size={80} color={colors.success} />
         </View>
 
-        <Text style={styles.title}>Atendimento Concluído!</Text>
+        <Text style={styles.title}>Atendimento concluído</Text>
         <Text style={styles.subtitle}>
-          O prontuário e as prescrições de <Text style={styles.bold}>{petName}</Text> foram salvos com sucesso no histórico médico.
+          O atendimento de <Text style={styles.bold}>{petName}</Text> foi salvo no histórico médico.
         </Text>
 
+        {comPrescricao ? (
         <View style={styles.actionCard}>
           <Text style={styles.actionTitle}>Entregar Prescrição</Text>
           <Text style={styles.actionBody}>
-            Compartilhe a receita digital com o tutor via WhatsApp, E-mail ou Link.
+            Compartilhe a receita digital com o responsável via WhatsApp, E-mail ou Link.
           </Text>
           
           <Button 
@@ -59,6 +61,7 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
             icon={<Ionicons name="share-outline" size={20} color={colors.textLight} style={{ marginRight: 8 }} />}
           />
         </View>
+        ) : null}
 
       </View>
 
