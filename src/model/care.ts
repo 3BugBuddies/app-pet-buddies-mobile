@@ -34,6 +34,8 @@ export interface CareTask {
   time: string;
   points: number;
   completed: boolean;
+  // PRESCRICAO = medicação (tem check-in); PROTOCOLO = vacina/vermífugo do plano preventivo.
+  origem?: string | null;
   // % de adesão histórica do tutor nesse item — só usado na visão da vet
   // (PlanoPacienteScreen); ausente na visão do tutor.
   adherencePct?: number;
@@ -140,6 +142,8 @@ export interface CheckInDoseResult {
   vetCrmv: string;
   prescriptionDateLabel: string;
   pointsEarned: number;
+  // false = nenhuma regra casou (dose-base da receita). Ausente nos resultados locais/mock.
+  regraAplicada?: boolean;
 }
 
 export interface CheckInEscalationResult {

@@ -76,12 +76,12 @@ export function CheckInResultScreen({ route }: Props) {
               fillPct={Math.max(0, Math.min(100, fillPct))}
             />
           </>
-        ) : (
+        ) : result.regraAplicada === false ? (
           <View style={styles.normalStatusBox}>
             <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
             <Text style={styles.normalStatusText}>Orientação padrão Mantida. Tudo sob controle!</Text>
           </View>
-        )}
+        ) : null}
       </View>
 
       {/* Card da Regra da Prescrição */}

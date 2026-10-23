@@ -48,11 +48,13 @@ export function HomeTutorScreen() {
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError, refetch: refetchPlan } = useCarePlan(activePet?.id ?? '');
   const toggleTask = useToggleCareTask(activePet?.id ?? '');
 
+  const medicacoes = plan?.tasks.filter((t) => t.origem === 'PRESCRICAO') ?? [];
+
   const handleStartCheckIn = () => {
     if (activePet?.id) {
-      // Liga o check-in ao primeiro item de hoje ainda pendente (id numérico = item da API;
-      // ids do mock não são numéricos e seguem sem vínculo).
-      const pendente = plan?.tasks.find((t) => !t.completed);
+      // Liga o check-in ao primeiro item de medicação de hoje ainda pendente (id numérico = item
+      // da API; ids do mock não são numéricos e seguem sem vínculo).
+      const pendente = medicacoes.find((t) => !t.completed);
       const itemId = pendente ? Number(pendente.id) : NaN;
       navigation.navigate('PlanoTab', {
         screen: 'CheckInEntry',
@@ -134,7 +136,8 @@ export function HomeTutorScreen() {
   const doneCount = hasPlan ? plan.tasks.filter((task) => task.completed).length : 0;
   const totalCount = hasPlan ? plan.tasks.length : 0;
   const tasks = hasPlan ? plan.tasks : [];
-  const isCheckInDone = tasks.length > 0 && tasks.every((task) => task.completed);
+  const medicacoesPendentes = medicacoes.some((task) => !task.completed);
+  const isCheckInDone = medicacoes.length > 0 && !medicacoesPendentes;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
@@ -208,21 +211,21 @@ export function HomeTutorScreen() {
                 onToggle={(id) => toggleTask.mutate(id)}
                 isLocked={isCheckInDone}
               />
-              {!isCheckInDone ? (
+              {medicacoesPendentes ? (
                 <Button
                   label={`Fazer Check-in do ${activePet.nome} →`}
                   backgroundColor={colors.action}
                   textColor={colors.textLight}
                   onPress={handleStartCheckIn}
                 />
-              ) : (
+              ) : isCheckInDone ? (
                 <View style={styles.completedBadgeBox}>
                   <Ionicons name="checkmark-circle" size={20} color={colors.success} />
                   <Text style={styles.completedBadgeText}>
                     Check-in de hoje concluído! 🔥 5 dias seguidos de cuidado com {activePet.nome}
                   </Text>
                 </View>
-              )}
+              ) : null}
             </>
           ) : (
             <>

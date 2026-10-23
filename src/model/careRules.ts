@@ -210,6 +210,7 @@ export function resolveCheckInResponse(
       : '',
     ...prescritor(comDose[0]),
     pointsEarned: 0,
+    regraAplicada: comDose.some((d) => d.regraAplicadaId != null),
   };
   return dose;
 }

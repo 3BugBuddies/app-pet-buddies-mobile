@@ -67,6 +67,7 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
         time: 'conforme prescrição',
         points: 10,
         completed: isStatusConcluido(e.status),
+        origem: e.origem,
       }));
 
     // weekDays = próximos 7 dias a partir de hoje com dot se houver evento

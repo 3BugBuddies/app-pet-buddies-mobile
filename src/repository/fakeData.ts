@@ -78,9 +78,9 @@ export const deleteFakeAppointment = (id: string): void => {
 // ---------------------------------------------------------------------------
 
 const _initialTasks: CarePlan['tasks'] = [
-  { id: 'lactulona', title: 'Lactulona', description: '1–2 ml · 2x ao dia — administrar via oral, de preferência com o alimento.', time: '08:00', points: 20, completed: false },
-  { id: 'vermifugo', title: 'Vermífugo', description: '1 comprimido · dose única — repetir a cada 3 meses conforme prescrição.', time: '08:00', points: 20, completed: false },
-  { id: 'curativo', title: 'Troca de curativo', description: 'Trocar o curativo da pata traseira e higienizar com solução antisséptica.', time: '20:00', points: 30, completed: false },
+  { id: 'lactulona', title: 'Lactulona', description: '1–2 ml · 2x ao dia — administrar via oral, de preferência com o alimento.', time: '08:00', points: 20, completed: false, origem: 'PRESCRICAO' },
+  { id: 'vermifugo', title: 'Vermífugo', description: '1 comprimido · dose única — repetir a cada 3 meses conforme prescrição.', time: '08:00', points: 20, completed: false, origem: 'PRESCRICAO' },
+  { id: 'curativo', title: 'Troca de curativo', description: 'Trocar o curativo da pata traseira e higienizar com solução antisséptica.', time: '20:00', points: 30, completed: false, origem: 'PRESCRICAO' },
 ];
 
 let _planTasks = _initialTasks.map((t) => ({ ...t }));
