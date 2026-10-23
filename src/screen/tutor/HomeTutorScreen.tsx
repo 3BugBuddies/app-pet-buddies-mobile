@@ -17,11 +17,20 @@ import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { AuthContext } from '../../context/authContext';
 import { useAppointments } from '../../control/useAppointmentsControl';
 import { useLogoutControl } from '../../control/authControl';
-import { useCarePlan, useToggleCareTask } from '../../control/useCarePlanControl';
+import { useCarePlan } from '../../control/useCarePlanControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
+import { planStateLabel } from '../../model/care';
+import type { Pet } from '../../model/pet';
+
+function petDetails(pet: Pet): string {
+  const raca = pet.raca && pet.raca !== 'SEM_RACA' ? pet.raca : 'Sem raça definida';
+  const sexo = pet.sexo === 'FEMEA' ? 'fêmea' : 'macho';
+  const peso = pet.peso ? `${String(pet.peso).replace('.', ',')} kg` : null;
+  return [raca, sexo, peso].filter(Boolean).join(' · ');
+}
 
 type HomeTutorNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<HomeTabParamList, 'HomeTutor'>,
@@ -46,7 +55,6 @@ export function HomeTutorScreen() {
   // Hooks reativos ao pet selecionado — sempre no topo, sem condicionais
   const { data: appointments, isLoading: isLoadingAppointments } = useAppointments(activePet?.id ?? undefined);
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError, refetch: refetchPlan } = useCarePlan(activePet?.id ?? '');
-  const toggleTask = useToggleCareTask(activePet?.id ?? '');
 
   const medicacoes = plan?.tasks.filter((t) => t.origem === 'PRESCRICAO') ?? [];
 
@@ -91,7 +99,7 @@ export function HomeTutorScreen() {
     return (
       <View style={[styles.screen, styles.emptyStateContainer, { paddingTop: Math.max(insets.top, 20) }]}>
         <GreetingHeader
-          greeting={`${greetingForNow()},`}
+          greeting={greetingForNow()}
           userName={session?.nome?.split(' ')[0] ?? 'responsável'}
         />
         <View style={styles.emptyStateContent}>
@@ -146,7 +154,7 @@ export function HomeTutorScreen() {
         showsVerticalScrollIndicator={false}
       >
         <GreetingHeader
-          greeting={`${greetingForNow()},`}
+          greeting={greetingForNow()}
           petName={activePet.nome}
           userName={session?.nome?.split(' ')[0] ?? 'responsável'}
           onAvatarPress={() =>
@@ -185,7 +193,11 @@ export function HomeTutorScreen() {
         )}
 
         <View style={styles.bento}>
-          <HeroPetCard petNames={activePet.nome} />
+          <HeroPetCard
+            petNames={activePet.nome}
+            stateLabel={planStateLabel(plan, new Date().toLocaleDateString('sv-SE'))}
+            details={petDetails(activePet)}
+          />
 
           {hasPlan ? (
             <>
@@ -208,8 +220,6 @@ export function HomeTutorScreen() {
                   time: task.time,
                   done: task.completed,
                 }))}
-                onToggle={(id) => toggleTask.mutate(id)}
-                isLocked={isCheckInDone}
               />
               {medicacoesPendentes ? (
                 <Button
@@ -222,7 +232,7 @@ export function HomeTutorScreen() {
                 <View style={styles.completedBadgeBox}>
                   <Ionicons name="checkmark-circle" size={20} color={colors.success} />
                   <Text style={styles.completedBadgeText}>
-                    Check-in de hoje concluído! 🔥 5 dias seguidos de cuidado com {activePet.nome}
+                    Check-in de hoje concluído. Obrigado por cuidar de {activePet.nome}!
                   </Text>
                 </View>
               ) : null}

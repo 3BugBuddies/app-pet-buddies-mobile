@@ -24,3 +24,11 @@ export function formatShortDate(iso: string): string {
   const [ano, mes, dia] = iso.slice(0, 10).split('-');
   return ano && mes && dia ? `${dia}/${mes}` : '';
 }
+
+// "Quinta, 22/10"
+export function formatTodayLabel(date: Date = new Date()): string {
+  const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(date);
+  const dia = String(date.getDate()).padStart(2, '0');
+  const mes = String(date.getMonth() + 1).padStart(2, '0');
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${dia}/${mes}`;
+}

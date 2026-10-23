@@ -107,10 +107,6 @@ export const getFakeCarePlan = (petId: string): CarePlan => ({
   ],
 });
 
-export const fakePlanToggleTask = (taskId: string): void => {
-  _planTasks = _planTasks.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t));
-};
-
 // ---------------------------------------------------------------------------
 // Check-in — retorna DOSE ou ESCALATION baseado na interpretação
 // ---------------------------------------------------------------------------

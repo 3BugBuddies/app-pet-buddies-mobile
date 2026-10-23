@@ -4,7 +4,6 @@ import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CareItemsSection } from '../../component/care-plan/CareItemsSection';
 import { NoPlanState } from '../../component/care-plan/NoPlanState';
-import { ProgressBarCard } from '../../component/care-plan/ProgressBarCard';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useCarePlan } from '../../control/useCarePlanControl';
@@ -52,10 +51,6 @@ export function CarePlanScreen({ route }: Props) {
     );
   }
 
-  const tasks = plan.tasks || [];
-  const doneCount = tasks.filter((task) => task.completed).length;
-  const pointsToday = tasks.reduce((sum, task) => (task.completed ? sum + task.points : sum), 0);
-
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
       <View style={styles.headerCard}>
@@ -74,8 +69,6 @@ export function CarePlanScreen({ route }: Props) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
       >
-        <ProgressBarCard doneCount={doneCount} totalCount={tasks.length} />
-
         <CareItemsSection
           title="Preventivo"
           items={plan.items.filter((item) => !item.tratamento)}

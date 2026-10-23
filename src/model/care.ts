@@ -245,3 +245,18 @@ export interface CheckInRequest {
   ticUtilizada?: string;
   condicoes: CondicaoConfirmadaRequest[];
 }
+
+// Etiqueta de estado do hero da home, derivada dos itens do plano (sem dado fixo).
+export function planStateLabel(plan: CarePlan | null | undefined, hoje: string): string | undefined {
+  if (!plan) return undefined;
+  const tratamento = plan.items.filter((item) => item.tratamento).map((item) => item.dateIso).sort();
+  const primeira = tratamento[0];
+  const ultima = tratamento[tratamento.length - 1];
+  if (primeira && ultima && ultima >= hoje) {
+    const dia = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))) / 86400000;
+    const total = dia(ultima) - dia(primeira) + 1;
+    const atual = Math.min(total, Math.max(1, dia(hoje) - dia(primeira) + 1));
+    return `Tratamento · dia ${atual} de ${total}`;
+  }
+  return plan.items.length > 0 ? 'Preventivo' : undefined;
+}

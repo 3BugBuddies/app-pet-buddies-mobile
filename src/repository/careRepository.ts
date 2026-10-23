@@ -15,7 +15,6 @@ import type {
 import { isStatusConcluido } from '../model/care';
 import { resolveCheckInResponse } from '../model/careRules';
 import {
-  fakePlanToggleTask,
   getFakeCarePlan,
 } from './fakeData';
 
@@ -148,13 +147,6 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
   return getFakeCarePlan(petId);
 };
 
-const toggleTask = async (_petId: string, taskId: string): Promise<void> => {
-  // POST /plano-cuidado/.../concluir não existe no backend
-  // Conclusão de item é feita via POST /checkin com itemPlanoCuidadoId
-  // Aqui mantemos apenas a simulação local
-  fakePlanToggleTask(taskId);
-};
-
 const confirmCheckIn = async ({ payload, redFlags }: ConfirmCheckInInput): Promise<CheckInResult> => {
   if (USE_API) {
     // Rota correta: POST /checkin
@@ -194,7 +186,6 @@ const extractCheckIn = async (data: CheckinExtracaoRequest): Promise<CheckinExtr
 
 export {
   getPlan,
-  toggleTask,
   confirmCheckIn,
   extractCheckIn,
 };
