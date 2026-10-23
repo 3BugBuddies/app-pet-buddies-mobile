@@ -26,7 +26,7 @@ export function PacientesTabStack() {
       <Stack.Screen
         name="ProntuarioForm"
         component={ProntuarioFormScreen}
-        options={{ title: 'Registrar atendimento' }}
+        options={{ title: 'Fechar atendimento' }}
       />
       <Stack.Screen
         name="PlanoPaciente"

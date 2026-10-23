@@ -15,6 +15,17 @@ const OPERADOR_SIMBOLO: Record<Operador, string> = {
   IGUAL: '=',
 };
 
+const ACAO_ROTULO: Record<TipoAcao, string> = {
+  DOSE_MIN: 'dose mínima',
+  DOSE_MAX: 'dose máxima',
+  DOSE_PADRAO: 'dose padrão',
+  ACIONAR_CLINICA: 'acionar clínica',
+  SUSPENDER: 'suspender',
+};
+
+const rotuloAcao = (acao?: string | null): string =>
+  (acao && ACAO_ROTULO[acao as TipoAcao]) || (acao ? acao.replace(/_/g, ' ').toLowerCase() : 'ação desconhecida');
+
 // Condição clínica do catálogo da clínica (GET /condicao-clinica). BOOLEANO = "aconteceu ou não";
 // NUMERICO exige operador e limite na regra (ex.: temperatura > 39,5).
 interface CondicaoClinica {
@@ -98,6 +109,7 @@ const descreverCondicao = (regra: RegraDraft): string => {
 };
 
 export {
+  ACAO_ROTULO,
   CONDICOES_CLINICAS,
   TP_ACAO,
   OPERADORES,
@@ -106,5 +118,6 @@ export {
   descreverCondicao,
   normalizarTexto,
   prescriptionRuleSchema,
+  rotuloAcao,
 };
 export type { CondicaoClinica, CondicaoNova, Operador, PrescriptionRule, RegraDraft, RegraPrescricaoRequest, TipoAcao };

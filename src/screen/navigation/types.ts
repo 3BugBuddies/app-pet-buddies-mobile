@@ -69,7 +69,7 @@ export type PacientesTabParamList = {
   Prescricao: { animalId: string; novaRegra?: RegraDraft };
   NovaRegra: { animalId: string };
   AssinarPrescricao: { closing: ClosingDraft };
-  CheckoutAtendimento: { petName: string };
+  CheckoutAtendimento: { petName: string; procedures?: string[]; prescription?: string };
 };
 
 

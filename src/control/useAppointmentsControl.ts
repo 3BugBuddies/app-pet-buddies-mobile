@@ -114,3 +114,11 @@ export function useVeterinarians() {
     staleTime: 5 * 60 * 1000,
   });
 }
+
+// CRMV da vet logada, sem o prefixo "CRMV" (a sessão só guarda o id do veterinário).
+export function useVetCrmv(): string | null {
+  const { session } = useContext(AuthContext);
+  const { data } = useVeterinarians();
+  const crmv = data?.find((v) => v.id === String(session?.veterinarioId))?.crmv;
+  return crmv ? crmv.replace(/^CRMV[\s-]*/i, '').trim() || null : null;
+}

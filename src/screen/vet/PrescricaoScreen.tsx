@@ -27,7 +27,7 @@ import {
 } from '../../control/usePrescriptionControl';
 import { extrairPrescricaoDaNarrativa } from '../../control/prescriptionExtractor';
 import type { PrescriptionTemplate } from '../../model/prescription';
-import { descreverCondicao, OPERADOR_SIMBOLO, type Operador, type RegraDraft, type TipoAcao } from '../../model/prescriptionRule';
+import { descreverCondicao, OPERADOR_SIMBOLO, rotuloAcao, type Operador, type RegraDraft, type TipoAcao } from '../../model/prescriptionRule';
 import { usePet } from '../../control/usePetsControl';
 import { usePatients } from '../../control/usePatientsControl';
 import type { PacientesTabParamList } from '../navigation/types';
@@ -35,13 +35,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
-const ACAO_LABEL: Record<string, string> = {
-  DOSE_MIN: 'dose mínima',
-  DOSE_MAX: 'dose máxima',
-  DOSE_PADRAO: 'dose padrão',
-  ACIONAR_CLINICA: 'acionar clínica',
-  SUSPENDER: 'suspender o medicamento',
-};
 
 // Regra proposta pela IA cuja condição ainda não existe na clínica: espera "Criar e usar" ou "Descartar".
 interface CondicaoNovaPendente {
@@ -103,7 +96,7 @@ export function PrescricaoScreen({ route }: Props) {
   const criarCondicao = useCriarCondicao();
   const { data: templates = [], isLoading: isLoadingTemplates } = usePrescriptionTemplates();
   const {
-    condicao, filtradas, termoCriavel, acoes, operadores,
+    condicao, filtradas, termoCriavel, tipoRegra, escolherTipoRegra, acoes, operadores,
     busca, setBusca,
     condicaoClinicaId, selecionarCondicao,
     acao, setAcao,
@@ -426,7 +419,7 @@ export function PrescricaoScreen({ route }: Props) {
 
       <View style={styles.dividerRow}>
         <View style={styles.divider} />
-        <Text style={styles.dividerLabel}>ou digite os campos abaixo</Text>
+        <Text style={styles.dividerLabel}>ou confira os campos</Text>
         <View style={styles.divider} />
       </View>
 
@@ -516,7 +509,7 @@ export function PrescricaoScreen({ route }: Props) {
       </View>
 
       <View style={styles.regrasSection}>
-        <Text style={styles.sectionLabel}>Regras Condicionais (SE • ENTÃO)</Text>
+        <Text style={styles.sectionLabel}>Regras de dose · se → então</Text>
         <Text style={styles.noteText}>
           Opcional. Adicione regras para que o app adapte a dose conforme os sintomas relatados pelo responsável no check-in.
         </Text>
@@ -531,12 +524,11 @@ export function PrescricaoScreen({ route }: Props) {
                 acao: nova.acao,
                 operador: nova.operador,
                 limite: nova.limite,
-              })} → {ACAO_LABEL[nova.acao] ?? nova.acao.toLowerCase()}
+              })} → {rotuloAcao(nova.acao)}
             </Text>
             <View style={styles.novaBandActions}>
               <Button
                 label="Criar e usar"
-                variant="secondary"
                 loading={criarCondicao.isPending}
                 onPress={() => handleCriarEUsar(nova)}
                 style={styles.flex1}
@@ -561,16 +553,16 @@ export function PrescricaoScreen({ route }: Props) {
               <Text style={styles.regraText} numberOfLines={2}>
                 Se <Text style={styles.regraBold}>{descreverCondicao(regra)}</Text>
                 <Text style={styles.regraArrow}> → </Text>
-                {ACAO_LABEL[regra.acao] ?? (regra.acao ? regra.acao.toLowerCase() : 'ação desconhecida')}
+                {rotuloAcao(regra.acao)}
               </Text>
             </View>
           ))
         )}
-        <Button label="+ Adicionar regra condicional" variant="secondary" onPress={abrirModalRegra} />
+        <Button label="+ Adicionar regra de dose" variant="secondary" onPress={abrirModalRegra} />
       </View>
 
       <Button
-        label="Adicionar ao atendimento"
+        label="Salvar receita"
         backgroundColor={colors.action}
         onPress={irParaAssinatura}
         style={{ marginTop: spacing.md }}
@@ -613,7 +605,7 @@ export function PrescricaoScreen({ route }: Props) {
       <View style={[styles.modalOverlay, { paddingTop: insets.top }]}>
         <View style={styles.ruleModalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Nova Regra Condicional</Text>
+            <Text style={styles.modalTitle}>Nova regra de dose</Text>
             <Pressable onPress={() => setRuleModalVisible(false)} style={{ padding: 4 }}>
               <Ionicons name="close" size={28} color={colors.textPrimary} />
             </Pressable>
@@ -625,6 +617,20 @@ export function PrescricaoScreen({ route }: Props) {
             contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: insets.bottom + 100 }}
             keyboardShouldPersistTaps="handled"
           >
+            <Text style={styles.sectionLabel}>Tipo da regra</Text>
+            <View style={styles.chipsRow}>
+              {([['RELATO', 'relato (sim/não)'], ['MEDIDA', 'medida (> <)']] as const).map(([tipo, rotulo]) => (
+                <Pressable
+                  key={tipo}
+                  onPress={() => escolherTipoRegra(tipo)}
+                  accessibilityState={{ selected: tipoRegra === tipo }}
+                  style={[styles.chip, tipoRegra === tipo && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, tipoRegra === tipo && styles.chipTextActive]}>{rotulo}</Text>
+                </Pressable>
+              ))}
+            </View>
+
             <Input
               label="Condição"
               placeholder="Buscar ou criar condição"
@@ -738,7 +744,7 @@ export function PrescricaoScreen({ route }: Props) {
                   onPress={() => setAcao(option)}
                   style={[styles.chip, acao === option && styles.chipActive]}
                 >
-                  <Text style={[styles.chipText, acao === option && styles.chipTextActive]}>{ACAO_LABEL[option]}</Text>
+                  <Text style={[styles.chipText, acao === option && styles.chipTextActive]}>{rotuloAcao(option)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -758,7 +764,7 @@ export function PrescricaoScreen({ route }: Props) {
                           : null,
                     })
                   )}{' '}
-                  → {ACAO_LABEL[acao]}
+                  → {rotuloAcao(acao)}
                 </Text>
               </View>
             ) : null}

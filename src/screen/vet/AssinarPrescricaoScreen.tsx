@@ -3,8 +3,11 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
-import { useCompleteAppointment, composeNotes } from '../../control/useClosingControl';
-import { descreverCondicao } from '../../model/prescriptionRule';
+import { useAppointment, useVetCrmv } from '../../control/useAppointmentsControl';
+import { useCompleteAppointment, composeNotes, useOpenPlanItems } from '../../control/useClosingControl';
+import { usePet } from '../../control/usePetsControl';
+import { formatAppointmentDate, formatDateBR, formatShortDate } from '../../model/formatDate';
+import { descreverCondicao, rotuloAcao } from '../../model/prescriptionRule';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
@@ -19,6 +22,19 @@ export function AssinarPrescricaoScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
   const { complete, completing } = useCompleteAppointment();
+  const crmv = useVetCrmv();
+  const { data: pet } = usePet(closing.petId);
+  const { data: appointment } = useAppointment(closing.appointmentId ?? '');
+  const { data: planItems = [] } = useOpenPlanItems(closing.petId);
+
+  const subtitle = appointment
+    ? `${closing.petName} · consulta de ${formatShortDate(appointment.date)}, ${formatAppointmentDate(appointment.date).timeLabel}`
+    : closing.petName;
+  const responsavel = pet?.responsavelNome?.trim() || 'O responsável';
+  const targetDate = (itemId: number | null) => {
+    const alvo = itemId == null ? null : planItems.find((i) => i.id === itemId)?.dataAlvo;
+    return alvo ? formatDateBR(alvo) : null;
+  };
 
   const handleSign = async () => {
     try {
@@ -31,7 +47,14 @@ export function AssinarPrescricaoScreen({ route }: Props) {
         index: 1,
         routes: [
           { name: 'Pacientes' },
-          { name: 'CheckoutAtendimento', params: { petName: closing.petName } },
+          {
+            name: 'CheckoutAtendimento',
+            params: {
+              petName: closing.petName,
+              procedures: closing.procedures.map((p) => p.nome.trim()),
+              prescription: draft ? `${draft.medicamento} · ${draft.doseMin}–${draft.doseMax} ${draft.unidade}` : undefined,
+            },
+          },
         ],
       })
     );
@@ -39,7 +62,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
-      <CheckInTopBar title="Assinar e concluir" subtitle={closing.petName} />
+      <CheckInTopBar title="Assinar e concluir" subtitle={subtitle} />
 
       {closing.reason.trim() || closing.notes.trim() || closing.weight ? (
         <View style={styles.card}>
@@ -57,7 +80,11 @@ export function AssinarPrescricaoScreen({ route }: Props) {
             <View key={p.key}>
               <Text style={styles.orientacaoText}>{p.nome.trim()}</Text>
               {composeNotes(p) ? <Text style={styles.subtitle}>{composeNotes(p)}</Text> : null}
-              {p.itemPlanoId != null ? <Text style={styles.subtitle}>Baixa o item do plano</Text> : null}
+              {p.itemPlanoId != null ? (
+                <Text style={styles.subtitle}>
+                  {targetDate(p.itemPlanoId) ? `Baixa o item previsto para ${targetDate(p.itemPlanoId)}` : 'Baixa o item previsto do plano'}
+                </Text>
+              ) : null}
             </View>
           ))}
         </View>
@@ -70,19 +97,19 @@ export function AssinarPrescricaoScreen({ route }: Props) {
               {draft.medicamento} · {draft.doseMin}–{draft.doseMax} {draft.unidade}
             </Text>
             <Text style={styles.subtitle}>
-              {draft.frequenciaDia}×/dia · {draft.duracaoDias} dias · {draft.regras.length} regra(s) condicional(is)
+              {draft.frequenciaDia}×/dia · {draft.duracaoDias} dias · {draft.regras.length} regra(s) de dose
             </Text>
           </View>
 
           {draft.regras.length > 0 ? (
             <View style={styles.card}>
-              <Text style={styles.sectionLabel}>Regras condicionais</Text>
+              <Text style={styles.sectionLabel}>Regras de dose</Text>
               {draft.regras.map((regra, index) => (
                 <View key={`${regra.condicaoClinicaId}-${index}`}>
                   <View style={styles.ruleRow}>
                     <View style={styles.ruleDot} />
                     <Text style={styles.ruleText}>
-                      {descreverCondicao(regra)} → {regra.acao.replace(/_/g, ' ').toLowerCase()}
+                      {descreverCondicao(regra)} → {rotuloAcao(regra.acao)}
                     </Text>
                   </View>
                   {index < draft.regras.length - 1 ? <View style={styles.divider} /> : null}
@@ -93,10 +120,17 @@ export function AssinarPrescricaoScreen({ route }: Props) {
         </>
       ) : null}
 
+      <View style={styles.card}>
+        <Text style={styles.sectionLabel}>Ao assinar</Text>
+        <Text style={styles.orientacaoText}>A receita fica assinada com seu nome e CRMV.</Text>
+        <Text style={styles.orientacaoText}>Depois de assinada, não muda mais.</Text>
+        <Text style={styles.orientacaoText}>{responsavel} vê os cuidados no app.</Text>
+      </View>
+
       <View style={styles.signatureSection}>
         <View style={styles.preSignContainer}>
           <Button
-            label="Assinar e concluir"
+            label={crmv ? `Assinar e concluir · CRMV ${crmv}` : 'Assinar e concluir'}
             backgroundColor={colors.action}
             loading={completing}
             onPress={handleSign}
@@ -165,7 +199,6 @@ const styles = StyleSheet.create({
   },
   ruleText: {
     flex: 1,
-    fontFamily: 'monospace',
     fontSize: 12.5,
     lineHeight: 17,
     color: colors.textPrimary,
