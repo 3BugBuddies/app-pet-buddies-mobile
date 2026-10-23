@@ -9,46 +9,48 @@ export interface NextPatientItem {
   petName: string;
   reason: string;
   seen: boolean;
+  isToday: boolean;
 }
 
 interface NextPatientsCardProps {
   items: NextPatientItem[];
-  onOpenPatient: (petId: string, consultaId?: string) => void;
-  onToggle: (id: string) => void;
+  onOpenPatient: (petId: string, appointmentId?: string) => void;
+  onAttend: (petId: string, appointmentId: string) => void;
 }
 
-export function NextPatientsCard({ items, onOpenPatient, onToggle }: NextPatientsCardProps) {
+export function NextPatientsCard({ items, onOpenPatient, onAttend }: NextPatientsCardProps) {
   return (
-    <View style={styles.card}>
-      <View style={styles.head}>
-        <Text style={styles.title}>Próximos pacientes</Text>
-        <View style={styles.tag}>
-          <Text style={styles.tagText}>clínica</Text>
-        </View>
-      </View>
+    <View style={styles.list}>
+      <Text style={styles.title}>PRÓXIMOS</Text>
 
       {items.map((item) => (
-        <Pressable key={item.id} style={styles.row} onPress={() => onOpenPatient(item.petId, item.id)}>
+        <Pressable
+          key={item.id}
+          style={[styles.row, item.seen && styles.rowSeen]}
+          onPress={() => onOpenPatient(item.petId, item.id)}
+        >
           <View style={styles.dateTimeCol}>
+            <Text style={[styles.timeText, item.seen && styles.textSeen]}>{item.time}</Text>
             <Text style={styles.dateText}>{item.dateLabel}</Text>
-            <Text style={styles.timeText}>{item.time}</Text>
-          </View>
-          <View style={[styles.avatar, item.seen && styles.avatarSeen]}>
-            <Text style={[styles.avatarText, item.seen && styles.avatarTextSeen]}>
-              {item.petName.charAt(0).toUpperCase()}
-            </Text>
           </View>
           <View style={styles.textBlock}>
-            <Text style={[styles.petName, item.seen && styles.textSeen]}>
-              {item.petName} <Text style={styles.idText}>#{item.petId}</Text>
-            </Text>
+            <Text style={[styles.petName, item.seen && styles.textSeen]}>{item.petName}</Text>
             <Text style={styles.reason}>{item.reason}</Text>
           </View>
-          <View style={[styles.statusTag, item.seen && styles.statusTagSeen]}>
-            <Text style={[styles.statusText, item.seen && styles.statusTextSeen]}>
-              {item.seen ? 'atendida' : 'aguardando'}
-            </Text>
-          </View>
+          {item.seen ? (
+            <View style={styles.statusTag}>
+              <Text style={styles.statusText}>atendido</Text>
+            </View>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={6}
+              style={styles.attendButton}
+              onPress={() => onAttend(item.petId, item.id)}
+            >
+              <Text style={styles.attendText}>Atender</Text>
+            </Pressable>
+          )}
         </Pressable>
       ))}
     </View>
@@ -56,106 +58,75 @@ export function NextPatientsCard({ items, onOpenPatient, onToggle }: NextPatient
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  head: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  list: {
+    gap: spacing.sm,
   },
   title: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  tag: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radii.pill,
-    backgroundColor: colors.cardChia,
-  },
-  tagText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: colors.textPrimary,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  rowSeen: {
+    backgroundColor: colors.border,
   },
   dateTimeCol: {
-    width: 52,
+    width: 56,
     alignItems: 'center',
-    gap: 2,
+  },
+  timeText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
   dateText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  timeText: {
-    fontSize: 12,
-    fontWeight: '600',
     color: colors.textSecondary,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.sm,
-    backgroundColor: colors.cardChia,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarSeen: {
-    backgroundColor: colors.background,
-  },
-  avatarText: {
-    fontWeight: '700',
-    fontSize: 15,
-    color: colors.textPrimary,
-  },
-  avatarTextSeen: {
-    color: colors.textMuted,
   },
   textBlock: {
     flex: 1,
   },
   petName: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 17,
+    fontWeight: '700',
     color: colors.textPrimary,
   },
   textSeen: {
     color: colors.textSecondary,
-    textDecorationLine: 'line-through',
   },
   reason: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
   },
   statusTag: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
     borderRadius: radii.pill,
-    backgroundColor: colors.background,
-  },
-  statusTagSeen: {
-    backgroundColor: `${colors.success}1F`,
+    backgroundColor: colors.surface,
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.textPrimary,
   },
-  statusTextSeen: {
-    color: colors.success,
+  attendButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primary,
   },
-  idText: { fontSize: 12, color: colors.textMuted, fontWeight: '400' },
+  attendText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textLight,
+  },
 });

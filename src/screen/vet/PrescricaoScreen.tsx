@@ -38,7 +38,7 @@ const ACAO_LABEL: Record<string, string> = {
 type Props = NativeStackScreenProps<PacientesTabParamList, 'Prescricao'>;
 
 export function PrescricaoScreen({ route }: Props) {
-  const { animalId, consultaId, prontuario } = route.params;
+  const { animalId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
   
@@ -120,7 +120,7 @@ export function PrescricaoScreen({ route }: Props) {
     validar,
   } = usePrescricaoDraftControl({
     animalId,
-    registroAtendimentoId: prontuario?.id ? String(prontuario.id) : '',
+    registroAtendimentoId: '',
   });
 
   const { data: catalogo = [], isLoading: isLoadingCondicoes } = useCondicoesClinicas();
@@ -224,8 +224,7 @@ export function PrescricaoScreen({ route }: Props) {
       // (POST /prescricao/rascunho). Este fluxo só grava o prontuário na assinatura (fechamento
       // atômico), então usamos um registro anterior do paciente apenas como referência. Sem ele,
       // não persistimos nada: cai no extrator local.
-      let regId: string | number | undefined =
-        prontuario?.id && !String(prontuario.id).startsWith('rec-') ? prontuario.id : undefined;
+      let regId: string | number | undefined;
       if (!regId) {
         const registros = await getRecordsByPetId(animalId).catch(() => []);
         regId = registros[0]?.id;
@@ -290,7 +289,7 @@ export function PrescricaoScreen({ route }: Props) {
 
   const irParaAssinatura = async () => {
     const draft = await validar();
-    if (draft) navigation.navigate('AssinarPrescricao', { draft, consultaId, prontuario });
+    if (draft) navigation.popTo('ProntuarioForm', { petId: animalId, prescricao: draft }, { merge: true });
   };
 
   return (
@@ -486,7 +485,7 @@ export function PrescricaoScreen({ route }: Props) {
         <Button label="+ Adicionar regra condicional" variant="secondary" onPress={() => setRuleModalVisible(true)} />
       </View>
 
-      <Button label="Revisar e Assinar Prescrição" onPress={irParaAssinatura} style={{ marginTop: spacing.md }} />
+      <Button label="Adicionar ao atendimento" onPress={irParaAssinatura} style={{ marginTop: spacing.md }} />
     </ScrollView>
 
     {protocolModalVisible && (
