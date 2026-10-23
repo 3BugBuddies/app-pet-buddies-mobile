@@ -189,6 +189,7 @@ export interface CondicaoObservadaExtracao {
   confianca: number; // 0.0 – 1.0
   rotulo?: string | null;
   unidade?: string | null;
+  critica?: boolean;
 }
 
 // Corpo cru da resposta de /checkin/extracao — sem envelope HATEOAS.

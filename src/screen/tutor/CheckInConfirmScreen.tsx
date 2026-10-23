@@ -56,7 +56,7 @@ export function CheckInConfirmScreen({ route }: Props) {
     try {
       const result = await confirmCheckIn.mutateAsync({
         redFlags: redFlagsSeguras,
-        alarmLabels: condicoesSeguras.flatMap((c) => (c.valorBooleano && c.rotulo ? [c.rotulo] : [])),
+        alarmLabels: condicoesSeguras.flatMap((c) => (c.critica && c.valorBooleano && c.rotulo ? [c.rotulo] : [])),
         payload: {
           animalId: extracaoResponse.animalId,
           narrativa: extracaoResponse.narrativa,
