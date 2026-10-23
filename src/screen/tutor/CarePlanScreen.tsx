@@ -2,11 +2,12 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ProgressBarCard } from '../../component/care-plan/ProgressBarCard';
+import { CareItemsSection } from '../../component/care-plan/CareItemsSection';
+import { NoPlanState } from '../../component/care-plan/NoPlanState';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useCarePlan } from '../../control/useCarePlanControl';
-import { useActivePetId, usePets } from '../../control/usePetsControl';
+import { useActivePetId, usePet, usePets } from '../../control/usePetsControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
@@ -20,13 +21,15 @@ export function CarePlanScreen({ route }: Props) {
 
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError } = useCarePlan(petId);
 
+  const { data: pet } = usePet(petId);
+
   const insets = useSafeAreaInsets();
 
   if (isLoadingPets || isLoadingPlan) {
     return <LoadingIndicator label="Carregando evolução..." />;
   }
 
-  if (isPetsError || isPlanError || !plan || !petId) {
+  if (isPetsError || isPlanError || plan === undefined || !petId) {
     return (
       <ErrorState
         type="500"
@@ -37,15 +40,22 @@ export function CarePlanScreen({ route }: Props) {
     );
   }
 
-  const tasks = plan.tasks || [];
-  const doneCount = tasks.filter((task) => task.completed).length;
-  const pointsToday = tasks.reduce((sum, task) => (task.completed ? sum + task.points : sum), 0);
+  if (plan === null) {
+    return (
+      <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
+        <NoPlanState
+          petName={pet?.nome ?? 'pet'}
+          onSchedule={() => navigation.getParent()?.navigate('AgendaTab', { screen: 'AgendamentoTutor' })}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
       <View style={styles.headerCard}>
         <View style={styles.headerTexts}>
-          <Text style={styles.headerTitle}>Evolucao</Text>
+          <Text style={styles.headerTitle}>Cuidados</Text>
           <Text style={styles.headerSubtitle}>{plan.weekLabel}</Text>
         </View>
         <Image
@@ -59,38 +69,16 @@ export function CarePlanScreen({ route }: Props) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
       >
-        <ProgressBarCard doneCount={doneCount} totalCount={tasks.length} />
-
-        <Text style={styles.sectionLabel}>Histórico do Tratamento</Text>
-
-        {!plan.history || plan.history.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>Nenhuma tarefa de cuidado registrada ainda.</Text>
-          </View>
-        ) : (
-          <View style={styles.timeline}>
-            {plan.history.map((item) => (
-              <View key={item.id} style={styles.historyRow}>
-                <View style={styles.historyDateCol}>
-                  <Text style={styles.historyDay}>{item.dayLabel}</Text>
-                  <Text style={styles.historyDate}>{item.dateLabel}</Text>
-                </View>
-                <View style={styles.timelineDotCol}>
-                  <View style={[styles.timelineDot, item.completed && styles.timelineDotDone]} />
-                  <View style={styles.timelineLine} />
-                </View>
-                <View style={[styles.timelineCard, item.completed && styles.timelineCardDone]}>
-                  <Text style={[styles.timelineTitle, item.completed && styles.timelineTitleDone]}>
-                    {item.title}
-                  </Text>
-                  <Text style={item.completed ? styles.timelineBodyDone : styles.timelineBody}>
-                    {item.completed ? 'Check-in realizado ✓' : 'Check-in feito'}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
+        <CareItemsSection
+          title="Preventivo"
+          items={plan.items.filter((item) => !item.treatment)}
+          emptyText="Nenhum cuidado preventivo agendado."
+        />
+        <CareItemsSection
+          title="Tratamento"
+          items={plan.items.filter((item) => item.treatment)}
+          emptyText="Nenhum tratamento em andamento."
+        />
       </ScrollView>
     </View>
   );

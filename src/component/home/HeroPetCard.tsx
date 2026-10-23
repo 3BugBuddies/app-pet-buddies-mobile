@@ -6,16 +6,17 @@ const heroImage = require('../../../assets/images/amigos-tranparentes.png');
 
 interface HeroPetCardProps {
   petNames: string;
+  stateLabel?: string;
+  details?: string;
 }
 
-export function HeroPetCard({ petNames }: HeroPetCardProps) {
+export function HeroPetCard({ petNames, stateLabel, details }: HeroPetCardProps) {
   return (
     <View style={styles.card}>
       <View style={styles.textBlock}>
+        {stateLabel ? <Text style={styles.subtitle}>{stateLabel}</Text> : null}
         <Text style={styles.names}>{petNames}</Text>
-        <Text style={styles.subtitle}>
-          SEMPRE JUNTOS{'\n'}EM NOVAS AVENTURAS ♥
-        </Text>
+        {details ? <Text style={styles.details}>{details}</Text> : null}
       </View>
       <Image source={heroImage} style={styles.image} resizeMode="contain" />
     </View>
@@ -53,6 +54,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     color: colors.textSecondary,
     lineHeight: 14,
+  },
+  details: {
+    fontFamily: 'Inter',
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   image: {
     width: 150,

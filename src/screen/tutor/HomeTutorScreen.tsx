@@ -17,11 +17,18 @@ import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { AuthContext } from '../../context/authContext';
 import { useAppointments } from '../../control/useAppointmentsControl';
 import { useLogoutControl } from '../../control/authControl';
-import { useCarePlan, useToggleCareTask } from '../../control/useCarePlanControl';
+import { useCarePlan } from '../../control/useCarePlanControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
+import { planStateLabel } from '../../model/care';
+import { breedLabel, sexLabel, type Pet } from '../../model/pet';
+
+function petDetails(pet: Pet): string {
+  const weight = pet.peso ? `${String(pet.peso).replace('.', ',')} kg` : null;
+  return [breedLabel(pet.raca), sexLabel(pet.sexo).toLowerCase(), weight].filter(Boolean).join(' · ');
+}
 
 type HomeTutorNavigationProp = CompositeNavigationProp<
   NativeStackNavigationProp<HomeTabParamList, 'HomeTutor'>,
@@ -46,13 +53,14 @@ export function HomeTutorScreen() {
   // Hooks reativos ao pet selecionado — sempre no topo, sem condicionais
   const { data: appointments, isLoading: isLoadingAppointments } = useAppointments(activePet?.id ?? undefined);
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError, refetch: refetchPlan } = useCarePlan(activePet?.id ?? '');
-  const toggleTask = useToggleCareTask(activePet?.id ?? '');
+
+  const medications = plan?.tasks.filter((t) => t.origin === 'PRESCRICAO') ?? [];
 
   const handleStartCheckIn = () => {
     if (activePet?.id) {
-      // Liga o check-in ao primeiro item de hoje ainda pendente (id numérico = item da API;
-      // ids do mock não são numéricos e seguem sem vínculo).
-      const pendente = plan?.tasks.find((t) => !t.completed);
+      // Liga o check-in ao primeiro item de medicação de hoje ainda pendente (id numérico = item
+      // da API; ids do mock não são numéricos e seguem sem vínculo).
+      const pendente = medications.find((t) => !t.completed);
       const itemId = pendente ? Number(pendente.id) : NaN;
       navigation.navigate('PlanoTab', {
         screen: 'CheckInEntry',
@@ -89,8 +97,8 @@ export function HomeTutorScreen() {
     return (
       <View style={[styles.screen, styles.emptyStateContainer, { paddingTop: Math.max(insets.top, 20) }]}>
         <GreetingHeader
-          greeting={`${greetingForNow()},`}
-          userName={session?.nome?.split(' ')[0] ?? 'Tutor'}
+          greeting={greetingForNow()}
+          userName={session?.nome?.split(' ')[0] ?? 'responsável'}
         />
         <View style={styles.emptyStateContent}>
           <Image
@@ -134,7 +142,8 @@ export function HomeTutorScreen() {
   const doneCount = hasPlan ? plan.tasks.filter((task) => task.completed).length : 0;
   const totalCount = hasPlan ? plan.tasks.length : 0;
   const tasks = hasPlan ? plan.tasks : [];
-  const isCheckInDone = tasks.length > 0 && tasks.every((task) => task.completed);
+  const hasPendingMedication = medications.some((task) => !task.completed);
+  const isCheckInDone = medications.length > 0 && !hasPendingMedication;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
@@ -143,9 +152,9 @@ export function HomeTutorScreen() {
         showsVerticalScrollIndicator={false}
       >
         <GreetingHeader
-          greeting={`${greetingForNow()},`}
+          greeting={greetingForNow()}
           petName={activePet.nome}
-          userName={session?.nome?.split(' ')[0] ?? 'Tutor'}
+          userName={session?.nome?.split(' ')[0] ?? 'responsável'}
           onAvatarPress={() =>
             navigation.navigate('PetTab', { screen: 'PetProfile', params: { petId: activePet.id! } })
           }
@@ -182,7 +191,11 @@ export function HomeTutorScreen() {
         )}
 
         <View style={styles.bento}>
-          <HeroPetCard petNames={activePet.nome} />
+          <HeroPetCard
+            petNames={activePet.nome}
+            stateLabel={planStateLabel(plan, new Date().toLocaleDateString('sv-SE'))}
+            details={petDetails(activePet)}
+          />
 
           {hasPlan ? (
             <>
@@ -205,24 +218,22 @@ export function HomeTutorScreen() {
                   time: task.time,
                   done: task.completed,
                 }))}
-                onToggle={(id) => toggleTask.mutate(id)}
-                isLocked={isCheckInDone}
               />
-              {!isCheckInDone ? (
+              {hasPendingMedication ? (
                 <Button
                   label={`Fazer Check-in do ${activePet.nome} →`}
                   backgroundColor={colors.action}
                   textColor={colors.textLight}
                   onPress={handleStartCheckIn}
                 />
-              ) : (
+              ) : isCheckInDone ? (
                 <View style={styles.completedBadgeBox}>
                   <Ionicons name="checkmark-circle" size={20} color={colors.success} />
                   <Text style={styles.completedBadgeText}>
-                    Check-in de hoje concluído! 🔥 5 dias seguidos de cuidado com {activePet.nome}
+                    Check-in de hoje concluído. Obrigado por cuidar de {activePet.nome}!
                   </Text>
                 </View>
-              )}
+              ) : null}
             </>
           ) : (
             <>
@@ -271,21 +282,16 @@ export function HomeTutorScreen() {
               </Pressable>
             </View>
             <View style={styles.half}>
-              <Pressable
-                style={styles.half}
-                onPress={() => navigation.navigate('Score', { petId: activePet.id! })}
-              >
-                <View style={[styles.fallbackCard, { backgroundColor: colors.cardMax, flex: 1, minHeight: 160 }]}>
-                  <View style={styles.fallbackHeader}>
-                    <Text style={styles.fallbackTitle}>Pata Segura</Text>
-                    <Ionicons name="star" size={20} color={colors.accent} />
-                  </View>
-                  <Text style={[styles.fallbackSub, { marginTop: 'auto' }]}>
-                    O programa de recompensas do seu pet está chegando!
-                  </Text>
-                  <Text style={styles.fallbackAction}>Saiba mais {'>'}</Text>
+              <View style={[styles.fallbackCard, { backgroundColor: colors.cardMax, flex: 1, minHeight: 160 }]}>
+                <View style={styles.fallbackHeader}>
+                  <Text style={styles.fallbackTitle}>Pata Segura</Text>
+                  <Ionicons name="star" size={20} color={colors.accent} />
                 </View>
-              </Pressable>
+                <Text style={[styles.fallbackSub, { marginTop: 'auto' }]}>
+                  O programa de recompensas do seu pet está chegando!
+                </Text>
+                <Text style={styles.fallbackAction}>Em breve</Text>
+              </View>
             </View>
           </View>
         </View>

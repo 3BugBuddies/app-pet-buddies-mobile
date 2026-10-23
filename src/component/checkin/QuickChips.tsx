@@ -9,7 +9,7 @@ interface QuickChipsProps {
 export function QuickChips({ options, onSelect }: QuickChipsProps) {
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>Ou responda rápido</Text>
+      <Text style={styles.label}>Resposta rápida</Text>
       <View style={styles.row}>
         {options.map((option) => (
           <Pressable key={option} onPress={() => onSelect(option)} style={styles.chip}>

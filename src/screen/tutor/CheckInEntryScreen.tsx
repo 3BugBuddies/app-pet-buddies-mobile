@@ -2,7 +2,6 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { useNavigation } from '@react-navigation/native';
 import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -18,7 +17,6 @@ import { NarrativeInput } from '../../component/checkin/NarrativeInput';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { LogoHeader } from '../../component/ui/LogoHeader';
 import { usePet } from '../../control/usePetsControl';
 import { useExtractCheckIn } from '../../control/useCheckInControl';
 import type { PlanoTabParamList } from '../navigation/types';
@@ -148,37 +146,21 @@ export function CheckInEntryScreen({ route }: Props) {
 
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
-      <CheckInTopBar title="Check-in Diário" subtitle="Passo 1 de 3" stepLabel="1 / 3" />
+      <CheckInTopBar title="Check-in" stepLabel="1 de 3" />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView
+        <ScrollView keyboardDismissMode="on-drag"
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]}
           showsVerticalScrollIndicator={false}
         >
-          <LogoHeader size="large" />
-
           <View style={styles.headline}>
             <Text style={styles.h1}>Como {pet.nome} passou hoje?</Text>
             <Text style={styles.p}>
-              Fale naturalmente ou escolha um atalho. Nossa IA cruzará as informações com as regras do seu veterinário.
+              Conte do seu jeito. A dose de hoje sai da regra que a veterinária escreveu.
             </Text>
           </View>
 
-          {/* Atalho Express para Dia Normal */}
-          <Pressable
-            accessibilityRole="button"
-            onPress={handleExpressCheckIn}
-            style={styles.expressCard}
-          >
-            <View style={styles.expressIconBox}>
-              <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-            </View>
-            <View style={styles.expressTextCol}>
-              <Text style={styles.expressTitle}>Tudo ótimo com o {pet.nome}!</Text>
-              <Text style={styles.expressSub}>Clique aqui para preencher como "Sem sintomas" instantaneamente</Text>
-            </View>
-          </Pressable>
-
+          <Text style={styles.fieldLabel}>Seu relato</Text>
           <NarrativeInput
             value={narrative}
             onChangeText={setNarrative}
@@ -192,8 +174,12 @@ export function CheckInEntryScreen({ route }: Props) {
 
           <QuickChips options={QUICK_OPTIONS} onSelect={appendChip} />
 
+          <Pressable accessibilityRole="button" onPress={handleExpressCheckIn}>
+            <Text style={styles.expressLink}>Tudo bem hoje · sem sintomas</Text>
+          </Pressable>
+
           <Button
-            label="Analisar Relato com IA →"
+            label="Continuar · conferir relato"
             backgroundColor={colors.action}
             textColor={colors.textLight}
             disabled={!narrative.trim()}
@@ -234,35 +220,16 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: colors.textSecondary,
   },
-  expressCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: `${colors.success}12`,
-    borderWidth: 1,
-    borderColor: `${colors.success}40`,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-  },
-  expressIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: radii.pill,
-    backgroundColor: `${colors.success}20`,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  expressTextCol: {
-    flex: 1,
-  },
-  expressTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  expressSub: {
-    fontSize: 12,
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.textSecondary,
-    marginTop: 2,
+  },
+  expressLink: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
+    textDecorationLine: 'underline',
   },
 });

@@ -5,7 +5,6 @@ import { CheckInConfirmScreen } from '../../tutor/CheckInConfirmScreen';
 import { CheckInResultScreen } from '../../tutor/CheckInResultScreen';
 import { CheckInEscalationScreen } from '../../tutor/CheckInEscalationScreen';
 import { CheckInNoRuleScreen } from '../../tutor/CheckInNoRuleScreen';
-import { AssistantNoticeScreen } from '../../tutor/AssistantNoticeScreen';
 import type { PlanoTabParamList } from '../types';
 
 const Stack = createNativeStackNavigator<PlanoTabParamList>();
@@ -38,11 +37,6 @@ export function PlanoTabStack() {
         name="CheckInNoRule"
         component={CheckInNoRuleScreen}
         options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="AssistantNotice"
-        component={AssistantNoticeScreen}
-        options={{ title: 'Tirar dúvidas' }}
       />
     </Stack.Navigator>
   );
