@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CareItemsSection } from '../../component/care-plan/CareItemsSection';
 import { NoPlanState } from '../../component/care-plan/NoPlanState';
@@ -8,6 +8,7 @@ import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { useActivePetId, usePet, usePets } from '../../control/usePetsControl';
+import { activePlansLabel } from '../../model/care';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
@@ -58,14 +59,9 @@ export function CarePlanScreen({ route }: Props) {
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
       <View style={styles.headerCard}>
         <View style={styles.headerTexts}>
-          <Text style={styles.headerTitle}>Cuidados</Text>
-          <Text style={styles.headerSubtitle}>{plan.weekLabel}</Text>
+          <Text style={styles.headerTitle}>{`Cuidados da ${pet?.nome ?? 'pet'}`}</Text>
+          <Text style={styles.headerSubtitle}>{activePlansLabel(plan.items)}</Text>
         </View>
-        <Image
-          source={require('../../../assets/images/logo-header-principal-trasparente.png')}
-          style={styles.headerLogo}
-          resizeMode="contain"
-        />
       </View>
 
       <ScrollView
@@ -81,6 +77,7 @@ export function CarePlanScreen({ route }: Props) {
           title="Tratamento"
           items={plan.items.filter((item) => item.treatment)}
           emptyText="Nenhum tratamento em andamento."
+          grouped
         />
       </ScrollView>
     </View>
@@ -105,8 +102,7 @@ const styles = StyleSheet.create({
   },
   headerTexts: { flex: 1 },
   headerTitle: { fontFamily: 'Sora', fontSize: 24, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
-  headerSubtitle: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: colors.success, marginTop: 2 },
-  headerLogo: { width: 80, height: 40 },
+  headerSubtitle: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: colors.textSecondary, marginTop: 2 },
   content: { padding: spacing.lg, gap: spacing.md },
   sectionLabel: {
     fontSize: 13,

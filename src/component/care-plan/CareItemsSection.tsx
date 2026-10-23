@@ -1,11 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
-import { statusDisplay, type CareItem, type StatusTone } from '../../model/care';
+import { dayAndWeekday, groupTreatments, statusDisplay, type CareItem, type StatusTone } from '../../model/care';
 
 interface CareItemsSectionProps {
   title: string;
   items: CareItem[];
   emptyText: string;
+  grouped?: boolean;
 }
 
 const TONE_BG: Record<StatusTone, string> = {
@@ -15,15 +16,44 @@ const TONE_BG: Record<StatusTone, string> = {
   neutral: colors.border,
 };
 
-export function CareItemsSection({ title, items, emptyText }: CareItemsSectionProps) {
+const todayIso = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+export function CareItemsSection({ title, items, emptyText, grouped }: CareItemsSectionProps) {
+  const today = todayIso();
+  const renderPill = (item: CareItem) => {
+    const display = statusDisplay(item.status, item.type === 'MEDICACAO', item.overdue);
+    return (
+      <View style={[styles.pill, { backgroundColor: TONE_BG[display.tone] }]}>
+        <Text style={styles.pillText}>{display.label}</Text>
+      </View>
+    );
+  };
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{title}</Text>
       {items.length === 0 ? (
         <Text style={styles.empty}>{emptyText}</Text>
+      ) : grouped ? (
+        groupTreatments(items).map((group) => (
+          <View key={group.name} style={styles.group}>
+            <Text style={styles.groupTitle}>
+              {[group.name, group.rangeLabel, group.perDay > 1 ? `${group.perDay}×/dia` : null].filter(Boolean).join(' · ')}
+            </Text>
+            {group.items.map((item) => (
+              <View key={item.id} style={styles.row}>
+                <View style={styles.textBlock}>
+                  <Text style={styles.itemTitle}>{dayAndWeekday(item.dateIso, today)}</Text>
+                </View>
+                {renderPill(item)}
+              </View>
+            ))}
+          </View>
+        ))
       ) : (
         items.map((item) => {
-          const display = statusDisplay(item.status, item.type === 'MEDICACAO', item.overdue);
           return (
             <View key={item.id} style={styles.row}>
               <View style={styles.textBlock}>
@@ -31,9 +61,7 @@ export function CareItemsSection({ title, items, emptyText }: CareItemsSectionPr
                   {item.title} · {item.dateLabel}
                 </Text>
               </View>
-              <View style={[styles.pill, { backgroundColor: TONE_BG[display.tone] }]}>
-                <Text style={styles.pillText}>{display.label}</Text>
-              </View>
+              {renderPill(item)}
             </View>
           );
         })
@@ -53,6 +81,8 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: 'Sora', fontSize: 18, fontWeight: '700', color: colors.textPrimary },
   empty: { fontSize: 14, color: colors.textSecondary },
+  group: { gap: spacing.xs },
+  groupTitle: { fontSize: 14, fontWeight: '700', color: colors.textSecondary, marginTop: spacing.xs },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

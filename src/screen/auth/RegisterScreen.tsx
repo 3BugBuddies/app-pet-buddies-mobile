@@ -109,7 +109,7 @@ export function RegisterScreen() {
             {erros.geral ? <Text style={styles.apiError}>{erros.geral}</Text> : null}
 
             <View style={styles.buttonSpacing}>
-              <Button label="Cadastrar" loading={isCadastrando} onPress={cadastrar} />
+              <Button label="Criar conta" backgroundColor={colors.action} loading={isCadastrando} onPress={cadastrar} />
             </View>
           </Card>
 
