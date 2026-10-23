@@ -60,7 +60,7 @@ const createPrescription = async (prescription: Prescription): Promise<Prescript
 };
 
 // Rota exclusiva para veterinário: envia narrativa e recebe rascunho estruturado pela IA.
-// Exige perfil VET.
+// Exige perfil VET. O fechamento é único, então não há registro gravado: vai só o animalId.
 const draftPrescription = async (data: NarrativaPrescricaoRequest): Promise<RascunhoPrescricaoResponse> => {
   if (USE_API) {
     const payload = {
@@ -85,8 +85,16 @@ const draftPrescription = async (data: NarrativaPrescricaoRequest): Promise<Rasc
       orientacao: 'Administrar junto com alimento',
     },
     regrasPropostas: [
-      { condicaoClinicaId: 1, acaoDose: 'DOSE_MIN' },
-      { condicaoClinicaId: 4, acaoDose: 'ACIONAR_CLINICA' },
+      { condicaoClinicaId: 1, condicaoRotulo: 'Fezes moles', acaoDose: 'DOSE_MIN' },
+      { condicaoClinicaId: 4, condicaoRotulo: 'Vômito', acaoDose: 'ACIONAR_CLINICA' },
+      {
+        condicaoClinicaId: null,
+        condicaoRotulo: 'Febre',
+        condicaoNova: { rotulo: 'Febre', tipoDado: 'NUMERICO' },
+        operador: 'MAIOR_QUE',
+        limite: 39.5,
+        acaoDose: 'ACIONAR_CLINICA',
+      },
     ],
     condicoesDescartadas: [],
   };
