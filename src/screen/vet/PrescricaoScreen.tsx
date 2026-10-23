@@ -354,7 +354,7 @@ export function PrescricaoScreen({ route }: Props) {
 
   return (
     <>
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]} keyboardShouldPersistTaps="handled">
+    <ScrollView keyboardDismissMode="on-drag" style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]} keyboardShouldPersistTaps="handled">
       <CheckInTopBar
         title="Prescrição"
         subtitle={pet ? `${pet.nome}${tutorName ? ` • ${tutorName}` : ''}` : undefined}
@@ -586,7 +586,7 @@ export function PrescricaoScreen({ route }: Props) {
           </View>
           <Text style={styles.modalSubtitle}>Escolha uma receita-modelo para preencher a prescrição. Você pode editar tudo depois.</Text>
 
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}>
+          <ScrollView keyboardDismissMode="on-drag" style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}>
             {isLoadingTemplates ? (
               <ActivityIndicator color={colors.primary} />
             ) : templates.length === 0 ? (
@@ -618,7 +618,7 @@ export function PrescricaoScreen({ route }: Props) {
           </View>
           <Text style={styles.modalSubtitle}>Se o responsável relatar no check-in:</Text>
 
-          <ScrollView
+          <ScrollView keyboardDismissMode="on-drag"
             style={{ flex: 1 }}
             contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: insets.bottom + 100 }}
             keyboardShouldPersistTaps="handled"

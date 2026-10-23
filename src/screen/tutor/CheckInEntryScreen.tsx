@@ -149,7 +149,7 @@ export function CheckInEntryScreen({ route }: Props) {
       <CheckInTopBar title="Check-in" stepLabel="1 de 3" />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView
+        <ScrollView keyboardDismissMode="on-drag"
           contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]}
           showsVerticalScrollIndicator={false}
         >

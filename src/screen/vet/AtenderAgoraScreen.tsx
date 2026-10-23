@@ -49,6 +49,7 @@ export function AtenderAgoraScreen() {
 
       <Text style={styles.label}>PACIENTES</Text>
       <FlatList
+        keyboardDismissMode="on-drag"
         data={filtered}
         keyExtractor={(pet) => String(pet.id)}
         contentContainerStyle={styles.list}

@@ -38,7 +38,7 @@ export function RegisterScreen() {
       <Text style={styles.title}>Criar conta</Text>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView
+        <ScrollView keyboardDismissMode="on-drag"
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

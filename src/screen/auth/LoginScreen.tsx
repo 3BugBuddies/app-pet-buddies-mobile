@@ -40,7 +40,7 @@ export function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
       >
-        <ScrollView
+        <ScrollView keyboardDismissMode="on-drag"
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

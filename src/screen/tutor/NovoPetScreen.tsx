@@ -78,7 +78,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
     >
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag"
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
         keyboardShouldPersistTaps="handled"
@@ -107,7 +107,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
 
           {/* Espécie — COELHO removido, chip quadrado só com ícone */}
           <Text style={styles.fieldLabel}>Espécie *</Text>
-          <ScrollView
+          <ScrollView keyboardDismissMode="on-drag"
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.especieRow}
