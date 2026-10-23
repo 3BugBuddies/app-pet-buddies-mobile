@@ -17,7 +17,7 @@ interface AgendaHeroCardProps {
 
 export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: AgendaHeroCardProps) {
   const progress = totalCount > 0 ? seenCount / totalCount : 0;
-  const strokeDashoffset = RING_CIRCUMFERENCE - RING_CIRCUMFERENCE * progress;
+  const filled = RING_CIRCUMFERENCE * Math.min(1, progress);
 
   return (
     <View style={styles.card}>
@@ -40,19 +40,20 @@ export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: A
             strokeWidth={RING_STROKE}
             fill="none"
           />
-          <Circle
-            cx={RING_SIZE / 2}
-            cy={RING_SIZE / 2}
-            r={RING_RADIUS}
-            stroke={colors.primary}
-            strokeWidth={RING_STROKE}
-            strokeLinecap="round"
-            strokeDasharray={RING_CIRCUMFERENCE}
-            strokeDashoffset={strokeDashoffset}
-            fill="none"
-            rotation={-90}
-            origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
-          />
+          {progress > 0 ? (
+            <Circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              r={RING_RADIUS}
+              stroke={colors.primary}
+              strokeWidth={RING_STROKE}
+              strokeLinecap={progress >= 1 ? 'butt' : 'round'}
+              strokeDasharray={`${filled} ${RING_CIRCUMFERENCE}`}
+              fill="none"
+              rotation={-90}
+              origin={`${RING_SIZE / 2}, ${RING_SIZE / 2}`}
+            />
+          ) : null}
         </Svg>
       </View>
     </View>
