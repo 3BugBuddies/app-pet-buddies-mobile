@@ -11,7 +11,7 @@ import type { AuthStackParamList } from '../navigation/types';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
 const PERFIL_LABEL: Record<string, string> = {
-  TUTOR: 'Tutor',
+  TUTOR: 'Responsável',
   VET: 'Veterinário',
 };
 
@@ -25,6 +25,7 @@ export function RegisterScreen() {
     confirmarSenha, setConfirmarSenha,
     perfil, setPerfil,
     telefone, handleTelefoneChange,
+    endereco, setEndereco,
     crmv, handleCrmvChange,
     perfis,
     erros,
@@ -81,6 +82,13 @@ export function RegisterScreen() {
                   hasError={!!erros.telefone}
                 />
                 <FieldError message={erros.telefone} />
+
+                <Input
+                  label="Endereço (opcional)"
+                  placeholder="Rua, número, bairro e cidade"
+                  value={endereco}
+                  onChangeText={setEndereco}
+                />
               </>
             ) : (
               <>

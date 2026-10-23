@@ -82,6 +82,7 @@ const useRegisterControl = () => {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [perfil, setPerfil] = useState<Perfil>('TUTOR');
   const [telefone, setTelefone] = useState('');
+  const [endereco, setEndereco] = useState('');
   const [crmv, setCrmv] = useState('');
   const [erros, setErros] = useState<Record<string, string>>({});
 
@@ -91,7 +92,7 @@ const useRegisterControl = () => {
   const registerMutation = useMutation({
     mutationFn: async () => {
       const dados = await registerSchema.validate(
-        { nome, email, senha, confirmarSenha, perfil, telefone, crmv },
+        { nome, email, senha, confirmarSenha, perfil, telefone, endereco, crmv },
         { abortEarly: false }
       );
       return register(dados);
@@ -119,6 +120,7 @@ const useRegisterControl = () => {
     confirmarSenha, setConfirmarSenha,
     perfil, setPerfil,
     telefone, setTelefone, handleTelefoneChange,
+    endereco, setEndereco,
     crmv, setCrmv, handleCrmvChange,
     perfis: PERFIS,
     erros,
