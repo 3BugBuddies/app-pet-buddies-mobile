@@ -5,12 +5,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useContext, useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { ClinicCard } from '../../component/home/ClinicCard';
 import { GreetingHeader } from '../../component/home/GreetingHeader';
 import { HeroPetCard } from '../../component/home/HeroPetCard';
-import { PlanProgressCard } from '../../component/home/PlanProgressCard';
-import { TodayTasksCard } from '../../component/home/TodayTasksCard';
+import { PreventiveCard } from '../../component/care-plan/PreventiveCard';
+import { SuspendedTreatmentCard } from '../../component/care-plan/SuspendedTreatmentCard';
+import { TodayAtHomeCard } from '../../component/care-plan/TodayAtHomeCard';
+import { TreatmentWeekCard } from '../../component/care-plan/TreatmentWeekCard';
 import { Button } from '../../component/ui/Button';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
@@ -22,13 +23,23 @@ import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
-import { planStateLabel } from '../../model/care';
-import { breedLabel, sexLabel, type Pet, petDefiniteArticle } from '../../model/pet';
-
+import type { CareItem } from '../../model/care';
+import {
+  activeTreatmentWeek,
+  openPreventiveItems,
+  planStateLabel,
+  suspendedTreatmentWeek,
+  todayIso,
+  todayTreatmentItems,
+} from '../../model/careHome';
+import { formatDateBR } from '../../model/formatDate';
+import { breedLabel, sexLabel, type Pet } from '../../model/pet';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
+
 function petDetails(pet: Pet): string {
   const weight = pet.peso ? `${String(pet.peso).replace('.', ',')} kg` : null;
-  return [breedLabel(pet.raca), sexLabel(pet.sexo).toLowerCase(), weight].filter(Boolean).join(' · ');
+  const birth = !weight && pet.dataNascimento ? `nasceu em ${formatDateBR(pet.dataNascimento)}` : null;
+  return [breedLabel(pet.raca), sexLabel(pet.sexo).toLowerCase(), weight, birth].filter(Boolean).join(' · ');
 }
 
 type HomeTutorNavigationProp = CompositeNavigationProp<
@@ -56,22 +67,21 @@ export function HomeTutorScreen() {
   const { data: appointments, isLoading: isLoadingAppointments } = useAppointments(activePet?.id ?? undefined);
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError, refetch: refetchPlan } = useCarePlan(activePet?.id ?? '');
 
-  const medications = plan?.tasks.filter((t) => t.origin === 'PRESCRICAO') ?? [];
+  const openCheckIn = (item: CareItem) => {
+    if (!activePet?.id) return;
+    const itemId = Number(item.id);
+    navigation.navigate('PlanoTab', {
+      screen: 'CheckInEntry',
+      params: { petId: activePet.id, itemPlanoCuidadoId: Number.isFinite(itemId) ? itemId : undefined },
+    });
+  };
 
-  const handleStartCheckIn = () => {
-    if (activePet?.id) {
-      // Liga o check-in ao primeiro item de medicação de hoje ainda pendente (id numérico = item
-      // da API; ids do mock não são numéricos e seguem sem vínculo).
-      const pendente = medications.find((t) => !t.completed);
-      const itemId = pendente ? Number(pendente.id) : NaN;
-      navigation.navigate('PlanoTab', {
-        screen: 'CheckInEntry',
-        params: {
-          petId: activePet.id!,
-          itemPlanoCuidadoId: Number.isFinite(itemId) ? itemId : undefined,
-        },
-      });
-    }
+  const openScheduling = () => {
+    if (!activePet?.id) return;
+    navigation.navigate('AgendaTab', {
+      screen: 'AgendamentoTutor',
+      params: { petId: String(activePet.id), reason: 'Vacinação' },
+    });
   };
 
   const nextAppointment = useMemo(() => {
@@ -141,12 +151,13 @@ export function HomeTutorScreen() {
     );
   }
 
-  const hasPlan = !isPlanError && plan && plan.tasks && plan.tasks.length > 0;
-  const doneCount = hasPlan ? plan.tasks.filter((task) => task.completed).length : 0;
-  const totalCount = hasPlan ? plan.tasks.length : 0;
-  const tasks = hasPlan ? plan.tasks : [];
-  const hasPendingMedication = medications.some((task) => !task.completed);
-  const isCheckInDone = medications.length > 0 && !hasPendingMedication;
+  const carePlan = !isPlanError && plan ? plan : null;
+  const today = todayIso();
+  const treatmentWeek = carePlan ? activeTreatmentWeek(carePlan, today) : null;
+  const suspendedWeek = carePlan ? suspendedTreatmentWeek(carePlan, today) : null;
+  const todayItems = carePlan && treatmentWeek ? todayTreatmentItems(carePlan, today) : [];
+  const preventive = carePlan ? openPreventiveItems(carePlan) : [];
+  const onlyPreventive = !!carePlan && !treatmentWeek && !carePlan.suspended;
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 20) }]}>
@@ -196,76 +207,47 @@ export function HomeTutorScreen() {
         <View style={styles.bento}>
           <HeroPetCard
             petNames={activePet.nome}
-            stateLabel={planStateLabel(plan, new Date().toLocaleDateString('sv-SE'))}
+            stateLabel={planStateLabel(carePlan, today)}
             details={petDetails(activePet)}
           />
 
-          {hasPlan ? (
-            <>
-              <Pressable
-                onPress={() =>
-                  navigation.navigate('PlanoTab', { screen: 'CarePlan', params: { petId: activePet.id! } })
-                }
-              >
-                <PlanProgressCard
-                  weekLabel={plan.weekLabel}
-                  doneCount={doneCount}
-                  totalCount={totalCount}
-                />
-              </Pressable>
+          {carePlan?.suspended ? (
+            <SuspendedTreatmentCard
+              medication={carePlan.suspended.medication}
+              suspendedAt={carePlan.suspended.at}
+              week={suspendedWeek}
+              clinic={carePlan.clinic}
+            />
+          ) : null}
 
-              <TodayTasksCard
-                tasks={tasks.map((task) => ({
-                  id: task.id,
-                  title: task.title,
-                  time: task.time,
-                  done: task.completed,
-                }))}
-              />
-              {hasPendingMedication ? (
-                <Button
-                  label={`Contar como ${petDefiniteArticle(activePet.sexo)} ${activePet.nome} passou`}
-                  backgroundColor={colors.action}
-                  textColor={colors.textLight}
-                  onPress={handleStartCheckIn}
-                />
-              ) : isCheckInDone ? (
-                <View style={styles.completedBadgeBox}>
-                  <Ionicons name="checkmark-circle" size={20} color={colors.success} />
-                  <Text style={styles.completedBadgeText}>
-                    Check-in de hoje concluído. Obrigado por cuidar de {activePet.nome}!
-                  </Text>
-                </View>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <Pressable
-                onPress={() => navigation.navigate('AgendaTab', { screen: 'AgendamentoTutor' })}
-              >
-                <View style={[styles.fallbackCard, { backgroundColor: colors.cardChia }]}>
-                  <View style={styles.fallbackHeader}>
-                    <Text style={styles.fallbackTitle}>Saúde em dia! ✨</Text>
-                    <Ionicons name="shield-checkmark" size={20} color={colors.primary} />
-                  </View>
-                  <Text style={styles.fallbackSub}>
-                    Nenhum tratamento médico prescrito no momento. A prevenção é o melhor cuidado para uma vida longa.
-                  </Text>
-                  <Text style={styles.fallbackAction}>Agendar check-up preventivo {'>'}</Text>
-                </View>
-              </Pressable>
+          {todayItems.length > 0 ? (
+            <TodayAtHomeCard
+              items={todayItems}
+              unit={carePlan?.treatment?.unit}
+              petName={activePet.nome}
+              petSex={activePet.sexo}
+              onPressItem={openCheckIn}
+            />
+          ) : null}
 
-              <View style={[styles.fallbackCard, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
-                <View style={styles.fallbackHeader}>
-                  <Text style={styles.fallbackTitle}>Dica de ouro</Text>
-                  <Ionicons name="water" size={20} color={colors.primary} />
-                </View>
-                <Text style={styles.fallbackSub}>
-                  A hidratação é fundamental! Mantenha os potes de água sempre limpos e frescos, espalhados pela casa para incentivar {activePet.nome} a beber mais.
-                </Text>
-              </View>
-            </>
-          )}
+          {treatmentWeek ? (
+            <TreatmentWeekCard
+              week={treatmentWeek}
+              onSeeCare={() =>
+                navigation.navigate('PlanoTab', { screen: 'CarePlan', params: { petId: activePet.id! } })
+              }
+            />
+          ) : null}
+
+          {!treatmentWeek && preventive.length > 0 ? (
+            <PreventiveCard
+              title="Próximos cuidados"
+              items={preventive}
+              highlightNext={onlyPreventive}
+              footnote={onlyPreventive ? 'Vacinas anteriores ao cadastro: registre na consulta.' : undefined}
+              onPressItem={openScheduling}
+            />
+          ) : null}
 
           <View style={styles.row}>
             <View style={styles.half}>
@@ -280,7 +262,10 @@ export function HomeTutorScreen() {
                     timeLabel={formatAppointmentDate(nextAppointment.date).timeLabel}
                   />
                 ) : (
-                  <ClinicCard title="Sem consultas agendadas" />
+                  <ClinicCard
+                    title="Sem consulta"
+                    hint={preventive.length > 0 ? 'toque num cuidado para agendar' : 'toque para agendar'}
+                  />
                 )}
               </Pressable>
             </View>
@@ -435,23 +420,5 @@ const styles = StyleSheet.create({
   },
   petSelectorNameActive: {
     color: colors.textLight,
-  },
-  completedBadgeBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: `${colors.success}15`,
-    borderWidth: 1,
-    borderColor: `${colors.success}40`,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginTop: spacing.xs,
-  },
-  completedBadgeText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    lineHeight: 20,
   },
 });

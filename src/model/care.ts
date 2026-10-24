@@ -96,6 +96,23 @@ export interface CareItem {
   status: CareItemStatus;
   overdue: boolean;
   treatment: boolean;
+  executedAt?: string | null;
+  doseApplied?: number | null;
+  interval?: string | null;
+}
+
+export interface TreatmentInfo {
+  medication: string;
+  unit: string | null;
+  frequencyPerDay: number | null;
+  start: string;
+  end: string;
+}
+
+export interface SuspendedTreatment {
+  medication: string;
+  at: string;
+  items: CareItem[];
 }
 
 export interface CareHistoryItem {
@@ -119,6 +136,12 @@ export interface CarePlan {
   milestones?: ClinicalMilestone[];
   history?: CareHistoryItem[];
   items: CareItem[];
+  createdAt?: string | null;
+  category?: 'PREVENTIVO' | 'TRATAMENTO' | 'POS_CIRURGICO';
+  endDate?: string | null;
+  treatment?: TreatmentInfo | null;
+  clinic?: ClinicaContato | null;
+  suspended?: SuspendedTreatment | null;
 }
 
 export interface CheckInInterpretation {
@@ -265,21 +288,6 @@ export interface CheckInRequest {
   condicoes: CondicaoConfirmadaRequest[];
 }
 
-// Etiqueta de estado do hero da home, derivada dos itens do plano (sem dado fixo).
-export function planStateLabel(plan: CarePlan | null | undefined, today: string): string | undefined {
-  if (!plan) return undefined;
-  const treatmentDates = plan.items.filter((item) => item.treatment).map((item) => item.dateIso).sort();
-  const first = treatmentDates[0];
-  const last = treatmentDates[treatmentDates.length - 1];
-  if (first && last && last >= today) {
-    const day = (iso: string) => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10))) / 86400000;
-    const total = day(last) - day(first) + 1;
-    const current = Math.min(total, Math.max(1, day(today) - day(first) + 1));
-    return `Tratamento · dia ${current} de ${total}`;
-  }
-  return plan.items.length > 0 ? 'Preventivo' : undefined;
-}
-
 const WEEKDAYS_PT = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
 export function dayAndWeekday(iso: string, today: string): string {
@@ -315,10 +323,11 @@ export function groupTreatments(items: CareItem[]): TreatmentGroup[] {
   });
 }
 
-export function activePlansLabel(items: CareItem[]): string {
+export function activePlansLabel(plan: CarePlan): string {
   const parts: string[] = [];
-  if (items.some((item) => !item.treatment)) parts.push('Preventivo');
-  const names = [...new Set(items.filter((item) => item.treatment).map((item) => item.title))];
+  const names = [...new Set(plan.items.filter((item) => item.treatment).map((item) => item.title))];
   if (names.length > 0) parts.push(`Tratamento com ${names.join(', ')}`);
+  if (plan.items.some((item) => !item.treatment)) parts.push('Preventivo');
+  if (plan.suspended) parts.push('tratamento suspenso');
   return parts.join(' · ');
 }

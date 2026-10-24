@@ -60,6 +60,15 @@ export function AgendamentoTutorScreen({ route }: Props) {
 
   const DIAS = useMemo(() => gerarProximosDias(14), []);
   const [reason, setReason] = useState('');
+  const routePetId = route.params?.petId;
+  const routeReason = route.params?.reason;
+
+  useEffect(() => {
+    if (!routePetId && !routeReason) return;
+    if (routePetId) setActivePetId(routePetId);
+    if (routeReason) setReason(routeReason);
+    navigation.setParams({ petId: undefined, reason: undefined });
+  }, [routePetId, routeReason, navigation, setActivePetId]);
   const todas = useAllPetsAppointments((pets ?? []).map((p) => String(p.id)));
   const proxima = useMemo(() => {
     const agora = Date.now();
