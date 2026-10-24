@@ -99,7 +99,7 @@ export function resolveCheckInResponse(
     const { vetName, vetCrmv } = prescriber(acionar ?? desfechos[0]);
     const rules = desfechos
       .filter((d) => d.desfecho === 'ACIONAR_CLINICA')
-      .map((d) => `Regra de ${d.medicamento} · acionar a clínica`);
+      .map((d) => `${d.medicamento} · ${d.regraDescricao ?? 'acionar a clínica'}`);
     const escalation: CheckInEscalationResult = {
       status: 'ESCALATION',
       reasonLabel:
@@ -108,7 +108,7 @@ export function resolveCheckInResponse(
       clinicName: response.clinica?.nome,
       clinicPhone: response.clinica?.telefone ?? extractPhone(JSON.stringify(response)),
       ruleDescription: acionar
-        ? `Regra de ${acionar.medicamento} · acionar a clínica`
+        ? `${acionar.medicamento} · ${acionar.regraDescricao ?? 'acionar a clínica'}`
         : 'Regra da prescrição · acionar a clínica',
       vetName,
       vetCrmv,
@@ -137,7 +137,9 @@ export function resolveCheckInResponse(
               medication: d.medicamento,
               doseLabel: dose == null ? 'Sem dose hoje' : `${formatDose(dose)}${d.unidade ? ` ${d.unidade}` : ''}`,
               suspended: isSuspended,
-              ruleLabel: isSuspended
+              ruleLabel: d.regraDescricao
+                ? d.regraDescricao
+                : isSuspended
                 ? 'a regra suspendeu a dose de hoje'
                 : d.regraAplicadaId != null
                   ? 'a dose vem da regra'
@@ -186,7 +188,9 @@ export function resolveCheckInResponse(
     status: 'DOSE',
     doseLabel: rotulos.join(' · '),
     doseRangeLabel: '',
-    ruleDescription: `Regra da prescrição · ${comDose.map((d) => d.medicamento).join(', ')}`,
+    ruleDescription: comDose.length === 1 && comDose[0].regraDescricao
+      ? comDose[0].regraDescricao
+      : `Regra da prescrição · ${comDose.map((d) => d.medicamento).join(', ')}`,
     ruleConfirmedAtLabel: response.registradoEm
       ? new Date(response.registradoEm).toLocaleDateString('pt-BR')
       : '',

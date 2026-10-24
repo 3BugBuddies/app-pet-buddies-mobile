@@ -268,6 +268,7 @@ export interface CheckinDesfecho {
   doseAplicada: number | null;
   unidade: string | null;
   regraAplicadaId: number | null;
+  regraDescricao?: string | null;
   // Campos novos do back-end (A5): ausentes em respostas antigas.
   veterinarioNome?: string | null;
   veterinarioCrmv?: string | null;
