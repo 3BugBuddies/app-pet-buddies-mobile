@@ -356,6 +356,11 @@ export function PrescricaoScreen({ route }: Props) {
         stepLabel="rascunho"
       />
 
+      <Pressable accessibilityRole="button" style={styles.templateButton} onPress={() => setTemplateModalVisible(true)}>
+        <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+        <Text style={styles.templateButtonText}>Usar receita-modelo</Text>
+      </Pressable>
+
       {/* Assistente de Prescrição: Suporta Áudio (Microfone) ou Digitação */}
       <View style={styles.iaCard}>
         <View style={styles.iaHeader}>
@@ -415,6 +420,32 @@ export function PrescricaoScreen({ route }: Props) {
           loading={draftPrescription.isPending}
           onPress={() => handleGerarIA()}
         />
+        {condicoesNovas.length > 0 ? (
+          <>
+            <Text style={styles.resultLabel}>Resultado do assistente</Text>
+            {condicoesNovas.map((nova) => (
+          <View key={nova.chave} style={styles.novaBand}>
+            <Text style={styles.novaBandTitle}>Condição nova: «{nova.rotulo}»</Text>
+            <Text style={styles.novaBandSub}>O ditado trouxe uma condição que o catálogo da clínica não tem.</Text>
+            <View style={styles.novaBandActions}>
+              <Button
+                label="Criar e usar"
+                loading={criarCondicao.isPending}
+                onPress={() => handleCriarEUsar(nova)}
+                style={styles.flex1}
+              />
+              <Button
+                label="Descartar"
+                variant="secondary"
+                disabled={criarCondicao.isPending}
+                onPress={() => handleDescartarNova(nova.chave)}
+                style={styles.flex1}
+              />
+            </View>
+          </View>
+        ))}
+          </>
+        ) : null}
       </View>
 
       <View style={styles.dividerRow}>
@@ -422,11 +453,6 @@ export function PrescricaoScreen({ route }: Props) {
         <Text style={styles.dividerLabel}>ou confira os campos</Text>
         <View style={styles.divider} />
       </View>
-
-      <Pressable style={styles.templateButton} onPress={() => setTemplateModalVisible(true)}>
-        <Ionicons name="star" size={18} color="#EAB308" />
-        <Text style={styles.templateButtonText}>Usar receita-modelo</Text>
-      </Pressable>
 
       {/* UX Otimizada: Formulário Limpo, Agrupamento Lógico e Inputs Numéricos Livres */}
       <View style={styles.medCard}>
@@ -514,37 +540,7 @@ export function PrescricaoScreen({ route }: Props) {
           Opcional. Adicione regras para que o app adapte a dose conforme os sintomas relatados pelo responsável no check-in.
         </Text>
 
-        {condicoesNovas.map((nova) => (
-          <View key={nova.chave} style={styles.novaBand}>
-            <Text style={styles.novaBandTitle}>Condição nova: {nova.rotulo}</Text>
-            <Text style={styles.novaBandSub}>
-              Sugerida pela IA e ainda fora da sua clínica: {descreverCondicao({
-                condicaoClinicaId: 0,
-                rotuloCongelado: nova.rotulo,
-                acao: nova.acao,
-                operador: nova.operador,
-                limite: nova.limite,
-              })} → {rotuloAcao(nova.acao)}
-            </Text>
-            <View style={styles.novaBandActions}>
-              <Button
-                label="Criar e usar"
-                loading={criarCondicao.isPending}
-                onPress={() => handleCriarEUsar(nova)}
-                style={styles.flex1}
-              />
-              <Button
-                label="Descartar"
-                variant="secondary"
-                disabled={criarCondicao.isPending}
-                onPress={() => handleDescartarNova(nova.chave)}
-                style={styles.flex1}
-              />
-            </View>
-          </View>
-        ))}
-
-        {regras.length === 0 && condicoesNovas.length === 0 ? (
+        {regras.length === 0 ? (
           <Text style={styles.regrasVazias}>Nenhuma regra adicionada</Text>
         ) : (
           regras.map((regra, index) => (
@@ -558,7 +554,7 @@ export function PrescricaoScreen({ route }: Props) {
             </View>
           ))
         )}
-        <Button label="+ Adicionar regra de dose" variant="secondary" onPress={abrirModalRegra} />
+        <Button label="+ Adicionar regra" variant="secondary" onPress={abrirModalRegra} />
       </View>
 
       <Button
@@ -580,7 +576,7 @@ export function PrescricaoScreen({ route }: Props) {
           </View>
           <Text style={styles.modalSubtitle}>Escolha uma receita-modelo para preencher a prescrição. Você pode editar tudo depois.</Text>
 
-          <ScrollView keyboardDismissMode="on-drag" style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}>
+          <ScrollView keyboardDismissMode="on-drag" style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, paddingBottom: tabBarSpace + spacing.lg }}>
             {isLoadingTemplates ? (
               <ActivityIndicator color={colors.primary} />
             ) : templates.length === 0 ? (
@@ -614,7 +610,7 @@ export function PrescricaoScreen({ route }: Props) {
 
           <ScrollView keyboardDismissMode="on-drag"
             style={{ flex: 1 }}
-            contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: insets.bottom + 100 }}
+            contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
             keyboardShouldPersistTaps="handled"
           >
             <Text style={styles.sectionLabel}>Tipo da regra</Text>
@@ -657,7 +653,7 @@ export function PrescricaoScreen({ route }: Props) {
                       style={[styles.chip, selecionada && styles.chipActive, item.critica && styles.chipAlarm]}
                     >
                       <Text style={[styles.chipText, selecionada && styles.chipTextActive]}>{item.rotulo}</Text>
-                      {item.critica ? <Text style={styles.chipAlarmTag}>sinal de alarme</Text> : null}
+                      {item.critica ? <Text style={styles.chipAlarmTag}>sinal de alarme · já escala sozinho</Text> : null}
                     </Pressable>
                   );
                 })}
@@ -771,8 +767,10 @@ export function PrescricaoScreen({ route }: Props) {
 
             {erroRegra ? <FieldError message={erroRegra} /> : null}
 
-            <Button label="Adicionar regra" backgroundColor={colors.action} onPress={handleAddRule} />
           </ScrollView>
+          <View style={[styles.ruleFooter, { paddingBottom: tabBarSpace }]}>
+            <Button label="Adicionar regra" backgroundColor={colors.action} onPress={handleAddRule} />
+          </View>
         </View>
       </View>
     )}
@@ -793,18 +791,18 @@ const styles = StyleSheet.create({
   
   // UX: receita-modelo
   templateButton: {
-    backgroundColor: '#FEF9C3', // yellow-100
+    backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.md,
-    borderRadius: spacing.sm,
-    borderWidth: 1,
-    borderColor: '#EAB308', // yellow-500
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
     gap: spacing.sm,
   },
   templateButtonText: {
-    color: '#854D0E', // yellow-800
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 16,
   },
@@ -830,6 +828,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: spacing.lg,
     height: '85%',
     paddingTop: spacing.lg,
+  },
+  ruleFooter: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    backgroundColor: colors.background,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1067,13 +1070,19 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: '700',
   },
+  resultLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
   novaBand: {
     gap: spacing.xs,
     padding: spacing.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.cardMax,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.primary,
   },
   novaBandTitle: {
     fontSize: 14,
@@ -1117,7 +1126,6 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: colors.error,
-    textTransform: 'uppercase',
   },
   criarBox: {
     gap: spacing.sm,

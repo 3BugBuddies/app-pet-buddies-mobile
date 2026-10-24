@@ -15,6 +15,7 @@ interface PlanDto {
   categoria: PlanSummary['category'];
   dataFim?: string | null;
   eventos?: PlanEventDto[] | null;
+  tratamentoSuspenso?: { medicamento: string; em: string } | null;
 }
 
 const getClinicPatients = async (): Promise<ClinicPatient[]> => {
@@ -46,6 +47,7 @@ const getPlanSummary = async (petId: string): Promise<PlanSummary | null> => {
       upcoming,
       endDate: data.dataFim ?? null,
       treatmentName: eventos.find((e) => e.origem === 'PRESCRICAO')?.nome ?? null,
+      suspendedTreatment: data.tratamentoSuspenso ?? null,
     };
   } catch (err: unknown) {
     if (isAxiosError(err) && err.response?.status === 404) return null;

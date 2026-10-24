@@ -6,7 +6,7 @@ import type {
   CheckInInterpretation,
   CheckInNoRuleResult,
 } from '../../model/care';
-import type { ClosingDraft } from '../../model/closing';
+import type { ClosingDoneSummary, ClosingDraft } from '../../model/closing';
 import type { PrescricaoDraft } from '../../model/prescription';
 import type { RegraDraft } from '../../model/prescriptionRule';
 
@@ -69,7 +69,7 @@ export type PacientesTabParamList = {
   Prescricao: { animalId: string; novaRegra?: RegraDraft };
   NovaRegra: { animalId: string };
   AssinarPrescricao: { closing: ClosingDraft };
-  CheckoutAtendimento: { petName: string; procedures?: string[]; prescription?: string };
+  CheckoutAtendimento: { summary: ClosingDoneSummary };
 };
 
 

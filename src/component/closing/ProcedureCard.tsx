@@ -3,6 +3,7 @@ import { FieldError } from '../forms/FieldError';
 import { Input } from '../ui/Input';
 import type { OpenPlanItem, ProcedureDraft } from '../../model/closing';
 import { formatDateBR } from '../../model/formatDate';
+import { normalizeSearch } from '../../model/text';
 import { colors, radii, spacing } from '../../styles/theme';
 
 interface ProcedureCardProps {
@@ -10,11 +11,11 @@ interface ProcedureCardProps {
   items: OpenPlanItem[];
   error?: string;
   onChange: (patch: Partial<ProcedureDraft>) => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 }
 
 const NAME_LABELS: Record<ProcedureDraft['section'], { label: string; placeholder: string }> = {
-  VACINA_VERMIFUGO: { label: 'Nome *', placeholder: 'ex.: Antirrábica, Vermífugo' },
+  VACINA_VERMIFUGO: { label: 'Nome', placeholder: 'ex.: Antirrábica, Vermífugo' },
   EXAME: { label: 'Exame realizado *', placeholder: 'ex.: Hemograma' },
   PROCEDIMENTO: { label: 'Procedimento *', placeholder: 'ex.: Limpeza de tártaro' },
 };
@@ -22,31 +23,42 @@ const NAME_LABELS: Record<ProcedureDraft['section'], { label: string; placeholde
 export function ProcedureCard({ draft, items, error, onChange, onRemove }: ProcedureCardProps) {
   const isVaccine = draft.section === 'VACINA_VERMIFUGO';
   const nameLabel = NAME_LABELS[draft.section];
+  const nameFromItem = !draft.nome.trim() || items.some((i) => normalizeSearch(i.nome) === normalizeSearch(draft.nome));
 
   return (
     <View style={styles.card}>
-      <View style={styles.head}>
-        {isVaccine ? (
-          <View style={styles.chips}>
-            {(['VACINACAO', 'VERMIFUGACAO'] as const).map((tipo) => (
-              <Pressable
-                key={tipo}
-                onPress={() => onChange({ tipo })}
-                style={[styles.chip, draft.tipo === tipo && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, draft.tipo === tipo && styles.chipTextActive]}>
-                  {tipo === 'VACINACAO' ? 'Vacina' : 'Vermífugo'}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : (
-          <View />
-        )}
-        <Pressable accessibilityRole="button" onPress={onRemove} hitSlop={8}>
+      {onRemove ? (
+        <Pressable accessibilityRole="button" onPress={onRemove} hitSlop={8} style={styles.removeRow}>
           <Text style={styles.remove}>remover</Text>
         </Pressable>
-      </View>
+      ) : null}
+
+      {isVaccine ? (
+        <View style={styles.items}>
+          {items.map((item) => (
+            <RadioOption
+              key={item.id}
+              selected={draft.itemPlanoId === item.id}
+              title={item.nome}
+              subtitle={`${item.vencido ? 'atrasada, prevista ' : 'prevista '}${formatDateBR(item.dataAlvo)} · baixa este item do plano`}
+              onPress={() =>
+                onChange({
+                  itemPlanoId: item.id,
+                  manualItem: true,
+                  tipo: item.tipo,
+                  ...(nameFromItem ? { nome: item.nome } : {}),
+                })
+              }
+            />
+          ))}
+          <RadioOption
+            selected={draft.itemPlanoId == null}
+            title="Avulsa, fora do plano"
+            subtitle="não baixa nenhum item"
+            onPress={() => onChange({ itemPlanoId: null, manualItem: true })}
+          />
+        </View>
+      ) : null}
 
       <Input
         label={nameLabel.label}
@@ -58,42 +70,17 @@ export function ProcedureCard({ draft, items, error, onChange, onRemove }: Proce
       <FieldError message={error} />
 
       {isVaccine ? (
-        <>
-          <Input
-            label="Lote / marca (opcional)"
-            placeholder="ex.: Zoetis, lote 12345"
-            value={draft.batch}
-            onChangeText={(batch) => onChange({ batch })}
-          />
-          <Text style={styles.sub}>Item do plano</Text>
-          <View style={styles.items}>
-            <Pressable
-              onPress={() => onChange({ itemPlanoId: null, manualItem: true })}
-              style={[styles.item, draft.itemPlanoId == null && styles.itemActive]}
-            >
-              <Text style={styles.itemName}>Avulsa</Text>
-              <Text style={styles.itemSubtitle}>não baixa nenhum item do plano</Text>
-            </Pressable>
-            {items.map((item) => (
-              <Pressable
-                key={item.id}
-                onPress={() => onChange({ itemPlanoId: item.id, manualItem: true })}
-                style={[styles.item, draft.itemPlanoId === item.id && styles.itemActive]}
-              >
-                <Text style={styles.itemName}>{item.nome}</Text>
-                <Text style={styles.itemSubtitle}>
-                  {item.vencido ? 'vencido · ' : 'previsto · '}
-                  {formatDateBR(item.dataAlvo)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </>
+        <Input
+          label="Lote / marca (opcional)"
+          placeholder="ex.: lote 2391 · Zoetis"
+          value={draft.batch}
+          onChangeText={(batch) => onChange({ batch })}
+        />
       ) : null}
 
       <Input
-        label={isVaccine ? 'Reações / observações (opcional)' : 'Observações (opcional)'}
-        placeholder={isVaccine ? 'ex.: animal agitado' : 'ex.: resultado em 48 h'}
+        label={isVaccine ? 'Reações / observações' : 'Observações (opcional)'}
+        placeholder={isVaccine ? 'Alguma reação depois da aplicação?' : 'ex.: resultado em 48 h'}
         value={draft.notes}
         onChangeText={(notes) => onChange({ notes })}
         multiline
@@ -103,41 +90,61 @@ export function ProcedureCard({ draft, items, error, onChange, onRemove }: Proce
   );
 }
 
+function RadioOption({
+  selected,
+  title,
+  subtitle,
+  onPress,
+}: {
+  selected: boolean;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={[styles.item, selected && styles.itemActive]}
+    >
+      <View style={[styles.radio, selected && styles.radioOn]}>{selected ? <View style={styles.radioDot} /> : null}</View>
+      <View style={styles.itemText}>
+        <Text style={styles.itemName}>{title}</Text>
+        <Text style={styles.itemSubtitle}>{subtitle}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
+  card: { gap: spacing.xs },
+  removeRow: { alignSelf: 'flex-end' },
+  remove: { fontSize: 13, fontWeight: '600', color: colors.error },
+  items: { gap: spacing.sm, marginBottom: spacing.md },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderWidth: 1.5,
     borderColor: colors.border,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     padding: spacing.md,
   },
-  head: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  chips: { flexDirection: 'row', gap: spacing.xs },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    backgroundColor: colors.cardChia,
-  },
-  chipActive: { backgroundColor: colors.primary },
-  chipText: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
-  chipTextActive: { color: colors.textLight },
-  remove: { fontSize: 13, fontWeight: '600', color: colors.error },
-  sub: { fontSize: 14, color: colors.textSecondary, marginBottom: spacing.xs },
-  items: { gap: spacing.xs, marginBottom: spacing.md },
-  item: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.sm,
-    padding: spacing.sm,
-  },
   itemActive: { borderColor: colors.primary, backgroundColor: colors.cardChia },
-  itemName: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
-  itemSubtitle: { fontSize: 12, color: colors.textSecondary },
+  itemText: { flex: 1 },
+  itemName: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
+  itemSubtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: radii.pill,
+    borderWidth: 2,
+    borderColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioOn: { borderColor: colors.primary },
+  radioDot: { width: 10, height: 10, borderRadius: radii.pill, backgroundColor: colors.primary },
   notes: { minHeight: 64, textAlignVertical: 'top' },
 });

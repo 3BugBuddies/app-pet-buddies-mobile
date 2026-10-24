@@ -19,4 +19,5 @@ export interface PlanSummary {
   upcoming: PendingCare[];
   endDate: string | null;
   treatmentName: string | null;
+  suspendedTreatment?: { medicamento: string; em: string } | null;
 }

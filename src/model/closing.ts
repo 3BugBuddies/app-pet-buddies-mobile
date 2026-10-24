@@ -41,6 +41,16 @@ interface ClosingDraft {
   prescription: ClosingPrescriptionDraft | null;
 }
 
+interface ClosingDoneSummary {
+  petName: string;
+  reason: string;
+  whenIso: string;
+  responsavel: string;
+  vaccines: { nome: string; alvo: string | null }[];
+  others: { label: string; nome: string }[];
+  medicamento: string | null;
+}
+
 interface ClosingProcedure {
   tipo: TipoProcedimento;
   nome: string;
@@ -80,6 +90,7 @@ interface ClosingPayload {
 }
 
 export type {
+  ClosingDoneSummary,
   ClosingDraft,
   ClosingPayload,
   ClosingPrescription,

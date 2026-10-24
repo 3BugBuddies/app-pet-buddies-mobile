@@ -39,11 +39,11 @@ interface UsePrescricaoDraftControlParams {
 
 const usePrescricaoDraftControl = ({ animalId, registroAtendimentoId }: UsePrescricaoDraftControlParams) => {
   const [medicamento, setMedicamento] = useState('');
-  const [doseMin, setDoseMin] = useState(1);
-  const [doseMax, setDoseMax] = useState(1);
-  const [unidade, setUnidade] = useState('mg');
-  const [frequenciaDia, setFrequenciaDia] = useState(1);
-  const [duracaoDias, setDuracaoDias] = useState(7);
+  const [doseMin, setDoseMin] = useState(0);
+  const [doseMax, setDoseMax] = useState(0);
+  const [unidade, setUnidade] = useState('');
+  const [frequenciaDia, setFrequenciaDia] = useState(0);
+  const [duracaoDias, setDuracaoDias] = useState(0);
   const [orientacao, setOrientacao] = useState('');
   const [regras, setRegras] = useState<RegraDraft[]>([]);
   const [receitaModelo, setReceitaModelo] = useState<{ id: number; versao: number } | null>(null);

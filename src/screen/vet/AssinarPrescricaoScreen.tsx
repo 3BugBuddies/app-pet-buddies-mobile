@@ -1,19 +1,27 @@
 import { CommonActions, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { ComponentProps } from 'react';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
 import { useAppointment, useVetCrmv } from '../../control/useAppointmentsControl';
 import { useCompleteAppointment, composeNotes, useOpenPlanItems } from '../../control/useClosingControl';
 import { usePet } from '../../control/usePetsControl';
-import { formatAppointmentDate, formatDateBR, formatShortDate } from '../../model/formatDate';
+import type { ClosingDoneSummary, ProcedureDraft } from '../../model/closing';
+import { firstName, formatHourShort, localIsoNow } from '../../model/closingSummary';
+import { formatDateBR, formatShortDate } from '../../model/formatDate';
 import { descreverCondicao, rotuloAcao } from '../../model/prescriptionRule';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
-
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
+
 type Props = NativeStackScreenProps<PacientesTabParamList, 'AssinarPrescricao'>;
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
+const procedureLabel = (p: ProcedureDraft) =>
+  p.section === 'EXAME' ? 'Exame' : p.section === 'PROCEDIMENTO' ? 'Procedimento' : p.tipo === 'VERMIFUGACAO' ? 'Vermífugo' : 'Vacina';
 
 export function AssinarPrescricaoScreen({ route }: Props) {
   const { closing } = route.params;
@@ -27,14 +35,32 @@ export function AssinarPrescricaoScreen({ route }: Props) {
   const { data: appointment } = useAppointment(closing.appointmentId ?? '');
   const { data: planItems = [] } = useOpenPlanItems(closing.petId);
 
-  const subtitle = appointment
-    ? `${closing.petName} · consulta de ${formatShortDate(appointment.date)}, ${formatAppointmentDate(appointment.date).timeLabel}`
-    : closing.petName;
-  const responsavel = pet?.responsavelNome?.trim() || 'O responsável';
+  const whenIso = appointment?.date ?? localIsoNow();
+  const header = [
+    closing.petName,
+    appointment ? `consulta de ${formatShortDate(appointment.date)}, ${formatHourShort(appointment.date)}` : 'atendimento imediato',
+  ].join(' · ');
+  const responsavel = firstName(pet?.responsavelNome);
+  const seesInApp = responsavel ? `A ${responsavel} vê no app` : 'O responsável vê no app';
   const targetDate = (itemId: number | null) => {
     const alvo = itemId == null ? null : planItems.find((i) => i.id === itemId)?.dataAlvo;
     return alvo ? formatDateBR(alvo) : null;
   };
+
+  const registroSub = [closing.weight ? `${closing.weight} kg` : null, closing.notes.trim() || 'sem observação']
+    .filter(Boolean)
+    .join(' · ');
+  const rules = draft?.regras.map((r) => `${descreverCondicao(r).toLowerCase()} → ${rotuloAcao(r.acao).toLowerCase()}`) ?? [];
+  const receitaSub = draft
+    ? [
+        `${draft.doseMin}–${draft.doseMax} ${draft.unidade}`,
+        `${draft.frequenciaDia}×/dia`,
+        `${draft.duracaoDias} dias`,
+        rules.length > 0 ? `${rules.length === 1 ? 'regra' : 'regras'}: ${rules.join('; ')}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   const handleSign = async () => {
     try {
@@ -42,257 +68,117 @@ export function AssinarPrescricaoScreen({ route }: Props) {
     } catch {
       return; // o erro já foi mostrado pelo onError da mutation
     }
+    const summary: ClosingDoneSummary = {
+      petName: closing.petName,
+      reason: closing.reason.trim(),
+      whenIso,
+      responsavel,
+      vaccines: closing.procedures
+        .filter((p) => p.section === 'VACINA_VERMIFUGO')
+        .map((p) => ({ nome: p.nome.trim(), alvo: p.itemPlanoId != null ? targetDate(p.itemPlanoId) : null })),
+      others: closing.procedures
+        .filter((p) => p.section !== 'VACINA_VERMIFUGO')
+        .map((p) => ({ label: procedureLabel(p), nome: p.nome.trim() })),
+      medicamento: draft?.medicamento ?? null,
+    };
     navigation.dispatch(
       CommonActions.reset({
         index: 1,
-        routes: [
-          { name: 'Pacientes' },
-          {
-            name: 'CheckoutAtendimento',
-            params: {
-              petName: closing.petName,
-              procedures: closing.procedures.map((p) => p.nome.trim()),
-              prescription: draft ? `${draft.medicamento} · ${draft.doseMin}–${draft.doseMax} ${draft.unidade}` : undefined,
-            },
-          },
-        ],
+        routes: [{ name: 'Pacientes' }, { name: 'CheckoutAtendimento', params: { summary } }],
       })
     );
   };
 
+  const signItems: { icon: IconName; title: string; sub?: string }[] = draft
+    ? [
+        { icon: 'document-text-outline', title: 'A receita fica assinada', sub: `com seu nome e CRMV${crmv ? ` ${crmv}` : ''}` },
+        { icon: 'lock-closed-outline', title: 'Ela não muda mais' },
+        { icon: 'phone-portrait-outline', title: seesInApp },
+      ]
+    : [
+        { icon: 'document-text-outline', title: 'O atendimento fica registrado', sub: 'no histórico do pet' },
+        { icon: 'phone-portrait-outline', title: seesInApp },
+      ];
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
-      <CheckInTopBar title="Assinar e concluir" subtitle={subtitle} />
-
-      {closing.reason.trim() || closing.notes.trim() || closing.weight ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Registro</Text>
-          {closing.reason.trim() ? <Text style={styles.orientacaoText}>{closing.reason.trim()}</Text> : null}
-          {closing.notes.trim() ? <Text style={styles.orientacaoText}>{closing.notes.trim()}</Text> : null}
-          {closing.weight ? <Text style={styles.orientacaoText}>Peso: {closing.weight} kg</Text> : null}
-        </View>
-      ) : null}
-
-      {closing.procedures.length > 0 ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Procedimentos</Text>
-          {closing.procedures.map((p) => (
-            <View key={p.key}>
-              <Text style={styles.orientacaoText}>{p.nome.trim()}</Text>
-              {composeNotes(p) ? <Text style={styles.subtitle}>{composeNotes(p)}</Text> : null}
-              {p.itemPlanoId != null ? (
-                <Text style={styles.subtitle}>
-                  {targetDate(p.itemPlanoId) ? `Baixa o item previsto para ${targetDate(p.itemPlanoId)}` : 'Baixa o item previsto do plano'}
-                </Text>
-              ) : null}
-            </View>
-          ))}
-        </View>
-      ) : null}
-
-      {draft ? (
-        <>
-          <View style={styles.headline}>
-            <Text style={styles.title}>
-              {draft.medicamento} · {draft.doseMin}–{draft.doseMax} {draft.unidade}
-            </Text>
-            <Text style={styles.subtitle}>
-              {draft.frequenciaDia}×/dia · {draft.duracaoDias} dias · {draft.regras.length} regra(s) de dose
-            </Text>
-          </View>
-
-          {draft.regras.length > 0 ? (
-            <View style={styles.card}>
-              <Text style={styles.sectionLabel}>Regras de dose</Text>
-              {draft.regras.map((regra, index) => (
-                <View key={`${regra.condicaoClinicaId}-${index}`}>
-                  <View style={styles.ruleRow}>
-                    <View style={styles.ruleDot} />
-                    <Text style={styles.ruleText}>
-                      {descreverCondicao(regra)} → {rotuloAcao(regra.acao)}
-                    </Text>
-                  </View>
-                  {index < draft.regras.length - 1 ? <View style={styles.divider} /> : null}
-                </View>
-              ))}
-            </View>
-          ) : null}
-        </>
-      ) : null}
+      <CheckInTopBar title="Assinar e concluir" />
 
       <View style={styles.card}>
-        <Text style={styles.sectionLabel}>Ao assinar</Text>
-        <Text style={styles.orientacaoText}>A receita fica assinada com seu nome e CRMV.</Text>
-        <Text style={styles.orientacaoText}>Depois de assinada, não muda mais.</Text>
-        <Text style={styles.orientacaoText}>{responsavel} vê os cuidados no app.</Text>
+        <Text style={styles.cardLabel}>{header}</Text>
+
+        <Block label="Registro" title={closing.reason.trim() || 'Atendimento'} sub={registroSub} />
+        {closing.procedures.map((p) => {
+          const alvo = p.itemPlanoId != null ? targetDate(p.itemPlanoId) : null;
+          const sub =
+            p.section === 'VACINA_VERMIFUGO'
+              ? p.itemPlanoId == null
+                ? 'avulsa, não baixa item do plano'
+                : alvo
+                  ? `baixa o item previsto para ${alvo}`
+                  : 'baixa o item previsto do plano'
+              : undefined;
+          return <Block key={p.key} label={procedureLabel(p)} title={p.nome.trim()} sub={sub} extra={composeNotes(p)} />;
+        })}
+        {draft ? <Block label="Receita" title={draft.medicamento} sub={receitaSub} /> : null}
       </View>
 
-      <View style={styles.signatureSection}>
-        <View style={styles.preSignContainer}>
-          <Button
-            label={crmv ? `Assinar e concluir · CRMV ${crmv}` : 'Assinar e concluir'}
-            backgroundColor={colors.action}
-            loading={completing}
-            onPress={handleSign}
-            style={{ width: '100%' }}
-          />
-        </View>
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>Ao assinar</Text>
+        {signItems.map((item) => (
+          <View key={item.title} style={styles.signRow}>
+            <View style={styles.signIcon}>
+              <Ionicons name={item.icon} size={20} color={colors.primary} />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.signTitle}>{item.title}</Text>
+              {item.sub ? <Text style={styles.sub}>{item.sub}</Text> : null}
+            </View>
+          </View>
+        ))}
       </View>
+
+      <Button
+        label={crmv ? `Assinar e concluir · CRMV ${crmv}` : 'Assinar e concluir'}
+        backgroundColor={colors.action}
+        loading={completing}
+        onPress={handleSign}
+        style={styles.sign}
+      />
     </ScrollView>
   );
 }
 
+function Block({ label, title, sub, extra }: { label: string; title: string; sub?: string; extra?: string }) {
+  return (
+    <View style={styles.block}>
+      <Text style={styles.blockLabel}>{label}</Text>
+      <Text style={styles.blockTitle}>{title}</Text>
+      {sub ? <Text style={styles.sub}>{sub}</Text> : null}
+      {extra ? <Text style={styles.sub}>{extra}</Text> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  headline: {
-    gap: 2,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  orientacaoText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textPrimary,
-  },
-  ruleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 40,
-  },
-  ruleDot: {
-    width: 8,
-    height: 8,
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, gap: spacing.md },
+  flex: { flex: 1 },
+  card: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.md },
+  cardLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: colors.textSecondary },
+  block: { gap: 2 },
+  blockLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: colors.textSecondary },
+  blockTitle: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
+  sub: { fontSize: 15, lineHeight: 21, color: colors.textSecondary },
+  signRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  signIcon: {
+    width: 40,
+    height: 40,
     borderRadius: radii.pill,
-    backgroundColor: colors.primary,
-  },
-  ruleText: {
-    flex: 1,
-    fontSize: 12.5,
-    lineHeight: 17,
-    color: colors.textPrimary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  signCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  signRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  signAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.sm,
     backgroundColor: colors.cardChia,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  signAvatarText: {
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  signInfo: {
-    flex: 1,
-  },
-  signName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  signBody: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
-  },
-  signatureSection: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-  },
-  preSignContainer: {
-    alignItems: 'center',
-  },
-  postSignContainer: {
-    alignItems: 'center',
-  },
-  successAlert: {
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  successText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#059669',
-    marginTop: 12,
-  },
-  subSuccessText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  pdfThumbnail: {
-    width: 80,
-    height: 100,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-    position: 'relative',
-  },
-  pdfSeal: {
-    position: 'absolute',
-    bottom: -8,
-    right: -8,
-    backgroundColor: '#D1FAE5',
-    padding: 6,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#FFF',
-  },
+  signTitle: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
+  sign: { marginTop: spacing.sm },
 });
