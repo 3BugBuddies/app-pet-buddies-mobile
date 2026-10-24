@@ -99,11 +99,14 @@ export interface CareItem {
   executedAt?: string | null;
   doseApplied?: number | null;
   interval?: string | null;
-  // Unidade da dose, vinda do tratamento do medicamento do item.
   unit?: string | null;
+  prescriptionId?: number | null;
 }
 
 export interface TreatmentInfo {
+  prescriptionId?: number | null;
+  doseMin?: number | null;
+  doseMax?: number | null;
   medication: string;
   unit: string | null;
   frequencyPerDay: number | null;
@@ -113,6 +116,7 @@ export interface TreatmentInfo {
 
 export interface SuspendedTreatment {
   medication: string;
+  medications: string[];
   at: string;
   items: CareItem[];
 }
@@ -143,6 +147,8 @@ export interface CarePlan {
   endDate?: string | null;
   modelName?: string | null;
   treatment?: TreatmentInfo | null;
+  // Todos os medicamentos do plano; ausente quando o back ainda manda só `treatment`.
+  treatments?: TreatmentInfo[];
   clinic?: ClinicaContato | null;
   suspended?: SuspendedTreatment | null;
 }
@@ -175,6 +181,15 @@ export interface CheckInDoseResult {
   itemClosed?: boolean;
   // A regra aplicada suspendeu a dose de hoje (desfecho SEM_DOSE): não há dose a dar.
   suspended?: boolean;
+  // Uma linha por medicamento; só preenchido quando o relato cobre mais de um.
+  lines?: CheckInDoseLine[];
+}
+
+export interface CheckInDoseLine {
+  medication: string;
+  doseLabel: string;
+  suspended: boolean;
+  ruleLabel: string;
 }
 
 export interface CheckInEscalationResult {
@@ -188,6 +203,9 @@ export interface CheckInEscalationResult {
   vetName: string;
   vetCrmv: string;
   suggestedSlotLabel: string;
+  // Todas as regras que acionaram a clínica e os medicamentos suspensos com o tratamento.
+  rules?: string[];
+  medications?: string[];
 }
 
 // Nenhuma regra da prescrição bateu com o relato — princípio do produto: cai
@@ -250,6 +268,7 @@ export interface CheckinDesfecho {
   doseAplicada: number | null;
   unidade: string | null;
   regraAplicadaId: number | null;
+  regraDescricao?: string | null;
   // Campos novos do back-end (A5): ausentes em respostas antigas.
   veterinarioNome?: string | null;
   veterinarioCrmv?: string | null;
@@ -286,7 +305,6 @@ export interface ConfirmCheckInInput {
 export interface CheckInRequest {
   animalId: number | string;
   narrativa: string;
-  itemPlanoCuidadoId?: number;
   ticUtilizada?: string;
   condicoes: CondicaoConfirmadaRequest[];
 }
@@ -326,11 +344,22 @@ export function groupTreatments(items: CareItem[]): TreatmentGroup[] {
   });
 }
 
+// "A + B", ou "A + 2" quando são três ou mais.
+export function medicationsTitle(names: string[]): string {
+  if (names.length <= 2) return names.join(' + ');
+  return `${names[0]} + ${names.length - 1}`;
+}
+
+export function treatmentsOf(plan: CarePlan): TreatmentInfo[] {
+  if (plan.treatments && plan.treatments.length > 0) return plan.treatments;
+  return plan.treatment ? [plan.treatment] : [];
+}
+
 export function activePlansLabel(plan: CarePlan): string {
   const parts: string[] = [];
   const names = [...new Set(plan.items.filter((item) => item.treatment).map((item) => item.title))];
   if (plan.items.some((item) => !item.treatment)) parts.push(plan.modelName ?? 'Preventivo');
-  if (names.length > 0) parts.push(`Tratamento com ${names.join(', ')}`);
+  if (names.length > 0) parts.push(`Tratamento com ${names.join(' + ')}`);
   if (plan.suspended) parts.push('tratamento suspenso');
   return parts.join(' · ');
 }

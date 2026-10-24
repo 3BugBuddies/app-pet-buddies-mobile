@@ -19,11 +19,13 @@ import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { usePet } from '../../control/usePetsControl';
 import { useExtractCheckIn } from '../../control/useCheckInControl';
+import { useCarePlan } from '../../control/useCarePlanControl';
+import { todayIso, todayMedications } from '../../model/careHome';
 import type { PlanoTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
-const QUICK_OPTIONS = ['Deu o remédio', 'Comeu bem', 'Comeu pouco', 'Evacuou', 'Fezes moles', 'Não evacuou'];
+const quickOptions = (plural: boolean) => [plural ? 'Deu os remédios' : 'Deu o remédio', 'Comeu bem', 'Comeu pouco', 'Evacuou', 'Fezes moles', 'Não evacuou'];
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInEntry'>;
 
@@ -33,6 +35,8 @@ export function CheckInEntryScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
   const { data: pet, isLoading: isLoadingPet } = usePet(petId);
+  const { data: plan } = useCarePlan(petId);
+  const plural = todayMedications(plan, todayIso()).length > 1;
   const [narrative, setNarrative] = useState('');
   const extractCheckIn = useExtractCheckIn();
 
@@ -128,7 +132,6 @@ export function CheckInEntryScreen({ route }: Props) {
       navigation.navigate('CheckInConfirm', {
         petId,
         extracaoResponse,
-        itemPlanoCuidadoId: route.params.itemPlanoCuidadoId,
       });
     } catch (error: any) {
       const msg = error?.response?.status === 409
@@ -143,7 +146,7 @@ export function CheckInEntryScreen({ route }: Props) {
   };
 
   const handleExpressCheckIn = () => {
-    setNarrative(`Tudo ótimo com o ${pet.nome} hoje! Se alimentou bem, está ativo e tomou a medicação normalmente.`);
+    setNarrative(`Tudo ótimo com o ${pet.nome} hoje! Se alimentou bem, está ativo e ${plural ? 'tomou os remédios' : 'tomou a medicação'} normalmente.`);
   };
 
   return (
@@ -158,7 +161,9 @@ export function CheckInEntryScreen({ route }: Props) {
           <View style={styles.headline}>
             <Text style={styles.h1}>Como {pet.nome} passou hoje?</Text>
             <Text style={styles.p}>
-              Conte do seu jeito. A dose de hoje sai da regra que a veterinária escreveu.
+              {plural
+                ? 'Conte do seu jeito. A dose de cada remédio sai da regra que a veterinária escreveu.'
+                : 'Conte do seu jeito. A dose de hoje sai da regra que a veterinária escreveu.'}
             </Text>
           </View>
 
@@ -174,7 +179,7 @@ export function CheckInEntryScreen({ route }: Props) {
             onStopRecording={handleStopRecording}
           />
 
-          <QuickChips options={QUICK_OPTIONS} onSelect={appendChip} />
+          <QuickChips options={quickOptions(plural)} onSelect={appendChip} />
 
           <Pressable accessibilityRole="button" onPress={handleExpressCheckIn}>
             <Text style={styles.expressLink}>Tudo bem hoje · sem sintomas</Text>

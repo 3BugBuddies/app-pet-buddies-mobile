@@ -14,10 +14,11 @@ import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useAppointments, useWeekFreeDates } from '../../control/useAppointmentsControl';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { useActivePetId, usePet, usePets } from '../../control/usePetsControl';
-import { activePlansLabel, type CareItem } from '../../model/care';
+import { activePlansLabel, treatmentsOf } from '../../model/care';
 import {
   activeTreatmentWeek,
   freeWeek,
+  medicationLines,
   openPreventiveItems,
   suspendedTreatmentWeek,
   todayIso,
@@ -95,13 +96,7 @@ export function CarePlanScreen({ route }: Props) {
   const modelLabel = pet?.especie ? `modelo de plano · ${speciesLabel(pet.especie).toLowerCase()}` : undefined;
   const petName = pet?.nome ?? 'pet';
 
-  const openCheckIn = (item: CareItem) => {
-    const itemId = Number(item.id);
-    navigation.navigate('CheckInEntry', {
-      petId,
-      itemPlanoCuidadoId: Number.isFinite(itemId) ? itemId : undefined,
-    });
-  };
+  const openCheckIn = () => navigation.navigate('CheckInEntry', { petId });
 
   const openWeekDay = (day: WeekDayCell) => {
     navigation.getParent()?.navigate('AgendaTab', {
@@ -133,14 +128,14 @@ export function CarePlanScreen({ route }: Props) {
 
         {plan.suspended ? (
           <SuspendedTreatmentCard
-            medication={plan.suspended.medication}
+            medications={plan.suspended.medications}
             suspendedAt={plan.suspended.at}
             week={suspendedWeek}
             clinic={plan.clinic}
           />
         ) : null}
 
-        {treatmentWeek ? <TreatmentWeekCard week={treatmentWeek} showLegend /> : null}
+        {treatmentWeek ? <TreatmentWeekCard week={treatmentWeek} showLegend medications={medicationLines(plan, today)} /> : null}
 
         {!treatmentWeek && !plan.suspended ? (
           <FreeWeekCard
@@ -152,10 +147,10 @@ export function CarePlanScreen({ route }: Props) {
         {todayItems.length > 0 ? (
           <TodayAtHomeCard
             items={todayItems}
-            unit={plan.treatment?.unit}
+            treatments={treatmentsOf(plan)}
             petName={petName}
             petSex={pet?.sexo}
-            onPressItem={openCheckIn}
+            onPress={openCheckIn}
           />
         ) : null}
 
