@@ -6,9 +6,10 @@ interface ClinicCardProps {
   dayLabel?: string;
   timeLabel?: string;
   vetName?: string;
+  hint?: string;
 }
 
-export function ClinicCard({ title, dayLabel, timeLabel, vetName }: ClinicCardProps) {
+export function ClinicCard({ title, dayLabel, timeLabel, vetName, hint }: ClinicCardProps) {
   const hasDate = !!(dayLabel || timeLabel);
 
   return (
@@ -23,6 +24,7 @@ export function ClinicCard({ title, dayLabel, timeLabel, vetName }: ClinicCardPr
         </Text>
       )}
       {vetName ? <Text style={styles.vet}>{vetName}</Text> : null}
+      {hint ? <Text style={styles.vet}>{hint}</Text> : null}
     </View>
   );
 }
