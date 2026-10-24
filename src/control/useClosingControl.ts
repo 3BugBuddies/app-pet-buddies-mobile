@@ -89,7 +89,7 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
     if (!text || text === 'Atendimento imediato') return;
     baseline.current.reason = text;
     setReason(text);
-    if (mentionsVaccine(text)) {
+    if (appointment.type === 'VACINACAO' || mentionsVaccine(text)) {
       const vermifugo = /vermif/.test(normalizeSearch(text)) && !/vacin/.test(normalizeSearch(text));
       add('VACINA_VERMIFUGO', vermifugo ? { tipo: 'VERMIFUGACAO' } : undefined);
     }

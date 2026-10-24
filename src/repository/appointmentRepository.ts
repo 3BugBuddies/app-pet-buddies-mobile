@@ -50,6 +50,7 @@ const getAllAppointments = async (
       petId: c.animalId?.toString() ?? '',
       vetId: c.veterinarioId?.toString() ?? '',
       date: c.dataHora,
+      type: c.tipo ?? undefined,
       reason: c.observacao || '',
       status: mapStatus(c.status),
       backendStatus: c.status,
@@ -71,6 +72,7 @@ const getAppointmentById = async (id: string): Promise<Appointment | undefined> 
       petId: c.animalId.toString(),
       vetId: c.veterinarioId.toString(),
       date: c.dataHora,
+      type: c.tipo ?? undefined,
       reason: c.observacao || '',
       status: mapStatus(c.status),
       animalNome: c.animalNome ?? null,
@@ -96,6 +98,7 @@ const createAppointment = async (payload: CreateAppointmentInput): Promise<Appoi
       petId: c.animalId.toString(),
       vetId: c.veterinarioId?.toString() ?? '',
       date: c.dataHora,
+      type: c.tipo ?? undefined,
       reason: c.observacao || payload.reason,
       status: mapStatus(c.status),
     };
@@ -116,6 +119,7 @@ const updateAppointment = async (
       petId: c.animalId.toString(),
       vetId: c.veterinarioId?.toString() ?? '',
       date: c.dataHora,
+      type: c.tipo ?? undefined,
       reason: c.observacao || '',
       status: mapStatus(c.status),
     };
@@ -248,6 +252,7 @@ const createWalkInAppointment = async (
       petId: c.animalId.toString(),
       vetId: c.veterinarioId?.toString() ?? '',
       date: c.dataHora,
+      type: c.tipo ?? undefined,
       reason: c.observacao || 'Atendimento imediato',
       status: mapStatus(c.status),
     };
