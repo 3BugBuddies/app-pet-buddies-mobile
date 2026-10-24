@@ -52,6 +52,7 @@ const getAllAppointments = async (
       date: c.dataHora,
       reason: c.observacao || '',
       status: mapStatus(c.status),
+      backendStatus: c.status,
       animalNome: c.animalNome ?? null,
       veterinarioNome: c.veterinarioNome ?? null,
     }));
@@ -312,7 +313,33 @@ const getFreeWindows = async (
   ];
 };
 
+// Todas as janelas do veterinário (livres e ocupadas); `consultaId` nulo é livre.
+export interface VetWindow {
+  id: number;
+  dateTime: string; // AAAA-MM-DDTHH:mm:ss
+  appointmentId: string | null;
+}
+
+const getVetWindows = async (veterinarioId: string | number): Promise<VetWindow[]> => {
+  if (USE_API) {
+    const response = await apiJava.get('/janela-atendimento', { params: { veterinarioId } });
+    const lista: any[] = response.data._embedded?.janelaAtendimentoResponseList ?? [];
+    return lista.map((j) => ({
+      id: j.id,
+      dateTime: String(j.dataHoraInicio),
+      appointmentId: j.consultaId != null ? String(j.consultaId) : null,
+    }));
+  }
+  const today = isoLocal(new Date());
+  return ['09:30', '10:00', '10:30', '14:30', '15:00', '15:30'].map((h, i) => ({
+    id: 900 + i,
+    dateTime: `${today}T${h}:00`,
+    appointmentId: null,
+  }));
+};
+
 export {
+  getVetWindows,
   getAllAppointments,
   getAppointmentById,
   createAppointment,
