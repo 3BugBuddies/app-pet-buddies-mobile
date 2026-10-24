@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii } from '../../styles/theme';
+import { AgendaTabStack } from './vet-tabs/AgendaTabStack';
 import { HojeTabStack } from './vet-tabs/HojeTabStack';
 import { PacientesTabStack } from './vet-tabs/PacientesTabStack';
 import type { VetTabParamList } from './types';
@@ -49,6 +50,16 @@ export function VetTabs() {
           tabBarLabel: 'Hoje',
           tabBarIcon: ({ color, size, focused }) => (
             <TabIcon name={focused ? 'today' : 'today-outline'} size={size} color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="AgendaSemanaTab"
+        component={AgendaTabStack}
+        options={{
+          tabBarLabel: 'Agenda',
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'calendar' : 'calendar-outline'} size={size} color={color} focused={focused} />
           ),
         }}
       />

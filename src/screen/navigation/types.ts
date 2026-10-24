@@ -73,7 +73,13 @@ export type PacientesTabParamList = {
 };
 
 
+export type AgendaVetTabParamList = {
+  AgendaSemana: undefined;
+};
+
+
 export type VetTabParamList = {
   HojeTab: NavigatorScreenParams<HojeTabParamList>;
+  AgendaSemanaTab: NavigatorScreenParams<AgendaVetTabParamList>;
   PacientesTab: NavigatorScreenParams<PacientesTabParamList>;
 };
