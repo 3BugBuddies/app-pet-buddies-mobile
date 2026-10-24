@@ -17,6 +17,7 @@ export function useConfirmCheckIn() {
       // O back-end grava o status do item pelo desfecho: recarrega o plano em vez de marcar no cache.
       queryClient.invalidateQueries({ queryKey: ['carePlan', String(payload.animalId)] });
       queryClient.invalidateQueries({ queryKey: ['prontuario', 'registros', String(payload.animalId)] });
+      queryClient.invalidateQueries({ queryKey: ['planSummary', String(payload.animalId)] });
     },
   });
 }

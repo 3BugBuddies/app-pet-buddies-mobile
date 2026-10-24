@@ -338,7 +338,7 @@ const useCompleteAppointment = () => {
       await fecharAtendimento(consultaId, { registroAtendimento: record, procedimentos, prescricoes });
     },
     onSuccess: (_data, draft) => {
-      ['appointments', 'prontuario', 'prescricao', 'carePlan', 'procedures', 'pets', 'patients'].forEach((key) =>
+      ['appointments', 'prontuario', 'prescricao', 'carePlan', 'procedures', 'pets', 'patients', 'planSummary', 'agenda', 'petProfile'].forEach((key) =>
         queryClient.invalidateQueries({ queryKey: [key] })
       );
       queryClient.invalidateQueries({ queryKey: openItemsKey(draft.petId) });
