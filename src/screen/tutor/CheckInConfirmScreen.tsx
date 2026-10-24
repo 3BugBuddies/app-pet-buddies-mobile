@@ -103,7 +103,7 @@ export function CheckInConfirmScreen({ route }: Props) {
             <Text style={styles.escalationTitle}>Sinal de alerta detectado</Text>
           </View>
           <Text style={styles.escalationBody}>
-            A IA cruzou o relato com a prescrição da veterinária e encontrou um sinal que pede atenção. Se você confirmar, a clínica recebe o seu relato e você vê como falar com ela.
+            A IA cruzou o relato com a prescrição da veterinária e encontrou um sinal que pede atenção. Se você confirmar, o plano de cuidados é interrompido e você recebe a orientação para procurar a clínica.
           </Text>
           {redFlagsSeguras.length > 0 && (
             <View style={styles.flagsList}>
