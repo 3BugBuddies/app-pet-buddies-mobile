@@ -317,7 +317,9 @@ const useCompleteAppointment = () => {
           consultaId,
           dataAtendimento: isoLocal(new Date()),
           anamnese: draft.reason.trim() || undefined,
-          tratamento: undefined,
+          tratamento: draft.prescription
+            ? `Receita · ${draft.prescription.medicamento} ${draft.prescription.doseMin}–${draft.prescription.doseMax} ${draft.prescription.unidade} · ${draft.prescription.frequenciaDia}×/dia · ${draft.prescription.duracaoDias} dias`
+            : undefined,
           observacao: draft.notes.trim() || undefined,
         },
         { abortEarly: false }
