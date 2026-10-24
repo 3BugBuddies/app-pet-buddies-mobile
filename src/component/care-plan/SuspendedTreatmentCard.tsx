@@ -4,17 +4,17 @@ import { Button } from '../ui/Button';
 import { colors, radii, spacing } from '../../styles/theme';
 import { formatShortDate } from '../../model/formatDate';
 import { phoneDigits, type TreatmentWeek } from '../../model/careHome';
-import type { ClinicaContato } from '../../model/care';
+import { medicationsTitle, type ClinicaContato } from '../../model/care';
 import { WeekStrip } from './WeekStrip';
 
 interface SuspendedTreatmentCardProps {
-  medication: string;
+  medications: string[];
   suspendedAt: string;
   week: TreatmentWeek | null;
   clinic: ClinicaContato | null | undefined;
 }
 
-export function SuspendedTreatmentCard({ medication, suspendedAt, week, clinic }: SuspendedTreatmentCardProps) {
+export function SuspendedTreatmentCard({ medications, suspendedAt, week, clinic }: SuspendedTreatmentCardProps) {
   const call = async () => {
     if (!clinic) return;
     try {
@@ -27,10 +27,12 @@ export function SuspendedTreatmentCard({ medication, suspendedAt, week, clinic }
   return (
     <View style={styles.card}>
       <View style={styles.texts}>
-        <Text style={styles.eyebrow}>{`Tratamento · ${medication}`}</Text>
+        <Text style={styles.eyebrow}>{`Tratamento · ${medicationsTitle(medications)}`}</Text>
         <Text style={styles.title}>{`Suspenso pelo alarme de ${formatShortDate(suspendedAt)}`}</Text>
         <Text style={styles.body}>
-          O relato de hoje acionou a clínica, e ela já recebeu. Não dê a dose até falar com ela.
+          {medications.length > 1
+            ? 'O relato de hoje acionou a clínica, e ela já recebeu. Não dê nenhum dos remédios até falar com ela.'
+            : 'O relato de hoje acionou a clínica, e ela já recebeu. Não dê a dose até falar com ela.'}
         </Text>
       </View>
       {week ? <WeekStrip days={week.days} tone="suspended" /> : null}

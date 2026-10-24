@@ -1,6 +1,7 @@
 import type {
   CheckinDesfecho,
   CheckinResponse,
+  CheckInDoseLine,
   CheckInDoseResult,
   CheckInEscalationResult,
   CheckInInterpretation,
@@ -96,6 +97,9 @@ export function resolveCheckInResponse(
 
   if (response.escalado) {
     const { vetName, vetCrmv } = prescriber(acionar ?? desfechos[0]);
+    const rules = desfechos
+      .filter((d) => d.desfecho === 'ACIONAR_CLINICA')
+      .map((d) => `Regra de ${d.medicamento} · acionar a clínica`);
     const escalation: CheckInEscalationResult = {
       status: 'ESCALATION',
       reasonLabel:
@@ -109,6 +113,8 @@ export function resolveCheckInResponse(
       vetName,
       vetCrmv,
       suggestedSlotLabel: '',
+      rules,
+      medications: desfechos.map((d) => d.medicamento),
     };
     return escalation;
   }
@@ -118,6 +124,27 @@ export function resolveCheckInResponse(
   );
 
   const semDose = desfechos.filter((d) => d.desfecho === 'SEM_DOSE');
+
+  // Um relato cobre todos os medicamentos: cada desfecho vira uma linha, e o misto (dose + sem dose) não é achatado.
+  const lines: CheckInDoseLine[] | undefined =
+    comDose.length + semDose.length > 1
+      ? desfechos
+          .filter((d) => d.desfecho !== 'ACIONAR_CLINICA')
+          .map((d) => {
+            const dose = d.desfecho === 'SEM_DOSE' ? null : d.doseAplicada;
+            const isSuspended = dose == null;
+            return {
+              medication: d.medicamento,
+              doseLabel: dose == null ? 'Sem dose hoje' : `${formatDose(dose)}${d.unidade ? ` ${d.unidade}` : ''}`,
+              suspended: isSuspended,
+              ruleLabel: isSuspended
+                ? 'a regra suspendeu a dose de hoje'
+                : d.regraAplicadaId != null
+                  ? 'a dose vem da regra'
+                  : 'dose padrão da receita',
+            };
+          })
+      : undefined;
 
   if (comDose.length === 0 && semDose.length > 0) {
     const medications = semDose.map((d) => d.medicamento).join(', ');
@@ -135,6 +162,7 @@ export function resolveCheckInResponse(
       medicationLabel: medications,
       itemClosed: semDose.some((d) => d.itemPlanoCuidadoId != null),
       suspended: true,
+      lines,
     };
     return suspended;
   }
@@ -166,9 +194,19 @@ export function resolveCheckInResponse(
     pointsEarned: 0,
     ruleApplied: comDose.some((d) => d.regraAplicadaId != null),
     medicationLabel: comDose.map((d) => d.medicamento).join(', '),
-    itemClosed: comDose.some((d) => d.itemPlanoCuidadoId != null),
+    itemClosed: [...comDose, ...semDose].some((d) => d.itemPlanoCuidadoId != null),
+    lines,
   };
   return dose;
+}
+
+// Hora citada no relato ("às 8h", "8:30"); sem hora, só diz que foi dada.
+export function medicationGivenLabel(narrative: string): string {
+  const lower = narrative.toLowerCase();
+  if (/n[ãa]o deu/.test(lower)) return 'não dada';
+  const match = lower.match(/(\d{1,2})\s*(?:h|:|horas)\s*(\d{2})?/);
+  if (!match) return 'dada';
+  return `dada às ${Number(match[1])}h${match[2] && match[2] !== '00' ? match[2] : ''}`;
 }
 
 export function parseDoseRange(label: string): { min: number; max: number; unit: string } {
