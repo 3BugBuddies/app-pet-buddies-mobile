@@ -1,5 +1,4 @@
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../component/ui/Button';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
@@ -13,7 +12,6 @@ type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInEscalation'>;
 
 export function CheckInEscalationScreen({ route }: Props) {
   const { petId, result } = route.params;
-  const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
   const { data: pet } = usePet(petId);
@@ -29,8 +27,8 @@ export function CheckInEscalationScreen({ route }: Props) {
         </Text>
         <Text style={styles.body}>
           {result.reasonFromConditions ? 'Você confirmou ' : 'Você relatou '}
-          <Text style={styles.bodyStrong}>{result.reasonLabel}</Text>. A regra de {result.vetName} pede
-          avaliação presencial. A clínica vê o seu relato.
+          <Text style={styles.bodyStrong}>{result.reasonLabel}</Text>. A regra de {result.vetName} suspende o
+          tratamento e pede avaliação presencial. A clínica vê o seu relato.
         </Text>
       </View>
 
@@ -45,23 +43,16 @@ export function CheckInEscalationScreen({ route }: Props) {
 
       {result.clinicPhone ? (
         <>
-          <Text style={styles.phone}>{result.clinicPhone}</Text>
           <Button
             label="Ligar para a clínica"
             onPress={() => Linking.openURL(`tel:${result.clinicPhone?.replace(/\D/g, '')}`)}
           />
+          <Text style={styles.clinic}>
+            {result.clinicName ? `${result.clinicName} · ` : ''}
+            <Text style={styles.clinicPhone}>{result.clinicPhone}</Text>
+          </Text>
         </>
       ) : null}
-
-      <Button
-        label="Voltar ao início"
-        variant="secondary"
-        style={{ borderColor: colors.primary }}
-        onPress={() => {
-          navigation.popToTop();
-          navigation.getParent()?.navigate('HomeTab');
-        }}
-      />
     </ScrollView>
   );
 }
@@ -105,10 +96,13 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontWeight: '700',
   },
-  phone: {
-    fontSize: 20,
-    fontWeight: '700',
+  clinic: {
+    fontSize: 16,
     textAlign: 'center',
+    color: colors.textSecondary,
+  },
+  clinicPhone: {
+    fontWeight: '700',
     color: colors.textPrimary,
   },
   ruleCard: {

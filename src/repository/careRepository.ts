@@ -54,6 +54,7 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
     }
 
     const eventos = data.eventos ?? [];
+    if (eventos.length === 0) return null;
     const hoje = isoLocal(new Date());
 
     // tasks = eventos de hoje, cada evento vira um CareTask

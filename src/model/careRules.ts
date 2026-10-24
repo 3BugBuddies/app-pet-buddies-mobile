@@ -81,7 +81,7 @@ function prescriber(d: CheckinDesfecho | undefined): { vetName: string; vetCrmv:
   };
 }
 
-// O back manda o telefone dentro da mensagem ("… Procure a clínica: (11) 4002-8922.").
+// Fallback para respostas sem `clinica`: o telefone vem dentro da mensagem.
 export function extractPhone(text: string): string | undefined {
   return text.match(/\(\d{2}\)\s?\d{4,5}-\d{4}/)?.[0];
 }
@@ -101,7 +101,8 @@ export function resolveCheckInResponse(
       reasonLabel:
         alarmLabels.length > 0 ? alarmLabels.join(', ') : redFlags.length > 0 ? redFlags.join(', ') : 'um sinal de alerta',
       reasonFromConditions: alarmLabels.length > 0,
-      clinicPhone: extractPhone(JSON.stringify(response)),
+      clinicName: response.clinica?.nome,
+      clinicPhone: response.clinica?.telefone ?? extractPhone(JSON.stringify(response)),
       ruleDescription: acionar
         ? `Regra de ${acionar.medicamento} · acionar a clínica`
         : 'Regra da prescrição · acionar a clínica',

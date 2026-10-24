@@ -5,6 +5,7 @@ import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { HeroCard } from '../../component/pet-profile/HeroCard';
 import { StatsRow } from '../../component/pet-profile/StatsRow';
 import { TreatmentCard } from '../../component/pet-profile/TreatmentCard';
+import { NoPetState } from '../../component/pet/NoPetState';
 import { Button } from '../../component/ui/Button';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
@@ -81,6 +82,14 @@ export function PetProfileScreen({ route }: Props) {
     return <LoadingIndicator label="Carregando o perfil..." />;
   }
 
+  if (!petId && pets && pets.length === 0) {
+    return (
+      <View style={[styles.screen, styles.noPet, { paddingTop: Math.max(insets.top, 16) }]}>
+        <NoPetState onRegister={() => navigation.navigate('NovoPet')} />
+      </View>
+    );
+  }
+
   if (isPetsError || isPetError || !pet || !petId) {
     return (
       <ErrorState
@@ -124,8 +133,8 @@ export function PetProfileScreen({ route }: Props) {
         ]}
       />
 
-      {inTreatment && summary?.upcoming[0] ? (
-        <TreatmentCard name={summary.upcoming[0].name} until={summary.lastDate ? formatShortDate(summary.lastDate) : null} />
+      {inTreatment && summary?.treatmentName ? (
+        <TreatmentCard name={summary.treatmentName} until={summary.endDate ? formatShortDate(summary.endDate) : null} />
       ) : null}
 
       <Text style={styles.sectionTitle}>Histórico</Text>
@@ -172,6 +181,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  noPet: { padding: spacing.lg },
   content: {
     padding: spacing.lg,
     gap: spacing.md,

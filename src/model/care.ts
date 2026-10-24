@@ -156,6 +156,7 @@ export interface CheckInEscalationResult {
   reasonLabel: string;
   // true = reasonLabel lista condições do catálogo; false = texto do relato.
   reasonFromConditions?: boolean;
+  clinicName?: string;
   clinicPhone?: string;
   ruleDescription: string;
   vetName: string;
@@ -230,6 +231,11 @@ export interface CheckinDesfecho {
   prescritaEm?: string | null;
 }
 
+export interface ClinicaContato {
+  nome: string;
+  telefone: string;
+}
+
 export interface CheckinResponse {
   id: number;
   animalId: number;
@@ -239,6 +245,7 @@ export interface CheckinResponse {
   narrativa: string;
   escalado: boolean;
   desfechos: CheckinDesfecho[];
+  clinica?: ClinicaContato | null;
 }
 
 // Entrada da mutation de confirmação: o payload da API + o que a IA já tinha sinalizado

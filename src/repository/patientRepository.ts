@@ -8,10 +8,12 @@ interface PlanEventDto {
   nome: string;
   dataAlvo: string;
   status: string;
+  origem?: string | null;
 }
 
 interface PlanDto {
   categoria: PlanSummary['category'];
+  dataFim?: string | null;
   eventos?: PlanEventDto[] | null;
 }
 
@@ -39,11 +41,11 @@ const getPlanSummary = async (petId: string): Promise<PlanSummary | null> => {
       .filter((e) => e.status === 'PENDENTE' && e.dataAlvo >= hoje)
       .sort((a, b) => a.dataAlvo.localeCompare(b.dataAlvo))
       .map((e) => ({ id: String(e.id), name: e.nome, targetDate: e.dataAlvo }));
-    const datas = eventos.map((e) => e.dataAlvo).sort();
     return {
       category: data.categoria,
       upcoming,
-      lastDate: datas.length > 0 ? datas[datas.length - 1] : null,
+      endDate: data.dataFim ?? null,
+      treatmentName: eventos.find((e) => e.origem === 'PRESCRICAO')?.nome ?? null,
     };
   } catch (err: unknown) {
     if (isAxiosError(err) && err.response?.status === 404) return null;

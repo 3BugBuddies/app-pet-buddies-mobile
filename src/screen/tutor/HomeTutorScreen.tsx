@@ -109,9 +109,9 @@ export function HomeTutorScreen() {
             style={styles.emptyStateImage}
             resizeMode="contain"
           />
-          <Text style={styles.emptyStateTitle}>Bem-vindo ao Pet Buddies!</Text>
+          <Text style={styles.emptyStateTitle}>Cadastre o primeiro pet para a clínica montar o plano.</Text>
           <Text style={styles.emptyStateBody}>
-            Cadastre o primeiro pet para a clínica montar o plano.
+            Com o pet cadastrado, o plano preventivo aparece aqui.
           </Text>
           <Button
             label="Cadastrar pet"
