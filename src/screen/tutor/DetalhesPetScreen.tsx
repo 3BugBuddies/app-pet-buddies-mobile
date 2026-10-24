@@ -167,9 +167,9 @@ export function DetalhesPetScreen({ route }: Props) {
 
       <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
         <Button
-          label={consultaId ? 'Iniciar atendimento desta consulta' : 'Atendimento imediato'}
+          label={consultaHoje ? 'Iniciar atendimento desta consulta' : 'Atendimento imediato'}
           backgroundColor={colors.action}
-          onPress={() => navigation.navigate('ProntuarioForm', { petId, consultaId })}
+          onPress={() => navigation.navigate('ProntuarioForm', { petId, consultaId: consultaHoje ? consultaId : undefined })}
           style={{ flex: 1 }}
         />
       </View>

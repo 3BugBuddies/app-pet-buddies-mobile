@@ -21,7 +21,8 @@ interface NextPatientsCardProps {
 export function NextPatientsCard({ items, onOpenPatient, onAttend }: NextPatientsCardProps) {
   return (
     <View style={styles.list}>
-      <Text style={styles.title}>PRÓXIMOS</Text>
+      <Text style={styles.title}>CONSULTAS DE HOJE</Text>
+      {items.length === 0 ? <Text style={styles.reason}>Nenhuma consulta hoje. Os outros dias estão na Agenda.</Text> : null}
 
       {items.map((item) => (
         <Pressable
