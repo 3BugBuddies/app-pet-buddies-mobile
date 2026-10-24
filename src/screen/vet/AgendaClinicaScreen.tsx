@@ -42,7 +42,7 @@ export function AgendaClinicaScreen() {
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     return appointments
       .slice()
-      .filter((a) => a.status !== 'CANCELED' && a.date?.slice(0, 10) >= today)
+      .filter((a) => a.status !== 'CANCELED' && a.date?.slice(0, 10) === today)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((appointment) => {
         const pet = pets.find((p) => p.id === appointment.petId);
@@ -67,8 +67,7 @@ export function AgendaClinicaScreen() {
     return <LoadingIndicator label="Não foi possível carregar a agenda." />;
   }
 
-  // O resumo do card conta só as consultas de hoje; a lista abaixo segue mostrando as futuras.
-  const todayItems = items.filter((item) => item.isToday);
+  const todayItems = items;
   const seenCount = todayItems.filter((item) => item.seen).length;
   const totalCount = todayItems.length;
   const remaining = totalCount - seenCount;
