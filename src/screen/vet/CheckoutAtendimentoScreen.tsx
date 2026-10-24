@@ -5,6 +5,7 @@ import { BrandMark } from '../../component/ui/BrandMark';
 import { Button } from '../../component/ui/Button';
 import { formatHourShort } from '../../model/closingSummary';
 import { formatShortDate } from '../../model/formatDate';
+import { daysText } from '../../model/careHome';
 import type { PacientesTabParamList, VetTabParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -69,7 +70,7 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
               title={
                 summary.medicamentos.length === 1
                   ? `${summary.medicamentos[0].nome} assinada`
-                  : `Receita assinada · ${summary.medicamentos.map((m) => `${m.nome} ${m.duracaoDias} ${m.duracaoDias === 1 ? 'dia' : 'dias'}`).join(', ')}`
+                  : `Receita assinada · ${summary.medicamentos.map((m) => `${m.nome} ${daysText(m.duracaoDias)}`).join(', ')}`
               }
               sub={seesInApp}
             />

@@ -4,6 +4,7 @@ import { CareItemsSection } from '../../component/care-plan/CareItemsSection';
 import { NoPlanState } from '../../component/care-plan/NoPlanState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useCarePlan } from '../../control/useCarePlanControl';
+import { capitalize } from '../../model/careHome';
 import { treatmentOverview } from '../../model/treatmentSummary';
 import { usePet } from '../../control/usePetsControl';
 import type { PacientesTabParamList } from '../navigation/types';
@@ -51,7 +52,7 @@ export function PlanoPacienteScreen({ route }: Props) {
       {multi && overview ? (
         <View style={styles.overview}>
           <Text style={styles.overviewLabel}>Tratamento</Text>
-          <Text style={styles.overviewTitle}>{overview.names.join(' + ')}</Text>
+          <Text style={styles.overviewTitle}>{overview.names.map(capitalize).join(' + ')}</Text>
           <Text style={styles.overviewSub}>
             {overview.finished ? 'encerrado' : `dia ${overview.day} de ${overview.totalDays}`}
           </Text>

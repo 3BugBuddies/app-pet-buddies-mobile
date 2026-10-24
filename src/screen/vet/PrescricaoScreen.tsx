@@ -14,6 +14,7 @@ import {
 import { transcribeAudio } from '../../repository/speechTranscriptionService';
 
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
+import { capitalize, daysText } from '../../model/careHome';
 import { MedicationCard, closedSummary } from '../../component/prescricao/MedicationCard';
 import { Button } from '../../component/ui/Button';
 import { FieldError } from '../../component/forms/FieldError';
@@ -38,7 +39,6 @@ import { colors, radii, spacing } from '../../styles/theme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
-const capitalizar = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'Prescricao'>;
 
@@ -531,7 +531,7 @@ export function PrescricaoScreen({ route }: Props) {
                 <Pressable key={modelo.id} style={styles.templateCard} onPress={() => handleApplyTemplate(modelo)}>
                   <Text style={styles.templateCardName}>{modelo.titulo}</Text>
                   <Text style={styles.templateCardDetail}>
-                    {modelo.medicamento} · {modelo.frequenciaDia}x ao dia · {modelo.duracaoDias} dias
+                    {capitalize(modelo.medicamento)} · {modelo.frequenciaDia}x ao dia · {daysText(modelo.duracaoDias)}
                     {modelo.regras.length > 0 ? ` · ${modelo.regras.length} ${modelo.regras.length === 1 ? 'regra' : 'regras'}` : ''}
                   </Text>
                 </Pressable>
@@ -693,7 +693,7 @@ export function PrescricaoScreen({ route }: Props) {
             {condicao ? (
               <View style={styles.previewBox}>
                 <Text style={styles.previewText}>
-                  {capitalizar(
+                  {capitalize(
                     descreverCondicao({
                       condicaoClinicaId: condicao.id,
                       rotuloCongelado: condicao.rotulo,
