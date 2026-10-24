@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing } from '../../styles/theme';
 import type { DayDot, WeekDayCell } from '../../model/careHome';
@@ -7,6 +7,7 @@ import type { DayDot, WeekDayCell } from '../../model/careHome';
 interface WeekStripProps {
   days: WeekDayCell[];
   tone?: 'default' | 'suspended';
+  onPressDay?: (day: WeekDayCell) => void;
 }
 
 const CELL_WIDTH = 44;
@@ -38,10 +39,12 @@ function Dot({ dot }: { dot: DayDot }) {
       return <View style={[styles.dot, styles.dotTodo]} />;
     case 'OFF':
       return <View style={styles.dotOff} />;
+    case 'APPOINTMENT':
+      return <View style={[styles.dot, styles.dotAppointment]} />;
   }
 }
 
-export function WeekStrip({ days, tone = 'default' }: WeekStripProps) {
+export function WeekStrip({ days, tone = 'default', onPressDay }: WeekStripProps) {
   const scrollRef = useRef<ScrollView>(null);
   const scrolls = days.length > MAX_FIXED_DAYS;
   const todayIndex = days.findIndex((day) => day.isToday);
@@ -56,9 +59,13 @@ export function WeekStrip({ days, tone = 'default' }: WeekStripProps) {
         : dimmed
           ? colors.dimmed
           : colors.textSecondary;
+    const pressable = !!onPressDay && !!day.pressable;
     return (
-      <View
+      <Pressable
         key={day.iso}
+        disabled={!pressable}
+        accessibilityRole={pressable ? 'button' : undefined}
+        onPress={() => onPressDay?.(day)}
         style={[styles.cell, scrolls ? { width: CELL_WIDTH } : styles.cellFlex, highlighted && styles.cellToday]}
       >
         <Text style={[styles.weekday, { color: labelColor }]}>{day.isToday ? 'hoje' : day.weekday}</Text>
@@ -71,7 +78,7 @@ export function WeekStrip({ days, tone = 'default' }: WeekStripProps) {
           {day.dayNumber}
         </Text>
         <Dot dot={day.dot} />
-      </View>
+      </Pressable>
     );
   });
 
@@ -109,6 +116,7 @@ const styles = StyleSheet.create({
   dotDanger: { backgroundColor: colors.danger },
   dotMark: { fontFamily: 'Inter', fontSize: 10, lineHeight: 12, fontWeight: '800', color: colors.textLight },
   dotPending: { borderWidth: 2.5, borderColor: colors.action },
+  dotAppointment: { backgroundColor: colors.info },
   dotTodo: { borderWidth: 2, borderColor: colors.border },
   dotOff: { width: 16, height: 2, marginVertical: 7, borderRadius: 2, backgroundColor: colors.borderStrong },
 });

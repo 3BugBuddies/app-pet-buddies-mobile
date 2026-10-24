@@ -107,6 +107,12 @@ export function useFreeDates(veterinarioId?: string | number, de?: string, ate?:
   });
 }
 
+// Mesma fonte do calendário do Agendar: dias com janela livre do primeiro veterinário da clínica.
+export function useWeekFreeDates(de: string, ate: string, enabled: boolean) {
+  const { data: veterinarios } = useVeterinarians();
+  return useFreeDates(enabled ? veterinarios?.[0]?.id : undefined, de, ate);
+}
+
 export function useVeterinarians() {
   return useQuery({
     queryKey: ['veterinarians'],

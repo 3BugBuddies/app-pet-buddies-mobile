@@ -63,13 +63,16 @@ export function AgendamentoTutorScreen({ route }: Props) {
   const [reason, setReason] = useState('');
   const routePetId = route.params?.petId;
   const routeReason = route.params?.reason;
+  const routeDate = route.params?.date;
+  const [escolhida, setEscolhida] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!routePetId && !routeReason) return;
+    if (!routePetId && !routeReason && !routeDate) return;
     if (routePetId) setActivePetId(routePetId);
     if (routeReason) setReason(routeReason);
-    navigation.setParams({ petId: undefined, reason: undefined });
-  }, [routePetId, routeReason, navigation, setActivePetId]);
+    if (routeDate) setEscolhida(routeDate);
+    navigation.setParams({ petId: undefined, reason: undefined, date: undefined });
+  }, [routePetId, routeReason, routeDate, navigation, setActivePetId]);
   const todas = useAllPetsAppointments((pets ?? []).map((p) => String(p.id)));
   const proxima = useMemo(() => {
     const agora = Date.now();
@@ -77,7 +80,6 @@ export function AgendamentoTutorScreen({ route }: Props) {
       .filter((a) => (a.status === 'SCHEDULED' || a.status === 'CONFIRMED') && new Date(a.date).getTime() >= agora)
       .sort((a, b) => a.date.localeCompare(b.date))[0];
   }, [todas]);
-  const [escolhida, setEscolhida] = useState<string | null>(null);
   const [selectedJanelaId, setSelectedJanelaId] = useState<number | null>(null);
 
   // A API só lista janelas de um veterinário específico: usa-se o primeiro da clínica.

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
-import type { TreatmentWeek } from '../../model/careHome';
+import type { FreeWeek, TreatmentWeek, WeekDayCell } from '../../model/careHome';
 import { WeekStrip } from './WeekStrip';
 
 interface TreatmentWeekCardProps {
@@ -66,6 +66,21 @@ export function TreatmentWeekCard({ week, showLegend, onSeeCare }: TreatmentWeek
     <Pressable accessibilityRole="button" accessibilityLabel="Ver cuidados" onPress={onSeeCare}>
       {content}
     </Pressable>
+  );
+}
+
+interface FreeWeekCardProps {
+  week: FreeWeek;
+  onPressDay: (day: WeekDayCell) => void;
+}
+
+export function FreeWeekCard({ week, onPressDay }: FreeWeekCardProps) {
+  return (
+    <View style={styles.card}>
+      <Text style={styles.title}>Sua semana</Text>
+      <WeekStrip days={week.days} onPressDay={onPressDay} />
+      <Text style={styles.footerText}>{week.footer}</Text>
+    </View>
   );
 }
 

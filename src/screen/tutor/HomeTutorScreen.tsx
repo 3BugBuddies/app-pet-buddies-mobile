@@ -12,12 +12,12 @@ import { HeroPetCard } from '../../component/home/HeroPetCard';
 import { PreventiveCard } from '../../component/care-plan/PreventiveCard';
 import { SuspendedTreatmentCard } from '../../component/care-plan/SuspendedTreatmentCard';
 import { TodayAtHomeCard } from '../../component/care-plan/TodayAtHomeCard';
-import { TreatmentWeekCard } from '../../component/care-plan/TreatmentWeekCard';
+import { FreeWeekCard, TreatmentWeekCard } from '../../component/care-plan/TreatmentWeekCard';
 import { Button } from '../../component/ui/Button';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { AuthContext } from '../../context/authContext';
-import { useAppointments } from '../../control/useAppointmentsControl';
+import { useAppointments, useWeekFreeDates } from '../../control/useAppointmentsControl';
 import { useLogoutControl } from '../../control/authControl';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
@@ -27,11 +27,15 @@ import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
 import type { CareItem } from '../../model/care';
 import {
   activeTreatmentWeek,
+  freeWeek,
   openPreventiveItems,
   planStateLabel,
   suspendedTreatmentWeek,
   todayIso,
   todayTreatmentItems,
+  upcomingVisit,
+  weekEndIso,
+  type WeekDayCell,
 } from '../../model/careHome';
 import { formatDateBR } from '../../model/formatDate';
 import { breedLabel, sexLabel, type Pet } from '../../model/pet';
@@ -85,19 +89,20 @@ export function HomeTutorScreen() {
     });
   };
 
-  const nextAppointment = useMemo(() => {
-    if (!appointments || !activePet) return undefined;
-    const hoje = new Date().toISOString().slice(0, 10);
-    return appointments
-      .filter(
-        (a) =>
-          a.petId === String(activePet.id) &&
-          a.date?.slice(0, 10) >= hoje &&
-          a.status !== 'CANCELED' &&
-          a.status !== 'COMPLETED',
-      )
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
-  }, [appointments, activePet]);
+  const weekStart = todayIso();
+  const nextAppointment = useMemo(
+    () => upcomingVisit(appointments, activePet?.id ? String(activePet.id) : undefined, weekStart),
+    [appointments, activePet, weekStart],
+  );
+  const { data: weekFreeDates } = useWeekFreeDates(weekStart, weekEndIso(weekStart), !!activePet);
+
+  const openWeekDay = (day: WeekDayCell) => {
+    if (!activePet?.id) return;
+    navigation.navigate('AgendaTab', {
+      screen: 'AgendamentoTutor',
+      params: day.dot === 'APPOINTMENT' ? undefined : { petId: String(activePet.id), date: day.iso },
+    });
+  };
 
   // 1. Aguarda lista de pets
   if (isLoadingPets) {
@@ -237,6 +242,10 @@ export function HomeTutorScreen() {
                 navigation.navigate('PlanoTab', { screen: 'CarePlan', params: { petId: activePet.id! } })
               }
             />
+          ) : null}
+
+          {onlyPreventive ? (
+            <FreeWeekCard week={freeWeek(today, nextAppointment, weekFreeDates ?? [])} onPressDay={openWeekDay} />
           ) : null}
 
           {!treatmentWeek && preventive.length > 0 ? (

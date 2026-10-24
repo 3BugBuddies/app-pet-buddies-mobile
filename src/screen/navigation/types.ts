@@ -37,7 +37,7 @@ export type PlanoTabParamList = {
 
 
 export type AgendaTabParamList = {
-  AgendamentoTutor: { petId?: string; reason?: string } | undefined;
+  AgendamentoTutor: { petId?: string; reason?: string; date?: string } | undefined;
 };
 
 

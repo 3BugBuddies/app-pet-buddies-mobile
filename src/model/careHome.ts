@@ -1,7 +1,7 @@
 import type { CareItem, CarePlan, TreatmentInfo } from './care';
 import { isStatusClosed } from './care';
 
-export type DayDot = 'DONE' | 'NO_DOSE' | 'REFERRED' | 'PENDING' | 'TODO' | 'OFF';
+export type DayDot = 'DONE' | 'NO_DOSE' | 'REFERRED' | 'PENDING' | 'TODO' | 'OFF' | 'APPOINTMENT';
 
 export interface WeekDayCell {
   iso: string;
@@ -9,6 +9,7 @@ export interface WeekDayCell {
   dayNumber: string;
   isToday: boolean;
   dot: DayDot;
+  pressable?: boolean;
 }
 
 export interface TreatmentWeek {
@@ -33,6 +34,17 @@ const utcDay = (iso: string): number => {
 
 const addDays = (iso: string, amount: number): string =>
   new Date((utcDay(iso) + amount) * 86400000).toISOString().slice(0, 10);
+
+const dayCell = (iso: string, today: string, dot: DayDot): WeekDayCell => {
+  const [year, month, day] = iso.split('-').map(Number);
+  return {
+    iso,
+    weekday: WEEKDAY_SHORT[new Date(Date.UTC(year, month - 1, day)).getUTCDay()],
+    dayNumber: String(day),
+    isToday: iso === today,
+    dot,
+  };
+};
 
 const hasOutcome = (item: CareItem): boolean => item.doseApplied != null || !!item.executedAt;
 
@@ -62,14 +74,7 @@ export function treatmentWeek(
 
   const days: WeekDayCell[] = Array.from({ length: totalDays }, (_, index) => {
     const iso = addDays(start, index);
-    const [year, month, day] = iso.split('-').map(Number);
-    return {
-      iso,
-      weekday: WEEKDAY_SHORT[new Date(Date.UTC(year, month - 1, day)).getUTCDay()],
-      dayNumber: String(day),
-      isToday: iso === today,
-      dot: dotFor(items.filter((item) => item.dateIso === iso), iso, today),
-    };
+    return dayCell(iso, today, dotFor(items.filter((item) => item.dateIso === iso), iso, today));
   });
 
   return {
@@ -116,6 +121,55 @@ export function planStateLabel(plan: CarePlan | null | undefined, today: string)
   if (plan.items.length === 0 && !plan.suspended) return undefined;
   return plan.createdAt?.slice(0, 10) === today ? 'Preventivo · criado hoje' : 'Preventivo';
 }
+
+export interface ScheduledVisit {
+  date: string;
+  reason: string;
+}
+
+export interface FreeWeek {
+  days: WeekDayCell[];
+  visit: ScheduledVisit | null;
+  footer: string;
+}
+
+const visitLabel = (visit: ScheduledVisit): string => {
+  const iso = visit.date.slice(0, 10);
+  const [hours, minutes] = visit.date.slice(11, 16).split(':');
+  const hour = minutes && minutes !== '00' ? `${Number(hours)}h${minutes}` : `${Number(hours)}h`;
+  const weekday = dayCell(iso, iso, 'TODO').weekday;
+  return `${visit.reason || 'Consulta'} ${weekday}. ${iso.slice(8, 10)}/${iso.slice(5, 7)}, ${hour}`;
+};
+
+export function freeWeek(today: string, visit: ScheduledVisit | null | undefined, freeDates: string[]): FreeWeek {
+  const visitIso = visit?.date.slice(0, 10);
+  const free = new Set(freeDates);
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const iso = addDays(today, index);
+    const isVisit = iso === visitIso;
+    return { ...dayCell(iso, today, isVisit ? 'APPOINTMENT' : 'TODO'), pressable: isVisit || free.has(iso) };
+  });
+  return {
+    days,
+    visit: visit ?? null,
+    footer: `Sem tratamento ativo · ${visit ? visitLabel(visit) : 'nenhuma consulta marcada'}`,
+  };
+}
+
+export function upcomingVisit<T extends ScheduledVisit & { petId: string; status: string }>(
+  appointments: T[] | undefined,
+  petId: string | undefined,
+  today: string,
+): T | undefined {
+  if (!appointments || !petId) return undefined;
+  return appointments
+    .filter(
+      (a) => a.petId === petId && a.date?.slice(0, 10) >= today && a.status !== 'CANCELED' && a.status !== 'COMPLETED',
+    )
+    .sort((a, b) => a.date.localeCompare(b.date))[0];
+}
+
+export const weekEndIso = (today: string): string => addDays(today, 6);
 
 export function clockLabel(iso: string | null | undefined): string | null {
   if (!iso) return null;

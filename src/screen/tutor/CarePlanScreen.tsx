@@ -6,20 +6,25 @@ import { NoPlanState } from '../../component/care-plan/NoPlanState';
 import { PreventiveCard } from '../../component/care-plan/PreventiveCard';
 import { SuspendedTreatmentCard } from '../../component/care-plan/SuspendedTreatmentCard';
 import { TodayAtHomeCard } from '../../component/care-plan/TodayAtHomeCard';
-import { TreatmentWeekCard } from '../../component/care-plan/TreatmentWeekCard';
+import { FreeWeekCard, TreatmentWeekCard } from '../../component/care-plan/TreatmentWeekCard';
 import { NoPetState } from '../../component/pet/NoPetState';
 import { BrandMark } from '../../component/ui/BrandMark';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
+import { useAppointments, useWeekFreeDates } from '../../control/useAppointmentsControl';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { useActivePetId, usePet, usePets } from '../../control/usePetsControl';
 import { activePlansLabel, type CareItem } from '../../model/care';
 import {
   activeTreatmentWeek,
+  freeWeek,
   openPreventiveItems,
   suspendedTreatmentWeek,
   todayIso,
   todayTreatmentItems,
+  upcomingVisit,
+  weekEndIso,
+  type WeekDayCell,
 } from '../../model/careHome';
 import { petArticle, speciesLabel } from '../../model/pet';
 import type { PlanoTabParamList } from '../navigation/types';
@@ -37,6 +42,10 @@ export function CarePlanScreen({ route }: Props) {
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError } = useCarePlan(petId);
 
   const { data: pet } = usePet(petId);
+
+  const weekStart = todayIso();
+  const { data: appointments } = useAppointments(petId || undefined);
+  const { data: weekFreeDates } = useWeekFreeDates(weekStart, weekEndIso(weekStart), !!petId);
 
   const insets = useSafeAreaInsets();
 
@@ -94,6 +103,13 @@ export function CarePlanScreen({ route }: Props) {
     });
   };
 
+  const openWeekDay = (day: WeekDayCell) => {
+    navigation.getParent()?.navigate('AgendaTab', {
+      screen: 'AgendamentoTutor',
+      params: day.dot === 'APPOINTMENT' ? undefined : { petId, date: day.iso },
+    });
+  };
+
   const openScheduling = () => {
     navigation.getParent()?.navigate('AgendaTab', {
       screen: 'AgendamentoTutor',
@@ -125,6 +141,13 @@ export function CarePlanScreen({ route }: Props) {
         ) : null}
 
         {treatmentWeek ? <TreatmentWeekCard week={treatmentWeek} showLegend /> : null}
+
+        {!treatmentWeek && !plan.suspended ? (
+          <FreeWeekCard
+            week={freeWeek(today, upcomingVisit(appointments, petId, today), weekFreeDates ?? [])}
+            onPressDay={openWeekDay}
+          />
+        ) : null}
 
         {todayItems.length > 0 ? (
           <TodayAtHomeCard
