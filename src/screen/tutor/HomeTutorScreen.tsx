@@ -101,6 +101,7 @@ export function HomeTutorScreen() {
         <GreetingHeader
           greeting={greetingForNow()}
           userName={session?.nome?.split(' ')[0] ?? 'responsável'}
+          onAvatarPress={() => navigation.navigate('HomeTab', { screen: 'MinhaConta' })}
           onLogout={sair}
         />
         <View style={styles.emptyStateContent}>
@@ -158,9 +159,7 @@ export function HomeTutorScreen() {
           greeting={greetingForNow()}
           petName={activePet.nome}
           userName={session?.nome?.split(' ')[0] ?? 'responsável'}
-          onAvatarPress={() =>
-            navigation.navigate('PetTab', { screen: 'PetProfile', params: { petId: activePet.id! } })
-          }
+          onAvatarPress={() => navigation.navigate('HomeTab', { screen: 'MinhaConta' })}
           onLogout={sair}
         />
 

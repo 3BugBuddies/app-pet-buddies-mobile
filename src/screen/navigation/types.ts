@@ -21,6 +21,8 @@ export type AuthStackParamList = {
 export type HomeTabParamList = {
   HomeTutor: undefined;
   PataSegura: undefined;
+  MinhaConta: undefined;
+  TrocarSenha: undefined;
 };
 
 
