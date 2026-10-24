@@ -24,7 +24,7 @@ import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
-import type { CareItem } from '../../model/care';
+import { treatmentsOf } from '../../model/care';
 import {
   activeTreatmentWeek,
   freeWeek,
@@ -72,13 +72,9 @@ export function HomeTutorScreen() {
   const { data: appointments, isLoading: isLoadingAppointments } = useAppointments(activePet?.id ?? undefined);
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError, refetch: refetchPlan } = useCarePlan(activePet?.id ?? '');
 
-  const openCheckIn = (item: CareItem) => {
+  const openCheckIn = () => {
     if (!activePet?.id) return;
-    const itemId = Number(item.id);
-    navigation.navigate('PlanoTab', {
-      screen: 'CheckInEntry',
-      params: { petId: activePet.id, itemPlanoCuidadoId: Number.isFinite(itemId) ? itemId : undefined },
-    });
+    navigation.navigate('PlanoTab', { screen: 'CheckInEntry', params: { petId: activePet.id } });
   };
 
   const openScheduling = () => {
@@ -218,7 +214,7 @@ export function HomeTutorScreen() {
 
           {carePlan?.suspended ? (
             <SuspendedTreatmentCard
-              medication={carePlan.suspended.medication}
+              medications={carePlan.suspended.medications}
               suspendedAt={carePlan.suspended.at}
               week={suspendedWeek}
               clinic={carePlan.clinic}
@@ -228,10 +224,10 @@ export function HomeTutorScreen() {
           {todayItems.length > 0 ? (
             <TodayAtHomeCard
               items={todayItems}
-              unit={carePlan?.treatment?.unit}
+              treatments={carePlan ? treatmentsOf(carePlan) : []}
               petName={activePet.nome}
               petSex={activePet.sexo}
-              onPressItem={openCheckIn}
+              onPress={openCheckIn}
             />
           ) : null}
 

@@ -28,11 +28,11 @@ export type HomeTabParamList = {
 
 export type PlanoTabParamList = {
   CarePlan: { petId?: string } | undefined;
-  CheckInEntry: { petId: string; itemPlanoCuidadoId?: number };
-  CheckInConfirm: { petId: string; extracaoResponse: CheckinExtracaoResponse; itemPlanoCuidadoId?: number };
-  CheckInResult: { petId: string; result: CheckInDoseResult; itemPlanoCuidadoId?: number };
-  CheckInEscalation: { petId: string; result: CheckInEscalationResult; itemPlanoCuidadoId?: number };
-  CheckInNoRule: { petId: string; result: CheckInNoRuleResult; narrative: string; itemPlanoCuidadoId?: number };
+  CheckInEntry: { petId: string };
+  CheckInConfirm: { petId: string; extracaoResponse: CheckinExtracaoResponse };
+  CheckInResult: { petId: string; result: CheckInDoseResult };
+  CheckInEscalation: { petId: string; result: CheckInEscalationResult };
+  CheckInNoRule: { petId: string; result: CheckInNoRuleResult; narrative: string };
 };
 
 

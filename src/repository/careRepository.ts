@@ -12,6 +12,7 @@ import type {
   CheckinResponse,
   ConfirmCheckInInput,
   CheckInResult,
+  TreatmentInfo,
 } from '../model/care';
 import { isStatusClosed } from '../model/care';
 import { resolveCheckInResponse } from '../model/careRules';
@@ -38,6 +39,18 @@ interface ItemPlanoApi {
   executadoEm?: string | null;
   doseAplicada?: number | null;
   intervalo?: string | null;
+  prescricaoId?: number | null;
+}
+
+interface TratamentoApi {
+  prescricaoId?: number | null;
+  medicamento: string;
+  unidade?: string | null;
+  frequenciaDia?: number | null;
+  inicio: string;
+  fim: string;
+  doseMin?: number | null;
+  doseMax?: number | null;
 }
 
 interface PlanoApi {
@@ -46,16 +59,27 @@ interface PlanoApi {
   dataFim?: string | null;
   modeloPlano?: string | null;
   eventos?: ItemPlanoApi[] | null;
-  tratamento?: {
-    medicamento: string;
-    unidade?: string | null;
-    frequenciaDia?: number | null;
-    inicio: string;
-    fim: string;
-  } | null;
+  tratamento?: TratamentoApi | null;
+  tratamentos?: TratamentoApi[] | null;
   clinica?: ClinicaContato | null;
-  tratamentoSuspenso?: { medicamento: string; em: string; itens?: ItemPlanoApi[] | null } | null;
+  tratamentoSuspenso?: {
+    medicamento: string;
+    medicamentos?: string[] | null;
+    em: string;
+    itens?: ItemPlanoApi[] | null;
+  } | null;
 }
+
+const toTreatmentInfo = (t: TratamentoApi): TreatmentInfo => ({
+  prescriptionId: t.prescricaoId ?? null,
+  medication: t.medicamento,
+  unit: t.unidade ?? null,
+  frequencyPerDay: t.frequenciaDia ?? null,
+  start: t.inicio,
+  end: t.fim,
+  doseMin: t.doseMin ?? null,
+  doseMax: t.doseMax ?? null,
+});
 
 const toCareItem = (e: ItemPlanoApi): CareItem => {
   const [ano, mes, dia] = e.dataAlvo.split('-');
@@ -71,6 +95,7 @@ const toCareItem = (e: ItemPlanoApi): CareItem => {
     executedAt: e.executadoEm ?? null,
     doseApplied: e.doseAplicada ?? null,
     interval: e.intervalo ?? null,
+    prescriptionId: e.prescricaoId ?? null,
   };
 };
 
@@ -166,19 +191,19 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
       category: data.categoria,
       endDate: data.dataFim ?? null,
       modelName: data.modeloPlano ?? null,
-      treatment: data.tratamento
-        ? {
-            medication: data.tratamento.medicamento,
-            unit: data.tratamento.unidade ?? null,
-            frequencyPerDay: data.tratamento.frequenciaDia ?? null,
-            start: data.tratamento.inicio,
-            end: data.tratamento.fim,
-          }
-        : null,
+      treatment: data.tratamento ? toTreatmentInfo(data.tratamento) : null,
+      treatments: data.tratamentos?.length
+        ? data.tratamentos.map(toTreatmentInfo)
+        : data.tratamento
+          ? [toTreatmentInfo(data.tratamento)]
+          : [],
       clinic: data.clinica ?? null,
       suspended: data.tratamentoSuspenso
         ? {
             medication: data.tratamentoSuspenso.medicamento,
+            medications: data.tratamentoSuspenso.medicamentos?.length
+              ? data.tratamentoSuspenso.medicamentos
+              : [data.tratamentoSuspenso.medicamento],
             at: data.tratamentoSuspenso.em,
             items: (data.tratamentoSuspenso.itens ?? []).map(toCareItem),
           }

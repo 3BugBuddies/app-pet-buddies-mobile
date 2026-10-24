@@ -28,7 +28,7 @@ export function CheckInEscalationScreen({ route }: Props) {
         <Text style={styles.body}>
           {result.reasonFromConditions ? 'Você confirmou ' : 'Você relatou '}
           <Text style={styles.bodyStrong}>{result.reasonLabel}</Text>. A regra de {result.vetName} suspende o
-          tratamento e pede avaliação presencial. A clínica vê o seu relato.
+          tratamento{result.medications && result.medications.length > 1 ? ', com todos os remédios,' : ''} e pede avaliação presencial. A clínica vê o seu relato.
         </Text>
       </View>
 
@@ -38,7 +38,15 @@ export function CheckInEscalationScreen({ route }: Props) {
             .filter(Boolean)
             .join(' · ')}
         </Text>
-        <Text style={styles.ruleCode}>{result.ruleDescription}</Text>
+        {result.rules && result.rules.length > 1 ? (
+          result.rules.map((rule) => (
+            <Text key={rule} style={styles.ruleCode}>
+              {rule}
+            </Text>
+          ))
+        ) : (
+          <Text style={styles.ruleCode}>{result.ruleDescription}</Text>
+        )}
       </View>
 
       {result.clinicPhone ? (

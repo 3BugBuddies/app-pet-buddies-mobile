@@ -7,6 +7,9 @@ import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { ConfirmedFieldsCard, type ConfirmedField } from '../../component/checkin/ConfirmedFieldsCard';
 import { Button } from '../../component/ui/Button';
 import { useConfirmCheckIn } from '../../control/useCheckInControl';
+import { useCarePlan } from '../../control/useCarePlanControl';
+import { todayIso, todayMedications } from '../../model/careHome';
+import { medicationGivenLabel } from '../../model/careRules';
 import type { PlanoTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
@@ -20,6 +23,9 @@ export function CheckInConfirmScreen({ route }: Props) {
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
   const confirmCheckIn = useConfirmCheckIn();
+  const { data: plan } = useCarePlan(petId);
+  const medications = todayMedications(plan, todayIso());
+  const plural = medications.length > 1;
 
   const condicoesSeguras = extracaoResponse.condicoes || [];
   const redFlagsSeguras = extracaoResponse.redFlags || [];
@@ -51,6 +57,13 @@ export function CheckInConfirmScreen({ route }: Props) {
       value: flag,
       flagged: true,
     })),
+    ...(plural
+      ? medications.map((name) => ({
+          label: name,
+          value: medicationGivenLabel(extracaoResponse.narrativa),
+          flagged: false,
+        }))
+      : []),
   ];
 
   const handleConfirm = async () => {
@@ -61,7 +74,6 @@ export function CheckInConfirmScreen({ route }: Props) {
         payload: {
           animalId: extracaoResponse.animalId,
           narrativa: extracaoResponse.narrativa,
-          itemPlanoCuidadoId: route.params.itemPlanoCuidadoId, // liga o desfecho ao item do plano
           condicoes: condicoesSeguras.map((c) => ({
             condicaoClinicaId: c.condicaoClinicaId,
             valorBooleano: c.valorBooleano,
@@ -136,7 +148,7 @@ export function CheckInConfirmScreen({ route }: Props) {
 
       <View style={styles.actions}>
         <Button
-          label={isEscalation ? 'Confirmo, foi isso que aconteceu' : 'Confirmar · ver dose de hoje'}
+          label={isEscalation ? 'Confirmo, foi isso que aconteceu' : plural ? 'Confirmar · ver as doses de hoje' : 'Confirmar · ver dose de hoje'}
           backgroundColor={isEscalation ? colors.primary : colors.action}
           textColor={colors.textLight}
           loading={confirmCheckIn.isPending}
