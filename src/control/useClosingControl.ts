@@ -1,4 +1,4 @@
-import { useContext, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { isAxiosError } from 'axios';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -42,16 +42,13 @@ const TYPE_BY_SECTION: Record<ProcedureSection, TipoProcedimento> = {
   PROCEDIMENTO: 'OUTRO',
 };
 
-const itemWithSameName = (
-  items: OpenPlanItem[],
-  tipo: TipoProcedimento,
-  nome: string,
-  taken: Set<number>
-) => {
+const itemWithSameName = (items: OpenPlanItem[], nome: string, taken: Set<number>) => {
   const target = normalize(nome);
   if (!target) return null;
-  return items.find((i) => i.tipo === tipo && !taken.has(i.id) && normalize(i.nome) === target)?.id ?? null;
+  return items.find((i) => !taken.has(i.id) && normalize(i.nome) === target) ?? null;
 };
+
+const mentionsVaccine = (text: string) => /vacin|vermif/.test(normalizeSearch(text));
 
 const composeNotes = (p: ProcedureDraft) =>
   [p.batch.trim() && `Lote/marca: ${p.batch.trim()}`, p.notes.trim() && `Reações/observações: ${p.notes.trim()}`]
@@ -79,7 +76,43 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
   const [weight, setWeight] = useState('');
   const [procedures, setProcedures] = useState<ProcedureDraft[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [receitaOn, setReceitaOn] = useState(!!prescription);
   const counter = useRef(0);
+  const seeded = useRef({ reason: false, weight: false, item: false });
+  const baseline = useRef({ reason: '', weight: '' });
+
+  // Motivo e peso chegam preenchidos da consulta e do cadastro; vacina e vermífugo já vêm marcados.
+  useEffect(() => {
+    if (!appointment || seeded.current.reason) return;
+    seeded.current.reason = true;
+    const text = appointment.reason.trim();
+    if (!text || text === 'Atendimento imediato') return;
+    baseline.current.reason = text;
+    setReason(text);
+    if (mentionsVaccine(text)) {
+      const vermifugo = /vermif/.test(normalizeSearch(text)) && !/vacin/.test(normalizeSearch(text));
+      add('VACINA_VERMIFUGO', vermifugo ? { tipo: 'VERMIFUGACAO' } : undefined);
+    }
+  }, [appointment]);
+
+  useEffect(() => {
+    if (pet?.peso == null || seeded.current.weight) return;
+    seeded.current.weight = true;
+    const text = String(pet.peso).replace('.', ',');
+    baseline.current.weight = text;
+    setWeight(text);
+  }, [pet]);
+
+  // Com o item do plano citado no motivo (ex.: "Antirrábica"), o rádio vem marcado.
+  useEffect(() => {
+    if (seeded.current.item || items.length === 0 || !baseline.current.reason) return;
+    const draft = procedures.find((p) => p.section === 'VACINA_VERMIFUGO' && !p.nome.trim() && !p.manualItem);
+    if (!draft) return;
+    seeded.current.item = true;
+    const reasonText = normalize(baseline.current.reason);
+    const match = items.find((i) => reasonText.includes(normalize(i.nome)));
+    if (match) update(draft.key, { nome: match.nome });
+  }, [items, procedures]);
 
   const handleWeightChange = (text: string) => {
     let formatted = text.replace(/[^0-9,]/g, '');
@@ -91,12 +124,13 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
   const takenByOthers = (list: ProcedureDraft[], key: string) =>
     new Set(list.filter((p) => p.key !== key && p.itemPlanoId != null).map((p) => p.itemPlanoId as number));
 
-  const add = (section: ProcedureSection) => {
+  const add = (section: ProcedureSection, patch?: Partial<ProcedureDraft>) => {
     counter.current += 1;
+    const key = `proc-${counter.current}`;
     setProcedures((current) => [
       ...current,
       {
-        key: `proc-${counter.current}`,
+        key,
         section,
         tipo: TYPE_BY_SECTION[section],
         nome: '',
@@ -104,8 +138,17 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
         notes: '',
         itemPlanoId: null,
         manualItem: false,
+        ...patch,
       },
     ]);
+    return key;
+  };
+
+  const hasSection = (section: ProcedureSection) => procedures.some((p) => p.section === section);
+
+  const toggleSection = (section: ProcedureSection) => {
+    if (hasSection(section)) setProcedures((current) => current.filter((p) => p.section !== section));
+    else add(section);
   };
 
   const update = (key: string, patch: Partial<ProcedureDraft>) => {
@@ -113,13 +156,12 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
       current.map((p) => {
         if (p.key !== key) return p;
         const next = { ...p, ...patch };
-        const changedNameOrType = patch.nome !== undefined || patch.tipo !== undefined;
-        if (changedNameOrType && !patch.manualItem && !next.manualItem && next.section === 'VACINA_VERMIFUGO') {
-          next.itemPlanoId = itemWithSameName(items, next.tipo, next.nome, takenByOthers(current, key));
-        }
-        if (patch.tipo !== undefined && next.manualItem) {
-          next.itemPlanoId = null;
-          next.manualItem = false;
+        if (patch.nome !== undefined && !patch.manualItem && !next.manualItem && next.section === 'VACINA_VERMIFUGO') {
+          const match = itemWithSameName(items, next.nome, takenByOthers(current, key));
+          next.itemPlanoId = match?.id ?? null;
+          next.tipo = match?.tipo ?? (/vermifug/.test(normalize(next.nome)) ? 'VERMIFUGACAO' : 'VACINACAO');
+        } else if (patch.nome !== undefined && next.section === 'VACINA_VERMIFUGO' && next.itemPlanoId == null) {
+          next.tipo = /vermifug/.test(normalize(next.nome)) ? 'VERMIFUGACAO' : 'VACINACAO';
         }
         return next;
       })
@@ -130,10 +172,10 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
 
   const availableItems = (p: ProcedureDraft) => {
     const taken = takenByOthers(procedures, p.key);
-    return items.filter((i) => i.tipo === p.tipo && !taken.has(i.id));
+    return items.filter((i) => !taken.has(i.id));
   };
 
-  const build = (): ClosingDraft | null => {
+  const validate = () => {
     const nextErrors: Record<string, string> = {};
     if (weight) {
       const n = parseFloat(weight.replace(',', '.'));
@@ -143,6 +185,26 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
       if (!p.nome.trim()) nextErrors[p.key] = 'Informe o nome ou remova o item.';
       else if (p.nome.trim().length > 150) nextErrors[p.key] = 'O nome pode ter até 150 caracteres.';
     });
+    return nextErrors;
+  };
+
+  // Linha da sanfona que tem o primeiro erro, para abrir antes de mostrar a mensagem.
+  const firstInvalid = (): string | null => {
+    const e = validate();
+    if (e.weight) return 'consulta';
+    return procedures.find((p) => e[p.key])?.section ?? null;
+  };
+
+  const dirty = !!(
+    reason.trim() !== baseline.current.reason ||
+    weight !== baseline.current.weight ||
+    notes.trim() ||
+    prescription ||
+    procedures.some((p) => p.nome.trim() || p.batch.trim() || p.notes.trim() || p.itemPlanoId != null || p.manualItem)
+  );
+
+  const build = (): ClosingDraft | null => {
+    const nextErrors = validate();
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return null;
     return {
@@ -166,8 +228,12 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
     weight, handleWeightChange,
     procedures,
     add, update, remove,
+    hasSection, toggleSection,
+    receitaOn, setReceitaOn,
     availableItems,
     errors,
+    firstInvalid,
+    dirty,
     build,
   };
 };
@@ -233,7 +299,8 @@ const useCompleteAppointment = () => {
 
       if (draft.weight) {
         const current = await getPetById(draft.petId);
-        if (current) await updatePet({ ...current, peso: parseFloat(draft.weight.replace(',', '.')) });
+        const peso = parseFloat(draft.weight.replace(',', '.'));
+        if (current && current.peso !== peso) await updatePet({ ...current, peso });
       }
 
       // A consulta de encaixe só nasce aqui, na hora de enviar, e é reaproveitada se o envio falhar.
@@ -250,7 +317,7 @@ const useCompleteAppointment = () => {
           consultaId,
           dataAtendimento: isoLocal(new Date()),
           anamnese: draft.reason.trim() || undefined,
-          tratamento: draft.prescription ? 'Vide prescrição estruturada' : undefined,
+          tratamento: undefined,
           observacao: draft.notes.trim() || undefined,
         },
         { abortEarly: false }
