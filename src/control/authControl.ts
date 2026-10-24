@@ -140,4 +140,4 @@ const useLogoutControl = () => {
   };
 };
 
-export { useSessionBootstrap, useLoginControl, useRegisterControl, useLogoutControl };
+export { SESSION_QUERY_KEY, useSessionBootstrap, useLoginControl, useRegisterControl, useLogoutControl };

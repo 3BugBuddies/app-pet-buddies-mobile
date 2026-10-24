@@ -35,7 +35,7 @@ addAuthInterceptor(apiJava);
 apiJava.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401 && !error.config.url?.endsWith('/auth/login')) {
+    if (error.response?.status === 401 && !error.config.url?.endsWith('/auth/login') && !error.config.url?.endsWith('/auth/senha')) {
       if (listeners.size > 0) {
         listeners.forEach(l => l());
       } else {
