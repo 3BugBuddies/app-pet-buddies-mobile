@@ -96,7 +96,7 @@ export function PacientesScreen() {
               ? null
               : inTreatment
                 ? {
-                    label: summary.lastDate ? `em tratamento até ${formatShortDate(summary.lastDate)}` : 'em tratamento',
+                    label: summary.endDate ? `em tratamento até ${formatShortDate(summary.endDate)}` : 'em tratamento',
                     treatment: true,
                   }
                 : { label: 'preventivo', treatment: false };

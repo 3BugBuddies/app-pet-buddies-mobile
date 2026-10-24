@@ -17,5 +17,5 @@ export interface PendingCare {
 export interface PlanSummary {
   category: 'PREVENTIVO' | 'TRATAMENTO' | 'POS_CIRURGICO';
   upcoming: PendingCare[];
-  lastDate: string | null;
+  endDate: string | null;
 }
