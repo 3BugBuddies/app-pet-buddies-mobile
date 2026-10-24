@@ -14,13 +14,13 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "http://petbuddies-java-rm563925.eastus.azurecontainer.io:8080/api"
+        "EXPO_PUBLIC_API_BASE_URL": "https://petbuddies-java-rm563925.azurewebsites.net/api"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "http://petbuddies-java-rm563925.eastus.azurecontainer.io:8080/api"
+        "EXPO_PUBLIC_API_BASE_URL": "https://petbuddies-java-rm563925.azurewebsites.net/api"
       }
     }
   },

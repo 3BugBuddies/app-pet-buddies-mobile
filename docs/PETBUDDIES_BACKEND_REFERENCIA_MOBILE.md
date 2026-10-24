@@ -33,7 +33,7 @@ Actuator /health  (consultado pelo .NET como health check)
 | Ambiente | URL |
 |---|---|
 | Local | `http://localhost:8080` |
-| Produção (Azure) | `http://petbuddies-java-rm563925.eastus.azurecontainer.io:8080` |
+| Produção (Azure) | `https://petbuddies-java-rm563925.azurewebsites.net` |
 
 ### Swagger / OpenAPI
 
