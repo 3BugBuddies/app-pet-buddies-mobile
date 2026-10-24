@@ -121,6 +121,16 @@ export const medicationKey = (item: CareItem): string => String(item.prescriptio
 
 export const doseText = (dose: number): string => String(dose).replace('.', ',');
 
+export const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+export const daysText = (days: number): string => `${days} ${days === 1 ? 'dia' : 'dias'}`;
+
+// min == max (ou só um dos dois) mostra um valor só.
+export function doseBounds(min: number | null | undefined, max: number | null | undefined): string {
+  if (!min && !max) return '';
+  return min && max && min !== max ? `${doseText(min)}–${doseText(max)}` : doseText(min || max || 0);
+}
+
 export function doseRangeText(info: Pick<TreatmentInfo, 'doseMin' | 'doseMax' | 'unit'>): string | null {
   const { doseMin, doseMax, unit } = info;
   if (doseMin == null && doseMax == null) return null;

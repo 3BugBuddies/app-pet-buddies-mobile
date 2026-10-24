@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
+import { capitalize, doseText } from '../../model/careHome';
 import { medicationEndLabel } from '../../model/treatmentSummary';
 import { dayAndWeekday, groupTreatments, statusDisplay, type CareItem, type StatusTone } from '../../model/care';
 
@@ -42,7 +43,7 @@ export function CareItemsSection({ title, items, emptyText, grouped }: CareItems
           <View key={group.name} style={styles.group}>
             <View style={styles.groupHead}>
               <Text style={[styles.groupTitle, styles.textBlock]}>
-                {[group.name, group.perDay > 1 ? `${group.perDay}×/dia` : null].filter(Boolean).join(' · ')}
+                {[capitalize(group.name), group.perDay > 1 ? `${group.perDay}×/dia` : null].filter(Boolean).join(' · ')}
               </Text>
               <Text style={styles.groupEnd}>{medicationEndLabel(group.items, today)}</Text>
             </View>
@@ -51,7 +52,7 @@ export function CareItemsSection({ title, items, emptyText, grouped }: CareItems
                 <View style={styles.textBlock}>
                   <Text style={styles.itemTitle}>{dayAndWeekday(item.dateIso, today)}</Text>
                   {item.doseApplied != null ? (
-                    <Text style={styles.itemDose}>{[item.doseApplied, item.unit].filter(Boolean).join(' ')}</Text>
+                    <Text style={styles.itemDose}>{[doseText(item.doseApplied), item.unit].filter(Boolean).join(' ')}</Text>
                   ) : null}
                 </View>
                 {renderPill(item)}
@@ -65,7 +66,7 @@ export function CareItemsSection({ title, items, emptyText, grouped }: CareItems
             <View key={item.id} style={styles.row}>
               <View style={styles.textBlock}>
                 <Text style={styles.itemTitle}>
-                  {item.title} · {item.dateLabel}
+                  {capitalize(item.title)} · {item.dateLabel}
                 </Text>
               </View>
               {renderPill(item)}

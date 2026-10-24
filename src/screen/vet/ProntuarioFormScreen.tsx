@@ -15,6 +15,7 @@ import type { ProcedureSection } from '../../model/closing';
 import type { ItemReceitaDraft } from '../../model/prescription';
 import { formatHourShort } from '../../model/closingSummary';
 import { formatDateBR, formatShortDate } from '../../model/formatDate';
+import { capitalize, daysText, doseBounds } from '../../model/careHome';
 import type { PacientesTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
@@ -251,7 +252,7 @@ export function ProntuarioFormScreen({ route }: Props) {
 }
 
 const medicationLine = (i: ItemReceitaDraft) =>
-  `${i.medicamento} · ${i.doseMin}–${i.doseMax} ${i.unidade} · ${i.frequenciaDia}×/dia · ${i.duracaoDias} dias`;
+  `${capitalize(i.medicamento)} · ${doseBounds(i.doseMin, i.doseMax)} ${i.unidade} · ${i.frequenciaDia}×/dia · ${daysText(i.duracaoDias)}`;
 
 function todayIso() {
   const d = new Date();
