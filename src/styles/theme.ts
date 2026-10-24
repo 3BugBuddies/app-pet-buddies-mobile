@@ -89,6 +89,16 @@ export const colors = {
   cardMax: `${primitiveColors.pbAmarelo}26`,
   cardChia: `${primitiveColors.pbAzulCeu}26`,
   cardAlert: `${primitiveColors.tsTangerine}26`,
+
+  // Tarefas e semana do tratamento
+  peach: '#FFF0E0',
+  lime: '#C9F27A',
+  limeSoft: '#F4FBE6',
+  info: '#5AA9E6',
+  danger: '#A3321F',
+  dangerSoft: '#FDE3DF',
+  rowBackground: '#F6F7F9',
+  dimmed: '#B4B9C4',
 };
 
 export const spacing = {

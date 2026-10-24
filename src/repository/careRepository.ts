@@ -6,6 +6,7 @@ import type {
   CareItem,
   CareItemStatus,
   CheckInEscalationResult,
+  ClinicaContato,
   CheckinExtracaoRequest,
   CheckinExtracaoResponse,
   CheckinResponse,
@@ -34,12 +35,43 @@ interface ItemPlanoApi {
   status: CareItemStatus;
   origem?: string | null;
   vencido?: boolean;
+  executadoEm?: string | null;
+  doseAplicada?: number | null;
+  intervalo?: string | null;
 }
 
 interface PlanoApi {
   instanciadoEm?: string | null;
+  categoria?: CarePlan['category'];
+  dataFim?: string | null;
   eventos?: ItemPlanoApi[] | null;
+  tratamento?: {
+    medicamento: string;
+    unidade?: string | null;
+    frequenciaDia?: number | null;
+    inicio: string;
+    fim: string;
+  } | null;
+  clinica?: ClinicaContato | null;
+  tratamentoSuspenso?: { medicamento: string; em: string; itens?: ItemPlanoApi[] | null } | null;
 }
+
+const toCareItem = (e: ItemPlanoApi): CareItem => {
+  const [ano, mes, dia] = e.dataAlvo.split('-');
+  return {
+    id: String(e.id),
+    title: e.nome,
+    dateIso: e.dataAlvo,
+    dateLabel: `${dia}/${mes}/${ano}`,
+    type: e.tipo,
+    status: e.status,
+    overdue: e.vencido ?? false,
+    treatment: e.origem === 'PRESCRICAO' || e.tipo === 'MEDICACAO',
+    executedAt: e.executadoEm ?? null,
+    doseApplied: e.doseAplicada ?? null,
+    interval: e.intervalo ?? null,
+  };
+};
 
 // Plano inexistente (404) não é erro: o pet ainda não tem plano.
 const getPlan = async (petId: string): Promise<CarePlan | null> => {
@@ -54,7 +86,7 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
     }
 
     const eventos = data.eventos ?? [];
-    if (eventos.length === 0) return null;
+    if (eventos.length === 0 && !data.tratamentoSuspenso) return null;
     const hoje = isoLocal(new Date());
 
     // tasks = eventos de hoje, cada evento vira um CareTask
@@ -117,21 +149,7 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
         };
       });
 
-    const items: CareItem[] = [...eventos]
-      .sort((a, b) => a.dataAlvo.localeCompare(b.dataAlvo))
-      .map((e) => {
-        const [ano, mes, dia] = e.dataAlvo.split('-');
-        return {
-          id: String(e.id),
-          title: e.nome,
-          dateIso: e.dataAlvo,
-          dateLabel: `${dia}/${mes}/${ano}`,
-          type: e.tipo,
-          status: e.status,
-          overdue: e.vencido ?? false,
-          treatment: e.origem === 'PRESCRICAO' || e.tipo === 'MEDICACAO',
-        };
-      });
+    const items: CareItem[] = [...eventos].sort((a, b) => a.dataAlvo.localeCompare(b.dataAlvo)).map(toCareItem);
 
     return {
       petId,
@@ -143,6 +161,26 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
       milestones: [],
       history,
       items,
+      createdAt: data.instanciadoEm ?? null,
+      category: data.categoria,
+      endDate: data.dataFim ?? null,
+      treatment: data.tratamento
+        ? {
+            medication: data.tratamento.medicamento,
+            unit: data.tratamento.unidade ?? null,
+            frequencyPerDay: data.tratamento.frequenciaDia ?? null,
+            start: data.tratamento.inicio,
+            end: data.tratamento.fim,
+          }
+        : null,
+      clinic: data.clinica ?? null,
+      suspended: data.tratamentoSuspenso
+        ? {
+            medication: data.tratamentoSuspenso.medicamento,
+            at: data.tratamentoSuspenso.em,
+            items: (data.tratamentoSuspenso.itens ?? []).map(toCareItem),
+          }
+        : null,
     };
   }
   return getFakeCarePlan(petId);
