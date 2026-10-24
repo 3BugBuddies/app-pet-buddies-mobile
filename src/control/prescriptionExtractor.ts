@@ -17,18 +17,27 @@ export interface PrescricaoExtraida {
   orientacao: string;
 }
 
+// Medicamentos veterinários comuns para detecção rápida
+const medicamentosComuns = [
+  'gaviscon', 'gavis', 'amoxicilina', 'cefalexina', 'enrofloxacina',
+  'prednisolona', 'dexametasona', 'metronidazol', 'omeprazol',
+  'ranitidina', 'ondansetrona', 'cerenia', 'maropitant', 'meloxicam',
+  'dipirona', 'tramadol', 'apoquel', 'cytopoint', 'drontal',
+  'simparic', 'bravecto', 'nexgard', 'capstar', 'vetmedin'
+];
+
 export function extrairPrescricaoDaNarrativa(texto: string): PrescricaoExtraida {
   const lower = texto.toLowerCase();
 
   // 1. Frequência diária
   let frequenciaDia = 1;
-  if (/(\b12\s*em\s*12\b|\ba\s*cada\s*12\s*horas?\b|\b2\s*vezes\b|\bduas\s*vezes\b|\b2x\b)/i.test(lower)) {
+  if (/(\b12\s*em\s*12\b|\ba\s*cada\s*12\s*h(?:oras?)?\b|\b2\s*vezes\b|\bduas\s*vezes\b|\b2x\b)/i.test(lower)) {
     frequenciaDia = 2;
-  } else if (/(\b8\s*em\s*8\b|\ba\s*cada\s*8\s*horas?\b|\b3\s*vezes\b|\btr[êe]s\s*vezes\b|\b3x\b)/i.test(lower)) {
+  } else if (/(\b8\s*em\s*8\b|\ba\s*cada\s*8\s*h(?:oras?)?\b|\b3\s*vezes\b|\btr[êe]s\s*vezes\b|\b3x\b)/i.test(lower)) {
     frequenciaDia = 3;
-  } else if (/(\b6\s*em\s*6\b|\ba\s*cada\s*6\s*horas?\b|\b4\s*vezes\b|\bquatro\s*vezes\b|\b4x\b)/i.test(lower)) {
+  } else if (/(\b6\s*em\s*6\b|\ba\s*cada\s*6\s*h(?:oras?)?\b|\b4\s*vezes\b|\bquatro\s*vezes\b|\b4x\b)/i.test(lower)) {
     frequenciaDia = 4;
-  } else if (/(\b24\s*em\s*24\b|\ba\s*cada\s*24\s*horas?\b|\b1\s*vez\b|\buma\s*vez\b|\b1x\b)/i.test(lower)) {
+  } else if (/(\b24\s*em\s*24\b|\ba\s*cada\s*24\s*h(?:oras?)?\b|\b1\s*vez\b|\buma\s*vez\b|\b1x\b)/i.test(lower)) {
     frequenciaDia = 1;
   }
 
@@ -82,15 +91,6 @@ export function extrairPrescricaoDaNarrativa(texto: string): PrescricaoExtraida 
 
   // 4. Medicamento
   let medicamento = '';
-  // Lista de medicamentos veterinários comuns para detecção rápida
-  const medicamentosComuns = [
-    'gaviscon', 'gavis', 'amoxicilina', 'cefalexina', 'enrofloxacina',
-    'prednisolona', 'dexametasona', 'metronidazol', 'omeprazol',
-    'ranitidina', 'ondansetrona', 'cerenia', 'maropitant', 'meloxicam',
-    'dipirona', 'tramadol', 'apoquel', 'cytopoint', 'drontal',
-    'simparic', 'bravecto', 'nexgard', 'capstar', 'vetmedin'
-  ];
-
   for (const med of medicamentosComuns) {
     if (new RegExp(`\\b${med}\\b`, 'i').test(lower)) {
       medicamento = med.charAt(0).toUpperCase() + med.slice(1);
@@ -147,6 +147,36 @@ export function extrairPrescricaoDaNarrativa(texto: string): PrescricaoExtraida 
     duracaoDias,
     orientacao,
   };
+}
+
+// "Amoxicilina ..., e meloxicam ...": parte o texto onde começa cada medicamento conhecido, no último
+// separador (" e ", vírgula, ponto e vírgula, quebra de linha) entre o medicamento anterior e o novo.
+// Medicamento fora da lista não abre um novo item: fica junto do anterior.
+export function extrairPrescricoesDaNarrativa(texto: string): PrescricaoExtraida[] {
+  const mencoes: { inicio: number; fim: number }[] = [];
+  const lower = texto.toLowerCase();
+  const achados = medicamentosComuns
+    .map((med) => {
+      const m = new RegExp(`\\b${med}\\b`, 'i').exec(lower);
+      return m ? { inicio: m.index, fim: m.index + med.length } : null;
+    })
+    .filter((m): m is { inicio: number; fim: number } => m !== null)
+    .sort((a, b) => a.inicio - b.inicio);
+  achados.forEach((m) => {
+    if (!mencoes.some((o) => o.inicio === m.inicio)) mencoes.push(m);
+  });
+  if (mencoes.length < 2) return [extrairPrescricaoDaNarrativa(texto)];
+
+  const cortes = [0];
+  for (let i = 1; i < mencoes.length; i += 1) {
+    const intervalo = texto.slice(mencoes[i - 1].fim, mencoes[i].inicio);
+    const separadores = [...intervalo.matchAll(/(?:,\s*e\s+|\s+e\s+|[,;.\n])\s*/g)];
+    const ultimo = separadores[separadores.length - 1];
+    cortes.push(ultimo ? mencoes[i - 1].fim + (ultimo.index ?? 0) + ultimo[0].length : mencoes[i].inicio);
+  }
+  return cortes.map((inicio, i) =>
+    extrairPrescricaoDaNarrativa(texto.slice(inicio, i + 1 < cortes.length ? cortes[i + 1] : undefined))
+  );
 }
 
 function converterNumeroPorExtenso(str: string): number {

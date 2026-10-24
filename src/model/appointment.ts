@@ -10,6 +10,11 @@ export interface Appointment {
   date: string;
   reason: string;
   status: AppointmentStatus;
+  // Status do back sem o colapso de mapStatus (NAO_COMPARECEU e CANCELADA viram CANCELED).
+  backendStatus?: string;
+  type?: string;
+  animalNome?: string | null;
+  veterinarioNome?: string | null;
 }
 
 export interface CreateAppointmentInput {

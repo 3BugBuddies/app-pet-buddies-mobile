@@ -1,17 +1,15 @@
 import type {
+  CheckinDesfecho,
   CheckinResponse,
+  CheckInDoseLine,
   CheckInDoseResult,
   CheckInEscalationResult,
   CheckInInterpretation,
   CheckInNoRuleResult,
   CheckInResult,
 } from './care';
-import {
-  GLOBAL_ALARM_SIGNALS,
-  RULE_ACTION_RESULT_LABEL,
-  type ConditionSignal,
-  type Prescription,
-} from './legacyPrescription';
+import type { ConditionSignal } from './legacyPrescription';
+import { formatShortDate } from './formatDate';
 
 // Heurística local por palavras-chave, no lugar do serviço de IA que a vet
 // usaria para interpretar a narrativa. Trocar por uma chamada real de NLP/IA
@@ -67,79 +65,6 @@ export function deriveSignals(interpretation: CheckInInterpretation): ConditionS
   return signals;
 }
 
-interface ResolveCheckInParams {
-  prescription: Prescription;
-  signals: ConditionSignal[];
-  confirmedAtLabel: string;
-  points: number;
-}
-
-// Regra do produto: sinal de alarme global sempre
-// escala, mesmo sem regra cadastrada. Senão, a primeira regra da prescrição
-// cujo sinal bate decide a ação. Sem nenhuma correspondência, nunca "chuta"
-// uma dose — cai em "confirmar com a clínica".
-//
-// Persistência (hoje/2 dias/48h/3+) é só metadado exibido na regra; não é
-// aplicada aqui, pois exigiria histórico do sinal ao longo de vários dias.
-export function resolveCheckIn({
-  prescription,
-  signals,
-  confirmedAtLabel,
-  points,
-}: ResolveCheckInParams): CheckInResult {
-  const globalAlarm = signals.find((signal) => GLOBAL_ALARM_SIGNALS.includes(signal));
-  if (globalAlarm) {
-    const escalation: CheckInEscalationResult = {
-      status: 'ESCALATION',
-      reasonLabel: CONDITION_SIGNAL_LABEL_LOWER[globalAlarm],
-      ruleDescription: `${CONDITION_SIGNAL_LABEL_LOWER[globalAlarm]} → sem dose · emergência`,
-      vetName: prescription.vetName,
-      vetCrmv: prescription.vetCrmv,
-      suggestedSlotLabel: 'hoje 17:40',
-    };
-    return escalation;
-  }
-
-  const matchedRule = prescription.rules.find((rule) => signals.includes(rule.signal));
-
-  if (!matchedRule) {
-    const noRule: CheckInNoRuleResult = {
-      status: 'NO_RULE',
-      vetName: prescription.vetName,
-      vetCrmv: prescription.vetCrmv,
-    };
-    return noRule;
-  }
-
-  if (matchedRule.action === 'SEM_DOSE_CLINICA' || matchedRule.action === 'SEM_DOSE_EMERGENCIA') {
-    const escalation: CheckInEscalationResult = {
-      status: 'ESCALATION',
-      reasonLabel: CONDITION_SIGNAL_LABEL_LOWER[matchedRule.signal],
-      ruleDescription: `${CONDITION_SIGNAL_LABEL_LOWER[matchedRule.signal]} → ${RULE_ACTION_RESULT_LABEL[matchedRule.action]}`,
-      vetName: prescription.vetName,
-      vetCrmv: prescription.vetCrmv,
-      suggestedSlotLabel: 'hoje 17:40',
-    };
-    return escalation;
-  }
-
-  const doseValue = matchedRule.action === 'MENOR_DOSE' ? prescription.doseMin : prescription.doseMax;
-  const doseRangeLabel = `${formatDose(prescription.doseMin)}–${formatDose(prescription.doseMax)} ${prescription.doseUnit}`;
-
-  const dose: CheckInDoseResult = {
-    status: 'DOSE',
-    doseLabel: `${formatDose(doseValue)} ${prescription.doseUnit}`,
-    doseRangeLabel,
-    ruleDescription: `${CONDITION_SIGNAL_LABEL_LOWER[matchedRule.signal]} → ${RULE_ACTION_RESULT_LABEL[matchedRule.action]}`,
-    ruleConfirmedAtLabel: confirmedAtLabel,
-    vetName: prescription.vetName,
-    vetCrmv: prescription.vetCrmv,
-    prescriptionDateLabel: prescription.prescriptionDateLabel,
-    pointsEarned: points,
-  };
-  return dose;
-}
-
 function formatDose(value: number): string {
   return String(value).replace('.', ',');
 }
@@ -147,25 +72,49 @@ function formatDose(value: number): string {
 const CLINICA_PADRAO = 'Clínica Veterinária';
 
 // Traduz a resposta real de POST /checkin (`escalado` + `desfechos[]`) para o resultado que
-// as telas desenham. A API não devolve nome/CRMV do vet, faixa de dose nem pontos: esses
-// campos ficam vazios e as telas usam seus textos padrão.
+// as telas desenham. A API não devolve faixa de dose nem pontos. Nome, CRMV e data da
+// prescrição vêm do desfecho (campos opcionais); na ausência, as telas usam o texto padrão.
+function prescriber(d: CheckinDesfecho | undefined): { vetName: string; vetCrmv: string; prescriptionDateLabel: string } {
+  return {
+    vetName: d?.veterinarioNome || d?.clinicaNome || CLINICA_PADRAO,
+    vetCrmv: d?.veterinarioCrmv ?? '',
+    prescriptionDateLabel: d?.prescritaEm ? formatShortDate(d.prescritaEm) : '',
+  };
+}
+
+// Fallback para respostas sem `clinica`: o telefone vem dentro da mensagem.
+export function extractPhone(text: string): string | undefined {
+  return text.match(/\(\d{2}\)\s?\d{4,5}-\d{4}/)?.[0];
+}
+
 export function resolveCheckInResponse(
   response: CheckinResponse,
   redFlags: string[],
+  alarmLabels: string[] = [],
 ): CheckInResult {
   const desfechos = response.desfechos ?? [];
   const acionar = desfechos.find((d) => d.desfecho === 'ACIONAR_CLINICA');
 
   if (response.escalado) {
+    const { vetName, vetCrmv } = prescriber(acionar ?? desfechos[0]);
+    const rules = desfechos
+      .filter((d) => d.desfecho === 'ACIONAR_CLINICA')
+      .map((d) => `${d.medicamento} · ${d.regraDescricao ?? 'acionar a clínica'}`);
     const escalation: CheckInEscalationResult = {
       status: 'ESCALATION',
-      reasonLabel: redFlags.length > 0 ? redFlags.join(', ') : 'um sinal de alerta',
+      reasonLabel:
+        alarmLabels.length > 0 ? alarmLabels.join(', ') : redFlags.length > 0 ? redFlags.join(', ') : 'um sinal de alerta',
+      reasonFromConditions: alarmLabels.length > 0,
+      clinicName: response.clinica?.nome,
+      clinicPhone: response.clinica?.telefone ?? extractPhone(JSON.stringify(response)),
       ruleDescription: acionar
-        ? `Regra de ${acionar.medicamento} · acionar a clínica`
+        ? `${acionar.medicamento} · ${acionar.regraDescricao ?? 'acionar a clínica'}`
         : 'Regra da prescrição · acionar a clínica',
-      vetName: CLINICA_PADRAO,
-      vetCrmv: '',
+      vetName,
+      vetCrmv,
       suggestedSlotLabel: '',
+      rules,
+      medications: desfechos.map((d) => d.medicamento),
     };
     return escalation;
   }
@@ -174,11 +123,58 @@ export function resolveCheckInResponse(
     (d) => d.desfecho === 'DOSE_CALCULADA' && d.doseAplicada != null,
   );
 
+  const semDose = desfechos.filter((d) => d.desfecho === 'SEM_DOSE');
+
+  // Um relato cobre todos os medicamentos: cada desfecho vira uma linha, e o misto (dose + sem dose) não é achatado.
+  const lines: CheckInDoseLine[] | undefined =
+    comDose.length + semDose.length > 1
+      ? desfechos
+          .filter((d) => d.desfecho !== 'ACIONAR_CLINICA')
+          .map((d) => {
+            const dose = d.desfecho === 'SEM_DOSE' ? null : d.doseAplicada;
+            const isSuspended = dose == null;
+            return {
+              medication: d.medicamento,
+              doseLabel: dose == null ? 'Sem dose hoje' : `${formatDose(dose)}${d.unidade ? ` ${d.unidade}` : ''}`,
+              suspended: isSuspended,
+              ruleLabel: d.regraDescricao
+                ? d.regraDescricao
+                : isSuspended
+                ? 'a regra suspendeu a dose de hoje'
+                : d.regraAplicadaId != null
+                  ? 'a dose vem da regra'
+                  : 'dose padrão da receita',
+            };
+          })
+      : undefined;
+
+  if (comDose.length === 0 && semDose.length > 0) {
+    const medications = semDose.map((d) => d.medicamento).join(', ');
+    const suspended: CheckInDoseResult = {
+      status: 'DOSE',
+      doseLabel: 'Sem dose hoje',
+      doseRangeLabel: '',
+      ruleDescription: `Regra da prescrição · ${medications} · suspende a dose de hoje`,
+      ruleConfirmedAtLabel: response.registradoEm
+        ? new Date(response.registradoEm).toLocaleDateString('pt-BR')
+        : '',
+      ...prescriber(semDose[0]),
+      pointsEarned: 0,
+      ruleApplied: semDose.some((d) => d.regraAplicadaId != null),
+      medicationLabel: medications,
+      itemClosed: semDose.some((d) => d.itemPlanoCuidadoId != null),
+      suspended: true,
+      lines,
+    };
+    return suspended;
+  }
+
   if (comDose.length === 0) {
+    const { vetName, vetCrmv } = prescriber(desfechos[0]);
     const noRule: CheckInNoRuleResult = {
       status: 'NO_RULE',
-      vetName: CLINICA_PADRAO,
-      vetCrmv: '',
+      vetName,
+      vetCrmv,
     };
     return noRule;
   }
@@ -192,27 +188,30 @@ export function resolveCheckInResponse(
     status: 'DOSE',
     doseLabel: rotulos.join(' · '),
     doseRangeLabel: '',
-    ruleDescription: `Regra da prescrição · ${comDose.map((d) => d.medicamento).join(', ')}`,
+    ruleDescription: comDose.length === 1 && comDose[0].regraDescricao
+      ? comDose[0].regraDescricao
+      : `Regra da prescrição · ${comDose.map((d) => d.medicamento).join(', ')}`,
     ruleConfirmedAtLabel: response.registradoEm
       ? new Date(response.registradoEm).toLocaleDateString('pt-BR')
       : '',
-    vetName: CLINICA_PADRAO,
-    vetCrmv: '',
-    prescriptionDateLabel: '',
+    ...prescriber(comDose[0]),
     pointsEarned: 0,
+    ruleApplied: comDose.some((d) => d.regraAplicadaId != null),
+    medicationLabel: comDose.map((d) => d.medicamento).join(', '),
+    itemClosed: [...comDose, ...semDose].some((d) => d.itemPlanoCuidadoId != null),
+    lines,
   };
   return dose;
 }
 
-const CONDITION_SIGNAL_LABEL_LOWER: Record<ConditionSignal, string> = {
-  FEZES_MOLES: 'fezes moles',
-  NAO_EVACUOU: 'não evacuou',
-  COMEU_POUCO: 'comeu pouco',
-  VOMITO: 'vômito',
-  SANGUE_NAS_FEZES: 'sangue nas fezes',
-  APATIA: 'apatia',
-  DIFICULDADE_RESPIRATORIA: 'dificuldade respiratória',
-};
+// Hora citada no relato ("às 8h", "8:30"); sem hora, só diz que foi dada.
+export function medicationGivenLabel(narrative: string): string {
+  const lower = narrative.toLowerCase();
+  if (/n[ãa]o deu/.test(lower)) return 'não dada';
+  const match = lower.match(/(\d{1,2})\s*(?:h|:|horas)\s*(\d{2})?/);
+  if (!match) return 'dada';
+  return `dada às ${Number(match[1])}h${match[2] && match[2] !== '00' ? match[2] : ''}`;
+}
 
 export function parseDoseRange(label: string): { min: number; max: number; unit: string } {
   const match = label.match(/([\d.,]+)\s*[–-]\s*([\d.,]+)\s*(\w+)/);

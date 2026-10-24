@@ -14,33 +14,39 @@ import {
 import { transcribeAudio } from '../../repository/speechTranscriptionService';
 
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
+import { MedicationCard, closedSummary } from '../../component/prescricao/MedicationCard';
 import { Button } from '../../component/ui/Button';
 import { FieldError } from '../../component/forms/FieldError';
 import { Input } from '../../component/ui/Input';
-import { usePrescricaoDraftControl, useDraftPrescription, useNovaRegraControl, useCondicoesClinicas } from '../../control/usePrescriptionControl';
-import { extrairPrescricaoDaNarrativa } from '../../control/prescriptionExtractor';
-import { descreverCondicao, OPERADOR_SIMBOLO } from '../../model/prescriptionRule';
-import { getRecordsByPetId } from '../../repository/medicalRecordRepository';
+import {
+  type CondicaoNovaPendente,
+  usePrescricaoDraftControl,
+  useDraftPrescription,
+  useNovaRegraControl,
+  useCondicoesClinicas,
+  useCriarCondicao,
+  usePrescriptionTemplates,
+} from '../../control/usePrescriptionControl';
+import { extrairPrescricoesDaNarrativa } from '../../control/prescriptionExtractor';
+import type { ItemReceitaDraft, PrescriptionTemplate } from '../../model/prescription';
+import { descreverCondicao, OPERADOR_SIMBOLO, rotuloAcao, type Operador, type RegraDraft, type TipoAcao } from '../../model/prescriptionRule';
 import { usePet } from '../../control/usePetsControl';
 import { usePatients } from '../../control/usePatientsControl';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
-const ACAO_LABEL: Record<string, string> = {
-  DOSE_MIN: 'dose mínima',
-  DOSE_MAX: 'dose máxima',
-  DOSE_PADRAO: 'dose padrão',
-  ACIONAR_CLINICA: 'acionar clínica',
-  SUSPENDER: 'suspender o medicamento',
-};
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
+
+const capitalizar = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'Prescricao'>;
 
 export function PrescricaoScreen({ route }: Props) {
-  const { animalId, consultaId, prontuario } = route.params;
+  const { animalId, receita } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   
   const { data: pet } = usePet(animalId);
   const { data: patients } = usePatients();
@@ -55,90 +61,133 @@ export function PrescricaoScreen({ route }: Props) {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
 
-  const [protocolModalVisible, setProtocolModalVisible] = useState(false);
-  const [protocolSearch, setProtocolSearch] = useState('');
+  const [templateModalVisible, setTemplateModalVisible] = useState(false);
   const [ruleModalVisible, setRuleModalVisible] = useState(false);
-
-  const FAKE_PROTOCOLS_LIST = [
-    {
-      id: 'p1',
-      nome: 'Otite Padrão',
-      medicamento: 'Natalene',
-      doseMin: 2,
-      doseMax: 4,
-      unidade: 'gotas',
-      frequenciaDia: 2,
-      duracaoDias: 7,
-      orientacao: 'Limpar o conduto antes da aplicação. Retornar se o cão apresentar dor severa.',
-    },
-    {
-      id: 'p2',
-      nome: 'Vermifugação Canina',
-      medicamento: 'Drontal Plus',
-      doseMin: 1,
-      doseMax: 1,
-      unidade: 'comp',
-      frequenciaDia: 1,
-      duracaoDias: 1,
-      orientacao: 'Dose única. Dar junto com o alimento.',
-    },
-    {
-      id: 'p3',
-      nome: 'Gastroenterite Leve',
-      medicamento: 'Cerenia',
-      doseMin: 2,
-      doseMax: 2,
-      unidade: 'mg/kg',
-      frequenciaDia: 1,
-      duracaoDias: 3,
-      orientacao: 'Apenas se houver vômito. Manter dieta leve.',
-    }
-  ];
-
-  const handleApplyProtocol = (protocol: any) => {
-    setMedicamento(protocol.medicamento);
-    setDoseMin(protocol.doseMin);
-    setDoseMax(protocol.doseMax);
-    setUnidade(protocol.unidade);
-    setFrequenciaDia(protocol.frequenciaDia);
-    setDuracaoDias(protocol.duracaoDias);
-    setOrientacao(protocol.orientacao);
-    setRegras([]); // Reseta regras ao aplicar um protocolo limpo
-    setProtocolModalVisible(false);
-  };
+  const [ruleTargetKey, setRuleTargetKey] = useState<string | null>(null);
+  // Quantos medicamentos o último ditado trouxe; só aparece no resultado quando passa de um.
+  const [foundCount, setFoundCount] = useState<number | null>(null);
+  const [criandoTipo, setCriandoTipo] = useState<'BOOLEANO' | 'NUMERICO' | null>(null);
+  const [criandoUnidade, setCriandoUnidade] = useState('');
 
   const {
-    medicamento, setMedicamento,
-    doseMin, setDoseMin,
-    doseMax, setDoseMax,
-    unidade, setUnidade,
-    frequenciaDia, setFrequenciaDia,
-    duracaoDias, setDuracaoDias,
-    orientacao, setOrientacao,
-    regras, setRegras, removerRegra,
+    itens,
+    openKey,
+    toggleOpen,
+    addItem,
+    removeItem,
+    updateItem,
+    setRegras,
+    replaceItens,
+    condicoesNovas,
+    setCondicoesNovas,
     erros,
     validar,
   } = usePrescricaoDraftControl({
     animalId,
-    registroAtendimentoId: prontuario?.id ? String(prontuario.id) : '',
+    registroAtendimentoId: receita?.registroAtendimentoId ?? '',
+    initial: receita,
   });
 
   const { data: catalogo = [], isLoading: isLoadingCondicoes } = useCondicoesClinicas();
+  const criarCondicao = useCriarCondicao();
+  const { data: templates = [], isLoading: isLoadingTemplates } = usePrescriptionTemplates();
   const {
-    condicoes, condicao, acoes, operadores,
-    condicaoClinicaId, setCondicaoClinicaId,
+    condicao, filtradas, termoCriavel, tipoRegra, escolherTipoRegra, acoes, operadores,
+    busca, setBusca,
+    condicaoClinicaId, selecionarCondicao,
     acao, setAcao,
     operador, setOperador,
     limiteTexto, setLimiteTexto,
     erro: erroRegra,
     construirRegra,
+    reiniciar: reiniciarRegra,
   } = useNovaRegraControl(catalogo);
+
+  const abrirModalRegra = (key: string) => {
+    reiniciarRegra();
+    setCriandoTipo(null);
+    setCriandoUnidade('');
+    setRuleTargetKey(key);
+    setRuleModalVisible(true);
+  };
 
   const handleAddRule = () => {
     const regra = construirRegra();
-    if (!regra) return;
-    setRegras(prev => [...prev, regra]);
+    if (!regra || !ruleTargetKey) return;
+    setRegras(ruleTargetKey, (prev) => [...prev, regra]);
     setRuleModalVisible(false);
+  };
+
+  // "+ criar «termo»": cria a condição na clínica (409 já resolvido no repositório) e a seleciona.
+  const handleCriarCondicao = async (tipoDado: 'BOOLEANO' | 'NUMERICO') => {
+    if (!termoCriavel) return;
+    if (tipoDado === 'NUMERICO' && !criandoUnidade.trim()) {
+      Alert.alert('Unidade', 'Informe a unidade da condição (ex.: °C, bpm).');
+      return;
+    }
+    try {
+      const criada = await criarCondicao.mutateAsync({
+        rotulo: termoCriavel,
+        tipoDado,
+        unidade: tipoDado === 'NUMERICO' ? criandoUnidade : null,
+      });
+      selecionarCondicao(criada.id);
+      setBusca(criada.rotulo);
+      setCriandoTipo(null);
+      setCriandoUnidade('');
+    } catch (error: any) {
+      Alert.alert('Não foi possível criar a condição', buildApiErrorMessage(error));
+    }
+  };
+
+  // Faixa "Condição nova": cria a condição proposta pela IA e já usa na regra do medicamento dela.
+  const handleCriarEUsar = async (key: string, nova: CondicaoNovaPendente) => {
+    try {
+      const criada = await criarCondicao.mutateAsync({ rotulo: nova.rotulo, tipoDado: nova.tipoDado });
+      setRegras(key, (prev) => [
+        ...prev,
+        {
+          condicaoClinicaId: criada.id,
+          rotuloCongelado: criada.rotulo,
+          acao: nova.acao,
+          operador: criada.tipoDado === 'NUMERICO' ? nova.operador : null,
+          limite: criada.tipoDado === 'NUMERICO' ? nova.limite : null,
+        },
+      ]);
+      setCondicoesNovas(key, (condicoesNovas[key] ?? []).filter((c) => c.chave !== nova.chave));
+    } catch (error: any) {
+      Alert.alert('Não foi possível criar a condição', buildApiErrorMessage(error));
+    }
+  };
+
+  const handleDescartarNova = (key: string, chave: string) =>
+    setCondicoesNovas(key, (condicoesNovas[key] ?? []).filter((c) => c.chave !== chave));
+
+  // Copia a receita-modelo para o medicamento aberto; tudo continua editável e a origem segue junto.
+  const handleApplyTemplate = (modelo: PrescriptionTemplate) => {
+    const target = itens.find((i) => i.key === openKey) ?? itens[itens.length - 1];
+    updateItem(target.key, {
+      medicamento: modelo.medicamento,
+      doseMin: modelo.doseMin,
+      doseMax: modelo.doseMax,
+      unidade: modelo.unidade,
+      frequenciaDia: modelo.frequenciaDia,
+      duracaoDias: modelo.duracaoDias,
+      orientacao: modelo.orientacao ?? '',
+      regras: [...modelo.regras]
+        .sort((x, y) => (x.ordem ?? 0) - (y.ordem ?? 0))
+        .map((r) => ({
+          condicaoClinicaId: r.condicaoClinicaId,
+          rotuloCongelado: r.condicaoRotulo,
+          acao: r.acaoDose,
+          operador: r.operador,
+          limite: r.limite,
+        })),
+      receitaModeloId: modelo.id,
+      receitaModeloVersao: modelo.versao,
+    });
+    setCondicoesNovas(target.key, []);
+    setTemplateModalVisible(false);
   };
 
   // Cronômetro da gravação
@@ -202,16 +251,30 @@ export function PrescricaoScreen({ route }: Props) {
     }
   };
 
-  // Preenche o formulário com o extrator local (sem IA da API). Os valores são só uma sugestão.
+  const itemFromExtraction = (e: {
+    medicamento?: string;
+    doseMin?: number | null;
+    doseMax?: number | null;
+    unidade?: string | null;
+    frequenciaDia?: number | null;
+    duracaoDias?: number | null;
+    orientacao?: string | null;
+  }): Omit<ItemReceitaDraft, 'key'> => ({
+    medicamento: e.medicamento ?? '',
+    doseMin: e.doseMin ?? 0,
+    doseMax: e.doseMax ?? 0,
+    unidade: e.unidade ?? 'mg',
+    frequenciaDia: e.frequenciaDia ?? 1,
+    duracaoDias: e.duracaoDias ?? 7,
+    orientacao: e.orientacao ?? '',
+    regras: [],
+  });
+
+  // Preenche a receita com o extrator local (sem IA da API). Os valores são só uma sugestão.
   const preencherComExtratorLocal = (texto: string, aviso: string) => {
-    const extraido = extrairPrescricaoDaNarrativa(texto);
-    if (extraido.medicamento) setMedicamento(extraido.medicamento);
-    setDoseMin(extraido.doseMin);
-    setDoseMax(extraido.doseMax);
-    setUnidade(extraido.unidade);
-    setFrequenciaDia(extraido.frequenciaDia);
-    setDuracaoDias(extraido.duracaoDias);
-    if (extraido.orientacao) setOrientacao(extraido.orientacao);
+    const extraidos = extrairPrescricoesDaNarrativa(texto);
+    replaceItens(extraidos.map(itemFromExtraction));
+    setFoundCount(extraidos.length);
     Alert.alert('Prescrição Estruturada', aviso);
   };
 
@@ -220,27 +283,9 @@ export function PrescricaoScreen({ route }: Props) {
     if (!textoParaProcessar) return;
 
     try {
-      // A IA da API exige um registro de atendimento já gravado do paciente para ler o contexto
-      // (POST /prescricao/rascunho). Este fluxo só grava o prontuário na assinatura (fechamento
-      // atômico), então usamos um registro anterior do paciente apenas como referência. Sem ele,
-      // não persistimos nada: cai no extrator local.
-      let regId: string | number | undefined =
-        prontuario?.id && !String(prontuario.id).startsWith('rec-') ? prontuario.id : undefined;
-      if (!regId) {
-        const registros = await getRecordsByPetId(animalId).catch(() => []);
-        regId = registros[0]?.id;
-      }
-      if (!regId) {
-        preencherComExtratorLocal(
-          textoParaProcessar,
-          'Este paciente ainda não tem atendimento gravado, então a IA do servidor não pôde ser usada. Campos preenchidos pelo extrator local: revise antes de assinar.'
-        );
-        return;
-      }
-
+      // O fechamento é único (nada gravado ainda): o servidor lê o paciente só pelo animalId.
       const rascunho = await draftPrescription.mutateAsync({
         animalId,
-        registroAtendimentoId: String(regId),
         narrativa: textoParaProcessar,
       });
 
@@ -248,33 +293,53 @@ export function PrescricaoScreen({ route }: Props) {
       if (!rascunho.extracaoDisponivel) {
         preencherComExtratorLocal(
           textoParaProcessar,
-          'Campos preenchidos com base no seu relato de áudio! Revise os valores antes de assinar.'
+          'A IA do servidor está indisponível. Campos preenchidos pelo extrator local: revise antes de assinar.'
         );
         return;
       }
 
-      const prescricao = rascunho.prescricao;
-      setMedicamento(prescricao.medicamento ?? '');
-      setDoseMin(prescricao.doseMin ?? 0);
-      setDoseMax(prescricao.doseMax ?? 0);
-      setUnidade(prescricao.unidade ?? 'mg');
-      setFrequenciaDia(prescricao.frequenciaDia ?? 1);
-      setDuracaoDias(prescricao.duracaoDias ?? 7);
-      if (prescricao.orientacao) setOrientacao(prescricao.orientacao);
+      // Back antigo não manda itens[]: o 1º medicamento vem nos campos legados.
+      const propostos = rascunho.itens?.length
+        ? rascunho.itens
+        : [{ prescricao: rascunho.prescricao, regrasPropostas: rascunho.regrasPropostas }];
 
-      // A IA devolve só ids e `acaoDose`: o rótulo vem do catálogo de condições da clínica.
-      setRegras(
-        (rascunho.regrasPropostas ?? []).map((r) => {
-          const idCond = Number(r.condicaoClinicaId);
-          return {
+      // Regras da condição conhecida entram direto (o rótulo vem do servidor); sinal de alarme não
+      // vira regra. As de condição nova esperam a vet criar ou descartar.
+      const pendentesPorIndice: CondicaoNovaPendente[][] = [];
+      const novos = propostos.map((proposto, n) => {
+        const prontas: RegraDraft[] = [];
+        const pendentes: CondicaoNovaPendente[] = [];
+        (proposto.regrasPropostas ?? []).forEach((r, i) => {
+          const idCond = r.condicaoClinicaId != null ? Number(r.condicaoClinicaId) : null;
+          const doCatalogo = idCond != null ? catalogo.find((c) => c.id === idCond) : undefined;
+          const rotulo = r.condicaoRotulo || r.condicaoNova?.rotulo || doCatalogo?.rotulo || `Condição #${idCond}`;
+          if (idCond == null || r.condicaoNova) {
+            pendentes.push({
+              chave: `nova-${n}-${i}`,
+              rotulo,
+              tipoDado: r.condicaoNova?.tipoDado ?? (r.operador ? 'NUMERICO' : 'BOOLEANO'),
+              acao: r.acaoDose,
+              operador: r.operador ?? null,
+              limite: r.limite ?? null,
+            });
+            return;
+          }
+          if (doCatalogo?.critica) return;
+          prontas.push({
             condicaoClinicaId: idCond,
-            rotuloCongelado: catalogo.find((c) => c.id === idCond)?.rotulo ?? `Condição #${idCond}`,
+            rotuloCongelado: rotulo,
             acao: r.acaoDose,
             operador: r.operador ?? null,
             limite: r.limite ?? null,
-          };
-        })
-      );
+          });
+        });
+        pendentesPorIndice.push(pendentes);
+        return { ...itemFromExtraction(proposto.prescricao), regras: prontas };
+      });
+
+      const keys = replaceItens(novos);
+      keys.forEach((key, n) => setCondicoesNovas(key, pendentesPorIndice[n]));
+      setFoundCount(novos.length);
     } catch (error: any) {
       console.warn('[PrescricaoScreen] IA do servidor indisponível ou recusou a requisição:', error);
       try {
@@ -289,18 +354,35 @@ export function PrescricaoScreen({ route }: Props) {
   };
 
   const irParaAssinatura = async () => {
+    if (Object.values(condicoesNovas).some((lista) => lista.length > 0)) {
+      Alert.alert('Condição nova pendente', 'Crie ou descarte as condições novas antes de adicionar ao atendimento.');
+      return;
+    }
     const draft = await validar();
-    if (draft) navigation.navigate('AssinarPrescricao', { draft, consultaId, prontuario });
+    if (draft) navigation.popTo('ProntuarioForm', { petId: animalId, prescricao: draft }, { merge: true });
   };
+
+  const pendentesTodas = itens.flatMap((item) => (condicoesNovas[item.key] ?? []).map((nova) => ({ item, nova })));
+  const errosDoItem = (key: string) =>
+    Object.fromEntries(
+      Object.entries(erros)
+        .filter(([k]) => k.startsWith(`${key}.`))
+        .map(([k, v]) => [k.slice(key.length + 1), v])
+    );
 
   return (
     <>
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]} keyboardShouldPersistTaps="handled">
+    <ScrollView keyboardDismissMode="on-drag" style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]} keyboardShouldPersistTaps="handled">
       <CheckInTopBar
         title="Prescrição"
         subtitle={pet ? `${pet.nome}${tutorName ? ` • ${tutorName}` : ''}` : undefined}
         stepLabel="rascunho"
       />
+
+      <Pressable accessibilityRole="button" style={styles.templateButton} onPress={() => setTemplateModalVisible(true)}>
+        <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+        <Text style={styles.templateButtonText}>Usar receita-modelo</Text>
+      </Pressable>
 
       {/* Assistente de Prescrição: Suporta Áudio (Microfone) ou Digitação */}
       <View style={styles.iaCard}>
@@ -361,154 +443,100 @@ export function PrescricaoScreen({ route }: Props) {
           loading={draftPrescription.isPending}
           onPress={() => handleGerarIA()}
         />
+        {pendentesTodas.length > 0 || (foundCount ?? 0) > 1 ? (
+          <>
+            <Text style={styles.resultLabel}>Resultado do assistente</Text>
+            {(foundCount ?? 0) > 1 ? (
+              <Text style={styles.novaBandSub}>{foundCount} medicamentos encontrados. Confira cada cartão abaixo.</Text>
+            ) : null}
+            {pendentesTodas.map(({ item, nova }) => (
+              <View key={nova.chave} style={styles.novaBand}>
+                <Text style={styles.novaBandTitle}>Condição nova: «{nova.rotulo}»</Text>
+                <Text style={styles.novaBandSub}>
+                  {itens.length > 1 && item.medicamento
+                    ? `O ditado trouxe, para ${item.medicamento}, uma condição que o catálogo da clínica não tem.`
+                    : 'O ditado trouxe uma condição que o catálogo da clínica não tem.'}
+                </Text>
+                <View style={styles.novaBandActions}>
+                  <Button
+                    label="Criar e usar"
+                    loading={criarCondicao.isPending}
+                    onPress={() => handleCriarEUsar(item.key, nova)}
+                    style={styles.flex1}
+                  />
+                  <Button
+                    label="Descartar"
+                    variant="secondary"
+                    disabled={criarCondicao.isPending}
+                    onPress={() => handleDescartarNova(item.key, nova.chave)}
+                    style={styles.flex1}
+                  />
+                </View>
+              </View>
+            ))}
+          </>
+        ) : null}
       </View>
 
       <View style={styles.dividerRow}>
         <View style={styles.divider} />
-        <Text style={styles.dividerLabel}>ou digite os campos abaixo</Text>
+        <Text style={styles.dividerLabel}>ou confira os campos</Text>
         <View style={styles.divider} />
       </View>
 
-      <Pressable style={styles.protocolButton} onPress={() => setProtocolModalVisible(true)}>
-        <Ionicons name="star" size={18} color="#EAB308" />
-        <Text style={styles.protocolButtonText}>Usar Protocolo Salvo</Text>
+      {itens.map((item) => (
+        <MedicationCard
+          key={item.key}
+          item={item}
+          single={itens.length === 1}
+          open={openKey === item.key}
+          errors={errosDoItem(item.key)}
+          onToggle={() => toggleOpen(item.key)}
+          onRemove={() => removeItem(item.key)}
+          onChange={(patch) => updateItem(item.key, patch)}
+          onAddRule={() => abrirModalRegra(item.key)}
+        />
+      ))}
+
+      <Pressable accessibilityRole="button" onPress={() => addItem()} style={styles.addMedication}>
+        <Text style={styles.addMedicationText}>+ Adicionar medicamento</Text>
       </Pressable>
 
-      {/* UX Otimizada: Formulário Limpo, Agrupamento Lógico e Inputs Numéricos Livres */}
-      <View style={styles.medCard}>
-        <Text style={styles.sectionLabel}>Dados do Medicamento</Text>
-        
-        <Input
-          label="Nome do Medicamento"
-          placeholder="medicamento genérico ou comercial"
-          value={medicamento}
-          onChangeText={setMedicamento}
-          hasError={!!erros.medicamento}
-        />
-        <FieldError message={erros.medicamento} />
-
-        {/* Linha de Dosagem e Unidade agrupadas */}
-        <View style={styles.row}>
-          <View style={styles.flex2}>
-            <Input
-              label="Dose Mínima"
-              keyboardType="decimal-pad"
-              placeholder="0.0"
-              value={doseMin ? String(doseMin) : ''}
-              onChangeText={(v) => setDoseMin(Number(v.replace(',', '.')) || 0)}
-              hasError={!!erros.doseMin}
-            />
-          </View>
-          <View style={styles.flex2}>
-            <Input
-              label="Dose Máxima"
-              keyboardType="decimal-pad"
-              placeholder="0.0"
-              value={doseMax ? String(doseMax) : ''}
-              onChangeText={(v) => setDoseMax(Number(v.replace(',', '.')) || 0)}
-              hasError={!!erros.doseMax}
-            />
-          </View>
-          <View style={styles.flex1}>
-            <Input
-              label="Unid."
-              placeholder="mg, ml, g..."
-              value={unidade}
-              onChangeText={setUnidade}
-              hasError={!!erros.unidade}
-            />
-          </View>
-        </View>
-        <FieldError message={erros.doseMax} />
-
-        {/* Linha de Posologia agrupada */}
-        <View style={styles.row}>
-          <View style={styles.flex1}>
-            <Input
-              label="Vezes ao dia"
-              keyboardType="number-pad"
-              placeholder=""
-              value={String(frequenciaDia || '')}
-              onChangeText={(v) => setFrequenciaDia(Number(v) || 0)}
-              hasError={!!erros.frequenciaDia}
-            />
-          </View>
-          <View style={styles.flex1}>
-            <Input
-              label="Dias de tratamento"
-              keyboardType="number-pad"
-              placeholder=""
-              value={String(duracaoDias || '')}
-              onChangeText={(v) => setDuracaoDias(Number(v) || 0)}
-              hasError={!!erros.duracaoDias}
-            />
-          </View>
-        </View>
-
-        <Input
-          label="Orientação para o Tutor (opcional)"
-          placeholder=""
-          value={orientacao}
-          onChangeText={setOrientacao}
-          multiline
-          numberOfLines={3}
-          style={styles.notesInput}
-        />
-      </View>
-
-      <View style={styles.regrasSection}>
-        <Text style={styles.sectionLabel}>Regras Condicionais (SE • ENTÃO)</Text>
-        <Text style={styles.noteText}>
-          Opcional. Adicione regras para que o app adapte a dose conforme os sintomas relatados pelo tutor no check-in.
-        </Text>
-
-        {regras.length === 0 ? (
-          <Text style={styles.regrasVazias}>Nenhuma regra adicionada</Text>
-        ) : (
-          regras.map((regra, index) => (
-            <View key={index} style={styles.regraRow}>
-              <View style={styles.regraDot} />
-              <Text style={styles.regraText} numberOfLines={2}>
-                Se <Text style={styles.regraBold}>{descreverCondicao(regra)}</Text>
-                <Text style={styles.regraArrow}> → </Text>
-                {ACAO_LABEL[regra.acao] ?? (regra.acao ? regra.acao.toLowerCase() : 'ação desconhecida')}
-              </Text>
-              <Pressable
-                onPress={() => removerRegra(index)}
-                hitSlop={8}
-                accessibilityRole="button"
-              >
-                <Text style={styles.removerText}>remover</Text>
-              </Pressable>
-            </View>
-          ))
-        )}
-        <Button label="+ Adicionar regra condicional" variant="secondary" onPress={() => setRuleModalVisible(true)} />
-      </View>
-
-      <Button label="Revisar e Assinar Prescrição" onPress={irParaAssinatura} style={{ marginTop: spacing.md }} />
+      <Button
+        label="Salvar receita"
+        backgroundColor={colors.action}
+        onPress={irParaAssinatura}
+        style={{ marginTop: spacing.md }}
+      />
     </ScrollView>
 
-    {protocolModalVisible && (
+    {templateModalVisible && (
       <View style={[styles.modalOverlay, { paddingTop: insets.top }]}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Meus Protocolos Salvos</Text>
-            <Pressable onPress={() => setProtocolModalVisible(false)} style={{ padding: 4 }}>
+            <Text style={styles.modalTitle}>Receitas-modelo</Text>
+            <Pressable onPress={() => setTemplateModalVisible(false)} style={{ padding: 4 }}>
               <Ionicons name="close" size={28} color={colors.textPrimary} />
             </Pressable>
           </View>
-          <Text style={styles.modalSubtitle}>Escolha um protocolo para preencher a prescrição rapidamente.</Text>
-          
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}>
-            {FAKE_PROTOCOLS_LIST.map((protocol) => (
-              <Pressable key={protocol.id} style={styles.protocolCard} onPress={() => handleApplyProtocol(protocol)}>
-                <Text style={styles.protocolCardName}>💊 {protocol.nome}</Text>
-                <Text style={styles.protocolCardDetail}>
-                  {protocol.medicamento} · {protocol.frequenciaDia}x ao dia · {protocol.duracaoDias} dias
-                </Text>
-              </Pressable>
-            ))}
+          <Text style={styles.modalSubtitle}>Escolha uma receita-modelo para preencher a prescrição. Você pode editar tudo depois.</Text>
+
+          <ScrollView keyboardDismissMode="on-drag" style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm, paddingBottom: tabBarSpace + spacing.lg }}>
+            {isLoadingTemplates ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : templates.length === 0 ? (
+              <Text style={styles.noteText}>Nenhuma receita-modelo cadastrada — cadastre no painel da clínica.</Text>
+            ) : (
+              templates.map((modelo) => (
+                <Pressable key={modelo.id} style={styles.templateCard} onPress={() => handleApplyTemplate(modelo)}>
+                  <Text style={styles.templateCardName}>{modelo.titulo}</Text>
+                  <Text style={styles.templateCardDetail}>
+                    {modelo.medicamento} · {modelo.frequenciaDia}x ao dia · {modelo.duracaoDias} dias
+                    {modelo.regras.length > 0 ? ` · ${modelo.regras.length} ${modelo.regras.length === 1 ? 'regra' : 'regras'}` : ''}
+                  </Text>
+                </Pressable>
+              ))
+            )}
           </ScrollView>
         </View>
       </View>
@@ -518,34 +546,109 @@ export function PrescricaoScreen({ route }: Props) {
       <View style={[styles.modalOverlay, { paddingTop: insets.top }]}>
         <View style={styles.ruleModalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Nova Regra Condicional</Text>
+            <Text style={styles.modalTitle}>Nova regra de dose</Text>
             <Pressable onPress={() => setRuleModalVisible(false)} style={{ padding: 4 }}>
               <Ionicons name="close" size={28} color={colors.textPrimary} />
             </Pressable>
           </View>
-          <Text style={styles.modalSubtitle}>Se o tutor relatar no check-in:</Text>
+          <Text style={styles.modalSubtitle}>Se o responsável relatar no check-in:</Text>
 
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.lg, gap: spacing.md, paddingBottom: insets.bottom + 100 }}>
+          <ScrollView keyboardDismissMode="on-drag"
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.sectionLabel}>Tipo da regra</Text>
             <View style={styles.chipsRow}>
-              {condicoes.map((condicao) => (
+              {([['RELATO', 'relato (sim/não)'], ['MEDIDA', 'medida (> <)']] as const).map(([tipo, rotulo]) => (
                 <Pressable
-                  key={condicao.id}
-                  onPress={() => setCondicaoClinicaId(condicao.id)}
-                  style={[styles.chip, condicaoClinicaId === condicao.id && styles.chipActive]}
+                  key={tipo}
+                  onPress={() => escolherTipoRegra(tipo)}
+                  accessibilityState={{ selected: tipoRegra === tipo }}
+                  style={[styles.chip, tipoRegra === tipo && styles.chipActive]}
                 >
-                  <Text style={[styles.chipText, condicaoClinicaId === condicao.id && styles.chipTextActive]}>
-                    {condicao.rotulo}
-                  </Text>
+                  <Text style={[styles.chipText, tipoRegra === tipo && styles.chipTextActive]}>{rotulo}</Text>
                 </Pressable>
               ))}
             </View>
 
+            <Input
+              label="Condição"
+              placeholder="Buscar ou criar condição"
+              value={busca}
+              onChangeText={(texto) => {
+                setBusca(texto);
+                setCriandoTipo(null);
+              }}
+              autoCorrect={false}
+            />
+
             {isLoadingCondicoes ? (
               <ActivityIndicator color={colors.primary} />
-            ) : condicoes.length === 0 ? (
-              <Text style={styles.noteText}>
-                Nenhuma condição clínica cadastrada na clínica. Cadastre condições para criar regras.
-              </Text>
+            ) : (
+              <View style={styles.chipsRow}>
+                {filtradas.map((item) => {
+                  const selecionada = condicaoClinicaId === item.id && !item.critica;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      disabled={item.critica}
+                      onPress={() => selecionarCondicao(item.id)}
+                      accessibilityState={{ disabled: item.critica, selected: selecionada }}
+                      style={[styles.chip, selecionada && styles.chipActive, item.critica && styles.chipAlarm]}
+                    >
+                      <Text style={[styles.chipText, selecionada && styles.chipTextActive]}>{item.rotulo}</Text>
+                      {item.critica ? <Text style={styles.chipAlarmTag}>sinal de alarme · já escala sozinho</Text> : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
+
+            {!isLoadingCondicoes && filtradas.length === 0 && !termoCriavel ? (
+              <Text style={styles.noteText}>Nenhuma condição cadastrada na clínica. Digite um nome para criar.</Text>
+            ) : null}
+
+            {termoCriavel ? (
+              <View style={styles.criarBox}>
+                <Pressable onPress={() => setCriandoTipo(null)} accessibilityRole="button">
+                  <Text style={styles.criarTitle}>+ criar «{termoCriavel}»</Text>
+                </Pressable>
+                <Text style={styles.noteText}>Essa condição é do tipo:</Text>
+                <View style={styles.chipsRow}>
+                  <Pressable
+                    style={styles.chip}
+                    disabled={criarCondicao.isPending}
+                    onPress={() => handleCriarCondicao('BOOLEANO')}
+                  >
+                    <Text style={styles.chipText}>Sim ou não</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.chip, criandoTipo === 'NUMERICO' && styles.chipActive]}
+                    disabled={criarCondicao.isPending}
+                    onPress={() => setCriandoTipo('NUMERICO')}
+                  >
+                    <Text style={[styles.chipText, criandoTipo === 'NUMERICO' && styles.chipTextActive]}>Número</Text>
+                  </Pressable>
+                </View>
+                {criandoTipo === 'NUMERICO' ? (
+                  <>
+                    <Input
+                      label="Unidade"
+                      placeholder="Ex.: °C, bpm"
+                      value={criandoUnidade}
+                      onChangeText={setCriandoUnidade}
+                      autoCorrect={false}
+                    />
+                    <Button
+                      label="Criar condição"
+                      variant="secondary"
+                      loading={criarCondicao.isPending}
+                      onPress={() => handleCriarCondicao('NUMERICO')}
+                    />
+                  </>
+                ) : null}
+              </View>
             ) : null}
 
             {condicao?.tipoDado === 'NUMERICO' ? (
@@ -574,31 +677,45 @@ export function PrescricaoScreen({ route }: Props) {
               </>
             ) : null}
 
-            {erroRegra ? <FieldError message={erroRegra} /> : null}
-
             <Text style={styles.sectionLabel}>Então aplicaremos:</Text>
-            
-            <View style={styles.card}>
-              {acoes.map((option, index) => {
-                const selected = option === acao;
-                return (
-                  <View key={option}>
-                    <Pressable style={styles.actionRow} onPress={() => setAcao(option)}>
-                      <View style={[styles.radio, selected && styles.radioSelected]}>
-                        {selected ? <View style={styles.radioDot} /> : null}
-                      </View>
-                      <Text style={styles.actionLabel}>{ACAO_LABEL[option]}</Text>
-                    </Pressable>
-                    {index < acoes.length - 1 ? <View style={styles.divider} /> : null}
-                  </View>
-                );
-              })}
+            <View style={styles.chipsRow}>
+              {acoes.map((option) => (
+                <Pressable
+                  key={option}
+                  onPress={() => setAcao(option)}
+                  style={[styles.chip, acao === option && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, acao === option && styles.chipTextActive]}>{rotuloAcao(option)}</Text>
+                </Pressable>
+              ))}
             </View>
 
-            <Pressable style={styles.submitButton} onPress={handleAddRule}>
-              <Text style={styles.submitButtonText}>Adicionar regra e revisar</Text>
-            </Pressable>
+            {condicao ? (
+              <View style={styles.previewBox}>
+                <Text style={styles.previewText}>
+                  {capitalizar(
+                    descreverCondicao({
+                      condicaoClinicaId: condicao.id,
+                      rotuloCongelado: condicao.rotulo,
+                      acao,
+                      operador: condicao.tipoDado === 'NUMERICO' ? operador : null,
+                      limite:
+                        condicao.tipoDado === 'NUMERICO' && !Number.isNaN(parseFloat(limiteTexto.replace(',', '.')))
+                          ? parseFloat(limiteTexto.replace(',', '.'))
+                          : null,
+                    })
+                  )}{' '}
+                  → {rotuloAcao(acao)}
+                </Text>
+              </View>
+            ) : null}
+
+            {erroRegra ? <FieldError message={erroRegra} /> : null}
+
           </ScrollView>
+          <View style={[styles.ruleFooter, { paddingBottom: tabBarSpace }]}>
+            <Button label="Adicionar regra" backgroundColor={colors.action} onPress={handleAddRule} />
+          </View>
         </View>
       </View>
     )}
@@ -617,20 +734,20 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   
-  // UX: Protocol Button
-  protocolButton: {
-    backgroundColor: '#FEF9C3', // yellow-100
+  // UX: receita-modelo
+  templateButton: {
+    backgroundColor: colors.surface,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.md,
-    borderRadius: spacing.sm,
-    borderWidth: 1,
-    borderColor: '#EAB308', // yellow-500
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
     gap: spacing.sm,
   },
-  protocolButtonText: {
-    color: '#854D0E', // yellow-800
+  templateButtonText: {
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 16,
   },
@@ -657,6 +774,11 @@ const styles = StyleSheet.create({
     height: '85%',
     paddingTop: spacing.lg,
   },
+  ruleFooter: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    backgroundColor: colors.background,
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -675,23 +797,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.xs,
   },
-  protocolCard: {
+  templateCard: {
     backgroundColor: colors.surface,
     padding: spacing.md,
     borderRadius: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  protocolCardName: {
+  templateCardName: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.textPrimary,
   },
-  protocolCardDetail: {
+  templateCardDetail: {
     fontSize: 14,
     color: colors.textSecondary,
     marginTop: 4,
-    paddingLeft: 22, // align with text after emoji
   },
   
   // UX: Clean IA Card
@@ -824,27 +945,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // UX: Clean Form Card
-  medCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
   flex1: { flex: 1 },
-  flex2: { flex: 2 },
-  
-  notesInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
+  addMedication: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.borderStrong,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
   },
-
+  addMedicationText: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  
   // Rules Section
   sectionLabel: {
     fontSize: 14,
@@ -853,67 +964,42 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  regrasSection: {
-    gap: spacing.sm,
-  },
   noteText: {
     fontSize: 13,
     lineHeight: 19,
     color: colors.textSecondary,
     marginBottom: spacing.xs,
   },
-  regrasVazias: {
-    fontSize: 14,
-    color: colors.textMuted,
-    fontStyle: 'italic',
-  },
-  regraRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  regraDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primary,
-    flexShrink: 0,
-  },
-  regraText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textPrimary,
-  },
-  regraBold: {
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  regraArrow: {
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
-  removerText: {
+  resultLabel: {
     fontSize: 12,
-    color: colors.error,
-    textDecorationLine: 'underline',
-    flexShrink: 0,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  novaBand: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    backgroundColor: colors.cardMax,
+    borderRadius: radii.md,
+  },
+  novaBandTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  novaBandSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  novaBandActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
   // Rule Modal specific styles
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
   chipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -929,6 +1015,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  chipAlarm: {
+    height: 'auto',
+    minHeight: 34,
+    paddingVertical: 4,
+    opacity: 0.6,
+    borderStyle: 'dashed',
+  },
+  chipAlarmTag: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.error,
+  },
+  criarBox: {
+    gap: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  criarTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.textPrimary,
+  },
+  previewBox: {
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  previewText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
   chipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
@@ -939,50 +1062,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   chipTextActive: {
-    color: colors.textLight,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    minHeight: 50,
-  },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: radii.pill,
-    borderWidth: 2,
-    borderColor: colors.borderStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  radioDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.textLight,
-  },
-  actionLabel: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '500',
-    color: colors.textPrimary,
-  },
-  submitButton: {
-    marginTop: spacing.sm,
-    height: 52,
-    borderRadius: radii.md,
-    backgroundColor: colors.textPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  submitButtonText: {
-    fontSize: 17,
-    fontWeight: '600',
     color: colors.textLight,
   },
 });

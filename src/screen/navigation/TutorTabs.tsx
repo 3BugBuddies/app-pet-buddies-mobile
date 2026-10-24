@@ -1,7 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // <-- ADICIONE AQUI
 import { usePets } from '../../control/usePetsControl';
 import { colors, radii } from '../../styles/theme';
 import { AgendaTabStack } from './tutor-tabs/AgendaTabStack';
@@ -9,23 +8,26 @@ import { HomeTabStack } from './tutor-tabs/HomeTabStack';
 import { PetTabStack } from './tutor-tabs/PetTabStack';
 import { PlanoTabStack } from './tutor-tabs/PlanoTabStack';
 import type { TutorTabParamList } from './types';
+import { TAB_BAR_HEIGHT, useTabBarBottom } from './useTabBarSpace';
 
 const Tab = createBottomTabNavigator<TutorTabParamList>();
 
 export function TutorTabs() {
   const { data: pets } = usePets();
   const petName = pets?.[0]?.nome ?? 'Pet';
-  const insets = useSafeAreaInsets();
+  const tabBarBottom = useTabBarBottom();
 
   return (
     <Tab.Navigator
+      // A barra flutua: o recuo do safe-area dentro dela empurrava os rótulos para fora.
+      safeAreaInsets={{ bottom: 0 }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.action,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: [
           styles.tabBar,
-          { bottom: Math.max(insets.bottom, 16) + 16 }
+          { bottom: tabBarBottom }
         ],
         tabBarItemStyle: styles.tabItem,
         tabBarLabelStyle: styles.tabLabel,
@@ -51,7 +53,7 @@ export function TutorTabs() {
           },
         })}
         options={{
-          tabBarLabel: 'Evolucao',
+          tabBarLabel: 'Cuidados',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'time' : 'time-outline'} size={size} color={color} />
           ),
@@ -86,8 +88,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 20,
     right: 20,
-    bottom: 24,
-    height: 64,
+    height: TAB_BAR_HEIGHT,
     borderRadius: radii.pill,
     borderTopWidth: 0,
     backgroundColor: colors.surface,

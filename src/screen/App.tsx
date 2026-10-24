@@ -7,6 +7,7 @@ import { AuthContext } from '../context/authContext';
 import type { AuthSession } from '../model/session';
 import { SessionExpiredModal } from '../component/auth/SessionExpiredModal';
 import { initNotifications } from '../repository/notificationService';
+import { clearSession as clearStoredSession } from '../repository/authRepository';
 import {
   useFonts,
   Sora_600SemiBold,
@@ -46,7 +47,12 @@ export default function App() {
           value={{
             session,
             setSession,
-            clearSession: () => setSession(null),
+            // Troca de conta no mesmo aparelho: nada do cache da sessão anterior pode sobrar.
+            clearSession: () => {
+              queryClient.clear();
+              setSession(null);
+              void clearStoredSession();
+            },
           }}
         >
           <AppNavigator />

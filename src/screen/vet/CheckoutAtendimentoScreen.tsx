@@ -1,13 +1,16 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Share, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { BrandMark } from '../../component/ui/BrandMark';
 import { Button } from '../../component/ui/Button';
+import { formatHourShort } from '../../model/closingSummary';
+import { formatShortDate } from '../../model/formatDate';
 import type { PacientesTabParamList, VetTabParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'CheckoutAtendimento'>;
 type CheckoutNavigationProp = CompositeNavigationProp<
@@ -16,76 +19,93 @@ type CheckoutNavigationProp = CompositeNavigationProp<
 >;
 
 export function CheckoutAtendimentoScreen({ route }: Props) {
-  const { petName, resumoPrescricao } = route.params;
+  const { summary } = route.params;
   const navigation = useNavigation<CheckoutNavigationProp>();
   const insets = useSafeAreaInsets();
-
-  const handleShare = async () => {
-    try {
-      await Share.share({
-        message: `Receita Pet Buddies 🐾\nPaciente: ${petName}\n\nPrescrição:\n${resumoPrescricao}\n\nAcesse o App Pet Buddies para ver detalhes e dosagens exatas!`,
-        title: `Receita - ${petName}`, // Usado em alguns dispositivos/emails
-      });
-    } catch (error: any) {
-      // Ignorar erros de cancelamento do usuário
-    }
-  };
+  const tabBarSpace = useTabBarSpace();
 
   const handleFinish = () => {
+    navigation.popToTop();
     navigation.navigate('HojeTab', { screen: 'AgendaClinica' });
   };
 
+  const subtitle = [
+    summary.petName,
+    summary.reason,
+    `${formatShortDate(summary.whenIso)}, ${formatHourShort(summary.whenIso)}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const seesInApp = summary.responsavel ? `a ${summary.responsavel} já vê no app` : 'o responsável já vê no app';
+
   return (
-    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 40), paddingBottom: Math.max(insets.bottom, 40) }]}>
+    <View style={[styles.screen, { paddingTop: Math.max(insets.top, 40), paddingBottom: tabBarSpace }]}>
       <View style={styles.content}>
         <View style={styles.iconCircle}>
-          <Ionicons name="checkmark-circle" size={80} color={colors.success} />
+          <BrandMark style={styles.celebrationMark} />
         </View>
 
-        <Text style={styles.title}>Atendimento Concluído!</Text>
-        <Text style={styles.subtitle}>
-          O prontuário e as prescrições de <Text style={styles.bold}>{petName}</Text> foram salvos com sucesso no histórico médico.
-        </Text>
+        <Text style={styles.title}>Atendimento concluído</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
 
-        <View style={styles.actionCard}>
-          <Text style={styles.actionTitle}>Entregar Prescrição</Text>
-          <Text style={styles.actionBody}>
-            Compartilhe a receita digital com o tutor via WhatsApp, E-mail ou Link.
-          </Text>
-          
-          <Button 
-            label="Compartilhar Receita (PDF)" 
-            onPress={handleShare} 
-            icon={<Ionicons name="share-outline" size={20} color={colors.textLight} style={{ marginRight: 8 }} />}
-          />
+        <View style={styles.summary}>
+          <Text style={styles.label}>O que ficou registrado</Text>
+
+          <Block label="Registro" title={summary.reason || 'Atendimento'} />
+          {summary.vaccines.map((v, index) => (
+            <Block
+              key={`${v.nome}-${index}`}
+              label={v.alvo ? 'Vacina baixada do plano' : 'Vacina avulsa'}
+              title={v.nome}
+              sub={v.alvo ? `item previsto para ${v.alvo} concluído` : 'fora do plano'}
+            />
+          ))}
+          {summary.others.map((o, index) => (
+            <Block key={`${o.nome}-${index}`} label={o.label} title={o.nome} />
+          ))}
+          {summary.medicamentos.length > 0 ? (
+            <Block
+              label="Receita"
+              title={
+                summary.medicamentos.length === 1
+                  ? `${summary.medicamentos[0].nome} assinada`
+                  : `Receita assinada · ${summary.medicamentos.map((m) => `${m.nome} ${m.duracaoDias} ${m.duracaoDias === 1 ? 'dia' : 'dias'}`).join(', ')}`
+              }
+              sub={seesInApp}
+            />
+          ) : null}
         </View>
-
       </View>
 
       <View style={styles.footer}>
-        <Button 
-          variant="secondary" 
-          label="Voltar para a Agenda" 
-          onPress={handleFinish} 
-        />
+        <Button label="Voltar para Hoje" backgroundColor={colors.action} onPress={handleFinish} />
       </View>
     </View>
   );
 }
 
+function Block({ label, title, sub }: { label: string; title: string; sub?: string }) {
+  return (
+    <View style={styles.block}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.blockTitle}>{title}</Text>
+      {sub ? <Text style={styles.blockSub}>{sub}</Text> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-    justifyContent: 'space-between',
-  },
-  content: {
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-    marginTop: spacing.xl,
-  },
+  screen: { flex: 1, backgroundColor: colors.background, justifyContent: 'space-between' },
+  content: { paddingHorizontal: spacing.lg, alignItems: 'center', marginTop: spacing.xl },
+  celebrationMark: { width: 104, height: 104 },
   iconCircle: {
-    marginBottom: spacing.md,
+    width: 128,
+    height: 128,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFF3D4',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.lg,
   },
   title: {
     fontSize: 28,
@@ -95,39 +115,18 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     letterSpacing: -0.5,
   },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.md,
-  },
-  bold: {
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  actionCard: {
-    width: '100%',
+  subtitle: { fontSize: 16, color: colors.textSecondary, textAlign: 'center', lineHeight: 22 },
+  summary: {
+    alignSelf: 'stretch',
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing.lg,
-    gap: spacing.sm,
+    gap: spacing.md,
+    marginTop: spacing.lg,
   },
-  actionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  actionBody: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: spacing.xs,
-  },
-  footer: {
-    paddingHorizontal: spacing.lg,
-  },
+  label: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: colors.textSecondary },
+  block: { gap: 2 },
+  blockTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
+  blockSub: { fontSize: 15, color: colors.textSecondary },
+  footer: { paddingHorizontal: spacing.lg },
 });

@@ -43,7 +43,7 @@ Tutores de pets com condições crônicas frequentemente não sabem quando e com
 | AsyncStorage | 2.2.0 | Persistência de sessão local |
 | Yup | ^1.7.1 | Validação de formulários |
 
-**Backend:** API Java Spring (HATEOAS) em `http://petbuddies-java-rm563925.eastus.azurecontainer.io:8080/api`
+**Backend:** API Java Spring (HATEOAS) em `https://petbuddies-java-rm563925.azurewebsites.net/api`
 
 ---
 

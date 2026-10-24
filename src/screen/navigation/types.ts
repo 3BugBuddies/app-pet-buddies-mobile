@@ -6,8 +6,8 @@ import type {
   CheckInInterpretation,
   CheckInNoRuleResult,
 } from '../../model/care';
-import type { PrescricaoDraft } from '../../model/prescription';
-import type { RegraDraft } from '../../model/prescriptionRule';
+import type { ClosingDoneSummary, ClosingDraft } from '../../model/closing';
+import type { ReceitaDraft } from '../../model/prescription';
 
 
 export type AuthStackParamList = {
@@ -19,23 +19,24 @@ export type AuthStackParamList = {
 
 export type HomeTabParamList = {
   HomeTutor: undefined;
-  Score: { petId: string };
+  PataSegura: undefined;
+  MinhaConta: undefined;
+  TrocarSenha: undefined;
 };
 
 
 export type PlanoTabParamList = {
   CarePlan: { petId?: string } | undefined;
-  CheckInEntry: { petId: string; itemPlanoCuidadoId?: number };
-  CheckInConfirm: { petId: string; extracaoResponse: CheckinExtracaoResponse; itemPlanoCuidadoId?: number };
-  CheckInResult: { petId: string; result: CheckInDoseResult; itemPlanoCuidadoId?: number };
-  CheckInEscalation: { petId: string; result: CheckInEscalationResult; itemPlanoCuidadoId?: number };
-  CheckInNoRule: { petId: string; result: CheckInNoRuleResult; narrative: string; itemPlanoCuidadoId?: number };
-  AssistantNotice: { petId: string };
+  CheckInEntry: { petId: string };
+  CheckInConfirm: { petId: string; extracaoResponse: CheckinExtracaoResponse };
+  CheckInResult: { petId: string; result: CheckInDoseResult };
+  CheckInEscalation: { petId: string; result: CheckInEscalationResult };
+  CheckInNoRule: { petId: string; result: CheckInNoRuleResult; narrative: string };
 };
 
 
 export type AgendaTabParamList = {
-  AgendamentoTutor: { petId?: string } | undefined;
+  AgendamentoTutor: { petId?: string; reason?: string; date?: string } | undefined;
 };
 
 
@@ -56,23 +57,29 @@ export type TutorTabParamList = {
 
 export type HojeTabParamList = {
   AgendaClinica: undefined;
+  AtenderAgora: undefined;
 };
 
 
 export type PacientesTabParamList = {
   Pacientes: undefined;
   DetalhesPet: { petId: string; consultaId?: string };
-  ProntuarioForm: { petId: string; consultaId?: string };
+  ProntuarioForm: { petId: string; consultaId?: string; prescricao?: ReceitaDraft };
   PlanoPaciente: { petId: string };
-  // Fluxo de prescricao do veterinario: Prescricao <-> NovaRegra -> AssinarPrescricao.
-  Prescricao: { animalId: string; consultaId: string; prontuario: any; novaRegra?: RegraDraft };
-  NovaRegra: { animalId: string; consultaId: string; prontuario: any };
-  AssinarPrescricao: { draft: PrescricaoDraft; consultaId: string; prontuario: any };
-  CheckoutAtendimento: { petName: string; resumoPrescricao: string };
+  // Closing: ProntuarioForm -> (Prescricao opcional, volta ao form) -> AssinarPrescricao -> CheckoutAtendimento.
+  Prescricao: { animalId: string; receita?: ReceitaDraft };
+  AssinarPrescricao: { closing: ClosingDraft };
+  CheckoutAtendimento: { summary: ClosingDoneSummary };
+};
+
+
+export type AgendaVetTabParamList = {
+  AgendaSemana: undefined;
 };
 
 
 export type VetTabParamList = {
   HojeTab: NavigatorScreenParams<HojeTabParamList>;
+  AgendaSemanaTab: NavigatorScreenParams<AgendaVetTabParamList>;
   PacientesTab: NavigatorScreenParams<PacientesTabParamList>;
 };

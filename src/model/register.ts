@@ -13,9 +13,11 @@ const registerSchema = object({
   // Obrigatório para TUTOR (a API responde REGISTRO_INCOMPLETO sem ele)
   telefone: string().when('perfil', {
     is: 'TUTOR',
-    then: (schema) => schema.required('O telefone é obrigatório para tutores'),
+    then: (schema) => schema.required('O telefone é obrigatório para responsáveis'),
     otherwise: (schema) => schema.nullable(),
   }),
+
+  endereco: string().nullable(),
 
   // Obrigatório para VET (a API responde REGISTRO_INCOMPLETO sem ele)
   crmv: string().when('perfil', {

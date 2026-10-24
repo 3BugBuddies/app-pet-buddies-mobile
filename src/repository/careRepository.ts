@@ -1,21 +1,22 @@
+import { isAxiosError } from 'axios';
 import { apiJava, USE_API } from './apiClient';
 import type {
-  Badge,
   CarePlan,
   CareHistoryItem,
-  CareScore,
+  CareItem,
+  CareItemStatus,
   CheckInEscalationResult,
+  ClinicaContato,
   CheckinExtracaoRequest,
   CheckinExtracaoResponse,
   CheckinResponse,
   ConfirmCheckInInput,
   CheckInResult,
+  TreatmentInfo,
 } from '../model/care';
+import { isStatusClosed } from '../model/care';
 import { resolveCheckInResponse } from '../model/careRules';
 import {
-  FAKE_BADGES,
-  FAKE_SCORE,
-  fakePlanToggleTask,
   getFakeCarePlan,
 } from './fakeData';
 
@@ -27,28 +28,108 @@ const isoLocal = (d: Date): string => {
   return `${d.getFullYear()}-${mes}-${dia}`;
 };
 
-const getPlan = async (petId: string): Promise<CarePlan> => {
-  if (USE_API) {
-    const response = await apiJava.get(`/motor/plano/${petId}`);
-    const data = response.data;
+interface ItemPlanoApi {
+  id: number;
+  tipo: string;
+  nome: string;
+  dataAlvo: string;
+  status: CareItemStatus;
+  origem?: string | null;
+  vencido?: boolean;
+  executadoEm?: string | null;
+  doseAplicada?: number | null;
+  intervalo?: string | null;
+  prescricaoId?: number | null;
+}
 
-    const eventos: any[] = data.eventos || [];
+interface TratamentoApi {
+  prescricaoId?: number | null;
+  medicamento: string;
+  unidade?: string | null;
+  frequenciaDia?: number | null;
+  inicio: string;
+  fim: string;
+  doseMin?: number | null;
+  doseMax?: number | null;
+}
+
+interface PlanoApi {
+  instanciadoEm?: string | null;
+  categoria?: CarePlan['category'];
+  dataFim?: string | null;
+  modeloPlano?: string | null;
+  eventos?: ItemPlanoApi[] | null;
+  tratamento?: TratamentoApi | null;
+  tratamentos?: TratamentoApi[] | null;
+  clinica?: ClinicaContato | null;
+  tratamentoSuspenso?: {
+    medicamento: string;
+    medicamentos?: string[] | null;
+    em: string;
+    itens?: ItemPlanoApi[] | null;
+  } | null;
+}
+
+const toTreatmentInfo = (t: TratamentoApi): TreatmentInfo => ({
+  prescriptionId: t.prescricaoId ?? null,
+  medication: t.medicamento,
+  unit: t.unidade ?? null,
+  frequencyPerDay: t.frequenciaDia ?? null,
+  start: t.inicio,
+  end: t.fim,
+  doseMin: t.doseMin ?? null,
+  doseMax: t.doseMax ?? null,
+});
+
+const toCareItem = (e: ItemPlanoApi): CareItem => {
+  const [ano, mes, dia] = e.dataAlvo.split('-');
+  return {
+    id: String(e.id),
+    title: e.nome,
+    dateIso: e.dataAlvo,
+    dateLabel: `${dia}/${mes}/${ano}`,
+    type: e.tipo,
+    status: e.status,
+    overdue: e.vencido ?? false,
+    treatment: e.origem === 'PRESCRICAO' || e.tipo === 'MEDICACAO',
+    executedAt: e.executadoEm ?? null,
+    doseApplied: e.doseAplicada ?? null,
+    interval: e.intervalo ?? null,
+    prescriptionId: e.prescricaoId ?? null,
+  };
+};
+
+// Plano inexistente (404) não é erro: o pet ainda não tem plano.
+const getPlan = async (petId: string): Promise<CarePlan | null> => {
+  if (USE_API) {
+    let data: PlanoApi;
+    try {
+      const response = await apiJava.get<PlanoApi>(`/motor/plano/${petId}`);
+      data = response.data;
+    } catch (error: unknown) {
+      if (isAxiosError(error) && error.response?.status === 404) return null;
+      throw error;
+    }
+
+    const eventos = data.eventos ?? [];
+    if (eventos.length === 0 && !data.tratamentoSuspenso) return null;
     const hoje = isoLocal(new Date());
 
     // tasks = eventos de hoje, cada evento vira um CareTask
     const tasks = eventos
-      .filter((e: any) => e.dataAlvo === hoje)
-      .map((e: any) => ({
+      .filter((e) => e.dataAlvo === hoje)
+      .map((e) => ({
         id: String(e.id),
         title: e.nome,
         description: e.tipo === 'MEDICACAO' ? 'Medicação prescrita' : e.tipo,
         time: 'conforme prescrição',
         points: 10,
-        completed: e.status === 'REALIZADO',
+        completed: isStatusClosed(e.status),
+        origin: e.origem,
       }));
 
     // weekDays = próximos 7 dias a partir de hoje com dot se houver evento
-    const diasComEvento = new Set(eventos.map((e: any) => e.dataAlvo));
+    const diasComEvento = new Set(eventos.map((e) => e.dataAlvo));
     const DIAS_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const weekDays = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
@@ -68,7 +149,7 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
     const currentWeekNumber = Math.max(1, Math.ceil((diffDias + 1) / 7));
 
     // total de semanas = span de datas nos eventos
-    const datas = eventos.map((e: any) => e.dataAlvo).sort();
+    const datas = eventos.map((e) => e.dataAlvo).sort();
     const totalWeeks = datas.length > 0
       ? Math.max(1, Math.ceil(
           (new Date(datas[datas.length - 1]).getTime() - new Date(datas[0]).getTime()) / 86400000 / 7
@@ -77,10 +158,10 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
 
     // Mapeia o histórico diário
     const history: CareHistoryItem[] = eventos
-      .filter((e: any) => e.dataAlvo <= hoje)
-      .sort((a: any, b: any) => b.dataAlvo.localeCompare(a.dataAlvo))
-      .map((e: any) => {
-        const [ano, mes, dia] = e.dataAlvo.split('-');
+      .filter((e) => e.dataAlvo <= hoje)
+      .sort((a, b) => b.dataAlvo.localeCompare(a.dataAlvo))
+      .map((e) => {
+        const [, mes, dia] = e.dataAlvo.split('-');
         const dataAlvo = new Date(`${e.dataAlvo}T00:00:00`);
         const diffDias = Math.floor((dataAlvo.getTime() - instancia.getTime()) / 86400000) + 1;
 
@@ -90,9 +171,16 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
           dateLabel: `${dia}/${mes}`,
           dayLabel: `Dia ${Math.max(1, diffDias)}`,
           title: e.nome,
-          completed: e.status === 'REALIZADO',
+          completed: isStatusClosed(e.status),
         };
       });
+
+    const unitByMedication = new Map<string, string | null | undefined>(
+      (data.tratamentos ?? (data.tratamento ? [data.tratamento] : [])).map((t) => [t.medicamento, t.unidade])
+    );
+    const items: CareItem[] = [...eventos]
+      .sort((a, b) => a.dataAlvo.localeCompare(b.dataAlvo))
+      .map((e) => ({ ...toCareItem(e), unit: unitByMedication.get(e.nome) ?? null }));
 
     return {
       petId,
@@ -103,23 +191,38 @@ const getPlan = async (petId: string): Promise<CarePlan> => {
       totalWeeks,
       milestones: [],
       history,
+      items,
+      createdAt: data.instanciadoEm ?? null,
+      category: data.categoria,
+      endDate: data.dataFim ?? null,
+      modelName: data.modeloPlano ?? null,
+      treatment: data.tratamento ? toTreatmentInfo(data.tratamento) : null,
+      treatments: data.tratamentos?.length
+        ? data.tratamentos.map(toTreatmentInfo)
+        : data.tratamento
+          ? [toTreatmentInfo(data.tratamento)]
+          : [],
+      clinic: data.clinica ?? null,
+      suspended: data.tratamentoSuspenso
+        ? {
+            medication: data.tratamentoSuspenso.medicamento,
+            medications: data.tratamentoSuspenso.medicamentos?.length
+              ? data.tratamentoSuspenso.medicamentos
+              : [data.tratamentoSuspenso.medicamento],
+            at: data.tratamentoSuspenso.em,
+            items: (data.tratamentoSuspenso.itens ?? []).map(toCareItem),
+          }
+        : null,
     };
   }
   return getFakeCarePlan(petId);
 };
 
-const toggleTask = async (_petId: string, taskId: string): Promise<void> => {
-  // POST /plano-cuidado/.../concluir não existe no backend
-  // Conclusão de item é feita via POST /checkin com itemPlanoCuidadoId
-  // Aqui mantemos apenas a simulação local
-  fakePlanToggleTask(taskId);
-};
-
-const confirmCheckIn = async ({ payload, redFlags }: ConfirmCheckInInput): Promise<CheckInResult> => {
+const confirmCheckIn = async ({ payload, redFlags, alarmLabels }: ConfirmCheckInInput): Promise<CheckInResult> => {
   if (USE_API) {
     // Rota correta: POST /checkin
     const response = await apiJava.post<CheckinResponse>('/checkin', payload);
-    return resolveCheckInResponse(response.data, redFlags);
+    return resolveCheckInResponse(response.data, redFlags, alarmLabels);
   }
   const hoje = new Date().toLocaleDateString('pt-BR');
   return {
@@ -133,38 +236,6 @@ const confirmCheckIn = async ({ payload, redFlags }: ConfirmCheckInInput): Promi
     prescriptionDateLabel: hoje,
     pointsEarned: 0,
   };
-};
-
-// /checkin/escalation-preview não existe nesta sprint
-// Mantém apenas simulação local
-const getEscalationPreview = async (): Promise<CheckInEscalationResult> => {
-  return {
-    status: 'ESCALATION',
-    reasonLabel: 'sangue nas fezes',
-    ruleDescription: 'sangue nas fezes → sem dose · emergência',
-    vetName: 'Dra. Helena',
-    vetCrmv: 'CRMV-SP 12.345',
-    suggestedSlotLabel: 'hoje 17:40',
-  };
-};
-
-const completeCheckInTask = async (_petId: string, taskId: string): Promise<void> => {
-  // POST /plano-cuidado/.../concluir não existe
-  // Item é concluído via POST /checkin com itemPlanoCuidadoId
-  // Mantém apenas simulação local
-  fakePlanToggleTask(taskId);
-};
-
-// /pontuacao/{id} não tem API nesta sprint
-// Mantém apenas simulação local
-const getScore = async (_petId: string): Promise<CareScore> => {
-  return FAKE_SCORE;
-};
-
-// /badges/{id} não tem API nesta sprint
-// Mantém apenas simulação local
-const getBadges = async (_petId: string): Promise<Badge[]> => {
-  return FAKE_BADGES;
 };
 
 // Passo 1 do check-in narrado: envia a narrativa, recebe o que a IA entendeu.
@@ -186,11 +257,6 @@ const extractCheckIn = async (data: CheckinExtracaoRequest): Promise<CheckinExtr
 
 export {
   getPlan,
-  toggleTask,
   confirmCheckIn,
-  getEscalationPreview,
-  completeCheckInTask,
-  getScore,
-  getBadges,
   extractCheckIn,
 };

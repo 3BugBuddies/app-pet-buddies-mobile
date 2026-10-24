@@ -38,6 +38,8 @@ export function SessionExpiredModal() {
       // Outro usuário entrou pelo modal: descarta o cache da sessão anterior.
       if (session && session.usuarioId !== newSession.usuarioId) {
         queryClient.clear();
+      } else {
+        void queryClient.invalidateQueries();
       }
       setSession(newSession);
       setVisible(false);

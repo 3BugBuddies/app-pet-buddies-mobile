@@ -7,23 +7,32 @@ import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { ConfirmedFieldsCard, type ConfirmedField } from '../../component/checkin/ConfirmedFieldsCard';
 import { Button } from '../../component/ui/Button';
 import { useConfirmCheckIn } from '../../control/useCheckInControl';
+import { useCarePlan } from '../../control/useCarePlanControl';
+import { todayIso, todayMedications } from '../../model/careHome';
+import { medicationGivenLabel } from '../../model/careRules';
 import type { PlanoTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInConfirm'>;
 
 export function CheckInConfirmScreen({ route }: Props) {
   const { petId, extracaoResponse } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const confirmCheckIn = useConfirmCheckIn();
+  const { data: plan } = useCarePlan(petId);
+  const medications = todayMedications(plan, todayIso());
+  const plural = medications.length > 1;
 
   const condicoesSeguras = extracaoResponse.condicoes || [];
   const redFlagsSeguras = extracaoResponse.redFlags || [];
-  // Aviso prévio só pelos sinais de alerta da IA. `degradado` significa "a IA não conseguiu
-  // interpretar", não escalação — quem confirma a escalação é `escalado`, na resposta do POST.
-  const isEscalation = redFlagsSeguras.length > 0;
+  // Condição marcada como sinal de alarme também avisa: o back escala por ela mesmo sem red flag.
+  const alarmesCatalogo = condicoesSeguras.flatMap((c) => (c.critica && c.valorBooleano && c.rotulo ? [c.rotulo] : []));
+  const sinaisNoAviso = [...alarmesCatalogo, ...redFlagsSeguras];
+  const isEscalation = sinaisNoAviso.length > 0;
   const isDegradado = extracaoResponse.degradado;
 
   // Monta os campos de revisão a partir do que a IA extraiu da narrativa
@@ -33,28 +42,38 @@ export function CheckInConfirmScreen({ route }: Props) {
       value: isEscalation ? 'Instável' : 'Estável',
       flagged: isEscalation,
     },
-    {
-      label: 'Sintomas relatados',
-      value: condicoesSeguras.length > 0
-        ? `${condicoesSeguras.length} condição(ões) identificada(s)`
-        : 'Nenhum sintoma específico',
+    ...condicoesSeguras.map((c) => ({
+      label: c.rotulo ?? 'Condição identificada',
+      value:
+        c.valorNumerico != null
+          ? `${String(c.valorNumerico).replace('.', ',')}${c.unidade ? ` ${c.unidade}` : ''}`
+          : c.valorBooleano === false
+            ? 'não'
+            : 'sim',
       flagged: false,
-    },
+    })),
     ...redFlagsSeguras.map((flag) => ({
       label: 'Sinal de alerta',
       value: flag,
       flagged: true,
     })),
+    ...(plural
+      ? medications.map((name) => ({
+          label: name,
+          value: medicationGivenLabel(extracaoResponse.narrativa),
+          flagged: false,
+        }))
+      : []),
   ];
 
   const handleConfirm = async () => {
     try {
       const result = await confirmCheckIn.mutateAsync({
         redFlags: redFlagsSeguras,
+        alarmLabels: condicoesSeguras.flatMap((c) => (c.critica && c.valorBooleano && c.rotulo ? [c.rotulo] : [])),
         payload: {
           animalId: extracaoResponse.animalId,
           narrativa: extracaoResponse.narrativa,
-          itemPlanoCuidadoId: route.params.itemPlanoCuidadoId, // liga o desfecho ao item do plano
           condicoes: condicoesSeguras.map((c) => ({
             condicaoClinicaId: c.condicaoClinicaId,
             valorBooleano: c.valorBooleano,
@@ -81,14 +100,11 @@ export function CheckInConfirmScreen({ route }: Props) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
-      <CheckInTopBar title="Confirmar" subtitle="Confira as informações" stepLabel="2 / 3" />
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
+      <CheckInTopBar title="Check-in" stepLabel="2 de 3" />
 
       <View style={styles.headline}>
         <Text style={styles.h1}>Entendi assim. É isso?</Text>
-        <Text style={styles.p}>
-          Confira cada item. Só o que você confirmar entra na regra da vet.
-        </Text>
       </View>
 
       <Text style={styles.quote}>"{extracaoResponse.narrativa}"</Text>
@@ -100,15 +116,11 @@ export function CheckInConfirmScreen({ route }: Props) {
             <Text style={styles.escalationTitle}>Sinal de alerta detectado</Text>
           </View>
           <Text style={styles.escalationBody}>
-            Nossa Inteligência Artificial analisou o relato e cruzou com a prescrição do veterinário.
-            {'\n\n'}
-            Foi identificado um sinal que requer atenção. Se você confirmar, o plano de cuidados será
-            <Text style={styles.escalationBold}> interrompido</Text> e você receberá orientação para
-            retornar à clínica.
+            A IA cruzou o relato com a prescrição da veterinária e encontrou um sinal que pede atenção. Se você confirmar, o plano de cuidados é interrompido e você recebe a orientação para procurar a clínica.
           </Text>
-          {redFlagsSeguras.length > 0 && (
+          {sinaisNoAviso.length > 0 && (
             <View style={styles.flagsList}>
-              {redFlagsSeguras.map((flag, i) => (
+              {sinaisNoAviso.map((flag, i) => (
                 <View key={i} style={styles.flagRow}>
                   <View style={styles.flagDot} />
                   <Text style={styles.flagText}>{flag}</Text>
@@ -128,26 +140,24 @@ export function CheckInConfirmScreen({ route }: Props) {
 
       <ConfirmedFieldsCard fields={fields} />
 
-      <View style={styles.noteRow}>
-        <View style={styles.noteDot} />
-        <Text style={styles.noteText}>
-          {isEscalation
-            ? 'A IA identificou um sinal de alerta na prescrição do veterinário. Confirme somente se o relato estiver correto.'
-            : 'A interpretação é automática. A confirmação é sua — sem ela, nada é registrado nem calculado.'}
-        </Text>
-      </View>
+      <Text style={styles.noteText}>
+        {isEscalation
+          ? 'Confirme somente se o relato estiver correto.'
+          : 'Só o que você confirmar entra na regra da veterinária.'}
+      </Text>
 
       <View style={styles.actions}>
         <Button
-          label={isEscalation ? 'Confirmo, foi isso que aconteceu' : 'Confirmo, está tudo correto →'}
-          backgroundColor={isEscalation ? colors.error : colors.action}
+          label={isEscalation ? 'Confirmo, foi isso que aconteceu' : plural ? 'Confirmar · ver as doses de hoje' : 'Confirmar · ver dose de hoje'}
+          backgroundColor={isEscalation ? colors.primary : colors.action}
           textColor={colors.textLight}
           loading={confirmCheckIn.isPending}
           onPress={handleConfirm}
         />
         <Button
-          label="Reescrever Relato"
+          label="Reescrever relato"
           variant="secondary"
+          style={{ borderColor: colors.primary }}
           onPress={() => navigation.goBack()}
         />
       </View>
@@ -180,11 +190,10 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   quote: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    padding: spacing.md,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.action,
+    paddingLeft: spacing.md,
+    paddingVertical: spacing.xs,
     fontSize: 15,
     lineHeight: 20,
     fontStyle: 'italic',

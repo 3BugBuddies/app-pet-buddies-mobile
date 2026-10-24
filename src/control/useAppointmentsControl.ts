@@ -10,6 +10,7 @@ import {
   getAppointmentById,
   updateAppointment,
   getFreeWindows,
+  getFreeDates,
 } from '../repository/appointmentRepository';
 import { getVeterinarians } from '../repository/veterinarianRepository';
 import type { CreateAppointmentInput } from '../model/appointment';
@@ -35,7 +36,7 @@ export function useAppointments(petId?: string) {
 export function useAllPetsAppointments(petIds: string[]) {
   const results = useQueries({
     queries: petIds.map((id) => ({
-      queryKey: [APPOINTMENTS_KEY, id],
+      queryKey: [APPOINTMENTS_KEY, 'pet', id],
       queryFn: () => getAllAppointments(id),
       enabled: !!id,
     })),
@@ -45,7 +46,7 @@ export function useAllPetsAppointments(petIds: string[]) {
 
 export function useAppointment(id: string) {
   return useQuery({
-    queryKey: [APPOINTMENTS_KEY, id],
+    queryKey: [APPOINTMENTS_KEY, 'detalhe', id],
     queryFn: () => getAppointmentById(id),
     enabled: !!id,
   });
@@ -59,6 +60,7 @@ export function useCreateAppointment() {
       queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
       // A janela agendada deixa de estar livre: a grade precisa ser buscada de novo.
       queryClient.invalidateQueries({ queryKey: ['freeWindows'] });
+      queryClient.invalidateQueries({ queryKey: ['freeDates'] });
     },
   });
 }
@@ -70,7 +72,7 @@ export function useUpdateAppointment() {
       updateAppointment(id, payload),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
-      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY, variables.id] });
+      queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY, 'detalhe', variables.id] });
     },
   });
 }
@@ -97,10 +99,32 @@ export function useFreeWindows(veterinarioId?: string | number, dataISO?: string
   });
 }
 
+export function useFreeDates(veterinarioId?: string | number, de?: string, ate?: string) {
+  return useQuery({
+    queryKey: ['freeDates', veterinarioId, de, ate],
+    queryFn: () => getFreeDates(veterinarioId!, de!, ate!),
+    enabled: !!veterinarioId && !!de && !!ate,
+  });
+}
+
+// Mesma fonte do calendário do Agendar: dias com janela livre do primeiro veterinário da clínica.
+export function useWeekFreeDates(de: string, ate: string, enabled: boolean) {
+  const { data: veterinarios } = useVeterinarians();
+  return useFreeDates(enabled ? veterinarios?.[0]?.id : undefined, de, ate);
+}
+
 export function useVeterinarians() {
   return useQuery({
     queryKey: ['veterinarians'],
     queryFn: getVeterinarians,
     staleTime: 5 * 60 * 1000,
   });
+}
+
+// CRMV da vet logada, sem o prefixo "CRMV" (a sessão só guarda o id do veterinário).
+export function useVetCrmv(): string | null {
+  const { session } = useContext(AuthContext);
+  const { data } = useVeterinarians();
+  const crmv = data?.find((v) => v.id === String(session?.veterinarioId))?.crmv;
+  return crmv ? crmv.replace(/^CRMV[\s-]*/i, '').trim() || null : null;
 }

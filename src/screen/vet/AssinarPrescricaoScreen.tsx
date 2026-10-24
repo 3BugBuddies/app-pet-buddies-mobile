@@ -1,362 +1,194 @@
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useContext, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { ComponentProps } from 'react';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
-import { AuthContext } from '../../context/authContext';
-import { useAssinarPrescricaoControl } from '../../control/usePrescriptionControl';
+import { useAppointment, useVetCrmv } from '../../control/useAppointmentsControl';
+import { useCompleteAppointment, composeNotes, useOpenPlanItems } from '../../control/useClosingControl';
 import { usePet } from '../../control/usePetsControl';
-import { descreverCondicao } from '../../model/prescriptionRule';
+import type { ClosingDoneSummary, ProcedureDraft } from '../../model/closing';
+import { firstName, formatHourShort, localIsoNow } from '../../model/closingSummary';
+import { formatDateBR, formatShortDate } from '../../model/formatDate';
+import type { ItemReceitaDraft } from '../../model/prescription';
+import { descreverCondicao, rotuloAcao } from '../../model/prescriptionRule';
 import type { PacientesTabParamList } from '../navigation/types';
-import type { VetTabParamList } from '../navigation/types';
-import type { CompositeNavigationProp } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'AssinarPrescricao'>;
-type AssinarNavigationProp = CompositeNavigationProp<
-  NativeStackNavigationProp<PacientesTabParamList, 'AssinarPrescricao'>,
-  BottomTabNavigationProp<VetTabParamList>
->;
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
+const procedureLabel = (p: ProcedureDraft) =>
+  p.section === 'EXAME' ? 'Exame' : p.section === 'PROCEDIMENTO' ? 'Procedimento' : p.tipo === 'VERMIFUGACAO' ? 'Vermífugo' : 'Vacina';
 
 export function AssinarPrescricaoScreen({ route }: Props) {
-  const { draft, consultaId, prontuario } = route.params;
-  const navigation = useNavigation<AssinarNavigationProp>();
+  const { closing } = route.params;
+  const draft = closing.receita;
+  const itens = draft?.itens ?? [];
+  const multi = itens.length > 1;
+  const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList, 'AssinarPrescricao'>>();
   const insets = useSafeAreaInsets();
-  const { session } = useContext(AuthContext);
-  const { data: pet } = usePet(draft.animalId);
-  const { assinar, isAssinando, erro } = useAssinarPrescricaoControl(draft, prontuario, consultaId);
+  const tabBarSpace = useTabBarSpace();
+  const { complete, completing } = useCompleteAppointment();
+  const crmv = useVetCrmv();
+  const { data: pet } = usePet(closing.petId);
+  const { data: appointment } = useAppointment(closing.appointmentId ?? '');
+  const { data: planItems = [] } = useOpenPlanItems(closing.petId);
 
-  const [isSigned, setIsSigned] = useState(false);
+  const whenIso = appointment?.date ?? localIsoNow();
+  const header = [
+    closing.petName,
+    appointment ? `consulta de ${formatShortDate(appointment.date)}, ${formatHourShort(appointment.date)}` : 'atendimento imediato',
+  ].join(' · ');
+  const responsavel = firstName(pet?.responsavelNome);
+  const seesInApp = responsavel ? `A ${responsavel} vê no app` : 'O responsável vê no app';
+  const targetDate = (itemId: number | null) => {
+    const alvo = itemId == null ? null : planItems.find((i) => i.id === itemId)?.dataAlvo;
+    return alvo ? formatDateBR(alvo) : null;
+  };
+
+  const registroSub = [closing.weight ? `${closing.weight} kg` : null, closing.notes.trim() || 'sem observação']
+    .filter(Boolean)
+    .join(' · ');
+  const receitaSub = (item: ItemReceitaDraft) => {
+    const rules = item.regras.map((r) => `${descreverCondicao(r).toLowerCase()} → ${rotuloAcao(r.acao).toLowerCase()}`);
+    return [
+      `${item.doseMin}–${item.doseMax} ${item.unidade}`,
+      `${item.frequenciaDia}×/dia`,
+      `${item.duracaoDias} dias`,
+      rules.length > 0 ? `${rules.length === 1 ? 'regra' : 'regras'}: ${rules.join('; ')}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  };
 
   const handleSign = async () => {
     try {
-      await assinar();
-      setIsSigned(true);
+      await complete(closing);
     } catch {
-      // erro já fica visível via `erro` (estado da mutation).
+      return; // o erro já foi mostrado pelo onError da mutation
     }
+    const summary: ClosingDoneSummary = {
+      petName: closing.petName,
+      reason: closing.reason.trim(),
+      whenIso,
+      responsavel,
+      vaccines: closing.procedures
+        .filter((p) => p.section === 'VACINA_VERMIFUGO')
+        .map((p) => ({ nome: p.nome.trim(), alvo: p.itemPlanoId != null ? targetDate(p.itemPlanoId) : null })),
+      others: closing.procedures
+        .filter((p) => p.section !== 'VACINA_VERMIFUGO')
+        .map((p) => ({ label: procedureLabel(p), nome: p.nome.trim() })),
+      medicamentos: itens.map((i) => ({ nome: i.medicamento, duracaoDias: i.duracaoDias })),
+    };
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 1,
+        routes: [{ name: 'Pacientes' }, { name: 'CheckoutAtendimento', params: { summary } }],
+      })
+    );
   };
 
-  const handleSharePDF = async () => {
-    try {
-      await Share.share({
-        message: `Receita Pet Buddies 🐾\nPaciente: ${pet?.nome ?? 'o paciente'}\n\nPrescrição Autenticada ICP-Brasil:\n${draft.medicamento} ${draft.frequenciaDia}x ao dia por ${draft.duracaoDias} dias\n\nAcesse o documento original com certificado digital no link seguro!`,
-        title: `Receita Digital - ${pet?.nome}`,
-      });
-    } catch (error: any) {
-      // Ignorar erros de cancelamento do usuário
-    }
-  };
-
-  const handleFinish = () => {
-    navigation.navigate('HojeTab', { screen: 'AgendaClinica' });
-  };
+  const signItems: { icon: IconName; title: string; sub?: string }[] = draft
+    ? [
+        {
+          icon: 'document-text-outline',
+          title: multi ? `A receita fica assinada, com os ${itens.length} medicamentos` : 'A receita fica assinada',
+          sub: `com seu nome e CRMV${crmv ? ` ${crmv}` : ''}`,
+        },
+        { icon: 'lock-closed-outline', title: 'Ela não muda mais' },
+        { icon: 'phone-portrait-outline', title: seesInApp },
+      ]
+    : [
+        { icon: 'document-text-outline', title: 'O atendimento fica registrado', sub: 'no histórico do pet' },
+        { icon: 'phone-portrait-outline', title: seesInApp },
+      ];
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
-      <CheckInTopBar title="Assinar prescrição" subtitle={pet?.nome} />
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
+      <CheckInTopBar title={draft ? 'Assinar e concluir' : 'Concluir atendimento'} />
 
-      <View style={styles.headline}>
-        <Text style={styles.title}>
-          {draft.medicamento} · {draft.doseMin}–{draft.doseMax} {draft.unidade}
-        </Text>
-        <Text style={styles.subtitle}>
-          {draft.frequenciaDia}×/dia · {draft.duracaoDias} dias · {(draft.regras?.length ?? 0)} regra(s) condicional(is)
-        </Text>
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>{header}</Text>
+
+        <Block label="Registro" title={closing.reason.trim() || 'Atendimento'} sub={registroSub} />
+        {closing.procedures.map((p) => {
+          const alvo = p.itemPlanoId != null ? targetDate(p.itemPlanoId) : null;
+          const sub =
+            p.section === 'VACINA_VERMIFUGO'
+              ? p.itemPlanoId == null
+                ? 'avulsa, não baixa item do plano'
+                : alvo
+                  ? `baixa o item previsto para ${alvo}`
+                  : 'baixa o item previsto do plano'
+              : undefined;
+          return <Block key={p.key} label={procedureLabel(p)} title={p.nome.trim()} sub={sub} extra={composeNotes(p)} />;
+        })}
+        {multi ? <Text style={styles.blockLabel}>Receita · {itens.length} medicamentos</Text> : null}
+        {itens.map((item) => (
+          <Block key={item.key} label={multi ? 'Medicamento' : 'Receita'} title={item.medicamento} sub={receitaSub(item)} />
+        ))}
       </View>
 
-      {draft.orientacao ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Orientação</Text>
-          <Text style={styles.orientacaoText}>{draft.orientacao}</Text>
-        </View>
-      ) : null}
-
-      {(draft.regras?.length ?? 0) > 0 ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Regras condicionais</Text>
-          {(draft.regras ?? []).map((regra, index) => (
-            <View key={`${regra.condicaoClinicaId}-${index}`}>
-              <View style={styles.ruleRow}>
-                <View style={styles.ruleDot} />
-                <Text style={styles.ruleText}>
-                  {descreverCondicao(regra)} → {regra.acao.replace(/_/g, ' ').toLowerCase()}
-                </Text>
-              </View>
-              {index < (draft.regras?.length ?? 0) - 1 ? <View style={styles.divider} /> : null}
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>Ao assinar</Text>
+        {signItems.map((item) => (
+          <View key={item.title} style={styles.signRow}>
+            <View style={styles.signIcon}>
+              <Ionicons name={item.icon} size={20} color={colors.primary} />
             </View>
-          ))}
-        </View>
-      ) : null}
-
-      <View style={styles.footNote}>
-        <View style={styles.footNoteDot} />
-        <Text style={styles.footNoteText}>
-          Relato sem regra correspondente cai em <Text style={styles.bold}>«confirmar com a clínica»</Text>, nunca em dose.
-        </Text>
-      </View>
-
-      <View style={styles.signatureSection}>
-        {!isSigned ? (
-          // ESTADO 1: Antes de Assinar
-          <View style={styles.preSignContainer}>
-            <View style={styles.certificateStatus}>
-              <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-              <Text style={styles.certificateText}>Certificado A1 Conectado</Text>
+            <View style={styles.flex}>
+              <Text style={styles.signTitle}>{item.title}</Text>
+              {item.sub ? <Text style={styles.sub}>{item.sub}</Text> : null}
             </View>
-            
-            <Text style={styles.disclaimer}>
-              Ao assinar, este documento terá validade jurídica em todo o território nacional (ICP-Brasil), conforme resolução do CFMV.
-            </Text>
-
-            <Button 
-              label="Assinar Receita Digitalmente" 
-              loading={isAssinando} 
-              onPress={handleSign}
-              icon={<Ionicons name="document-lock-outline" size={20} color={colors.textLight} style={{ marginRight: 8 }} />}
-              style={{ width: '100%' }}
-            />
           </View>
-        ) : (
-          // ESTADO 2: Após a Assinatura (Sucesso)
-          <View style={styles.postSignContainer}>
-            <View style={styles.successAlert}>
-              <Ionicons name="shield-checkmark-outline" size={36} color="#059669" />
-              <Text style={styles.successText}>Receita assinada com sucesso!</Text>
-              <Text style={styles.subSuccessText}>(Autenticada via ICP-Brasil)</Text>
-            </View>
-
-            {/* Thumbnail PDF Fake */}
-            <View style={styles.pdfThumbnail}>
-              <Ionicons name="document-text-outline" size={40} color={colors.textSecondary} />
-              <View style={styles.pdfSeal}>
-                <Ionicons name="ribbon" size={16} color="#059669" />
-              </View>
-            </View>
-
-            <Button 
-              label="Compartilhar com Tutor (WhatsApp)" 
-              onPress={handleSharePDF}
-              icon={<Ionicons name="logo-whatsapp" size={20} color={colors.textLight} style={{ marginRight: 8 }} />}
-              style={{ width: '100%', backgroundColor: '#25D366', borderColor: '#25D366', marginBottom: spacing.md }}
-            />
-
-            <Button 
-              label="Concluir e Salvar no Prontuário" 
-              variant="secondary"
-              onPress={handleFinish}
-              icon={<Ionicons name="save-outline" size={20} color={colors.primary} style={{ marginRight: 8 }} />}
-              style={{ width: '100%' }}
-            />
-          </View>
-        )}
+        ))}
       </View>
+
+      <Button
+        label={!draft ? 'Concluir atendimento' : crmv ? `Assinar e concluir · CRMV ${crmv}` : 'Assinar e concluir'}
+        backgroundColor={colors.action}
+        loading={completing}
+        onPress={handleSign}
+        style={styles.sign}
+      />
     </ScrollView>
   );
 }
 
+function Block({ label, title, sub, extra }: { label: string; title: string; sub?: string; extra?: string }) {
+  return (
+    <View style={styles.block}>
+      <Text style={styles.blockLabel}>{label}</Text>
+      <Text style={styles.blockTitle}>{title}</Text>
+      {sub ? <Text style={styles.sub}>{sub}</Text> : null}
+      {extra ? <Text style={styles.sub}>{extra}</Text> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  headline: {
-    gap: 2,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  orientacaoText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textPrimary,
-  },
-  ruleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 40,
-  },
-  ruleDot: {
-    width: 8,
-    height: 8,
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, gap: spacing.md },
+  flex: { flex: 1 },
+  card: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.md },
+  cardLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: colors.textSecondary },
+  block: { gap: 2 },
+  blockLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: colors.textSecondary },
+  blockTitle: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
+  sub: { fontSize: 15, lineHeight: 21, color: colors.textSecondary },
+  signRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  signIcon: {
+    width: 40,
+    height: 40,
     borderRadius: radii.pill,
-    backgroundColor: colors.primary,
-  },
-  ruleText: {
-    flex: 1,
-    fontFamily: 'monospace',
-    fontSize: 12.5,
-    lineHeight: 17,
-    color: colors.textPrimary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  footNote: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    backgroundColor: colors.background,
-    borderRadius: radii.sm,
-    padding: spacing.md,
-  },
-  footNoteDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.warning,
-    marginTop: 6,
-  },
-  footNoteText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
-  },
-  bold: {
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
-  signCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  signRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  signAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.sm,
     backgroundColor: colors.cardChia,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  signAvatarText: {
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  signInfo: {
-    flex: 1,
-  },
-  signName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  signBody: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
-  },
-  signatureSection: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-  },
-  preSignContainer: {
-    alignItems: 'center',
-  },
-  certificateStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D1FAE5',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: radii.pill,
-    marginBottom: spacing.md,
-  },
-  certificateText: {
-    color: '#065F46',
-    fontWeight: '600',
-    marginLeft: 8,
-    fontSize: 13,
-  },
-  disclaimer: {
-    textAlign: 'center',
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: spacing.lg,
-    lineHeight: 18,
-  },
-  postSignContainer: {
-    alignItems: 'center',
-  },
-  successAlert: {
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  successText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#059669',
-    marginTop: 12,
-  },
-  subSuccessText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  pdfThumbnail: {
-    width: 80,
-    height: 100,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.lg,
-    position: 'relative',
-  },
-  pdfSeal: {
-    position: 'absolute',
-    bottom: -8,
-    right: -8,
-    backgroundColor: '#D1FAE5',
-    padding: 6,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#FFF',
-  },
+  signTitle: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
+  sign: { marginTop: spacing.sm },
 });

@@ -4,16 +4,18 @@ import { colors, radii, spacing } from '../../styles/theme';
 interface QuickChipsProps {
   options: string[];
   onSelect: (text: string) => void;
+  selected?: string;
+  hideLabel?: boolean;
 }
 
-export function QuickChips({ options, onSelect }: QuickChipsProps) {
+export function QuickChips({ options, onSelect, selected, hideLabel }: QuickChipsProps) {
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>Ou responda rápido</Text>
+      {hideLabel ? null : <Text style={styles.label}>Resposta rápida</Text>}
       <View style={styles.row}>
         {options.map((option) => (
-          <Pressable key={option} onPress={() => onSelect(option)} style={styles.chip}>
-            <Text style={styles.chipText}>{option}</Text>
+          <Pressable key={option} onPress={() => onSelect(option)} style={[styles.chip, option === selected && styles.chipSelected]}>
+            <Text style={[styles.chipText, option === selected && styles.chipTextSelected]}>{option}</Text>
           </Pressable>
         ))}
       </View>
@@ -46,6 +48,13 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipTextSelected: {
+    color: colors.textLight,
   },
   chipText: {
     fontSize: 14,

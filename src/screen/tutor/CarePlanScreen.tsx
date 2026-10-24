@@ -1,14 +1,36 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ProgressBarCard } from '../../component/care-plan/ProgressBarCard';
+import { NoPlanState } from '../../component/care-plan/NoPlanState';
+import { PreventiveCard } from '../../component/care-plan/PreventiveCard';
+import { SuspendedTreatmentCard } from '../../component/care-plan/SuspendedTreatmentCard';
+import { TodayAtHomeCard } from '../../component/care-plan/TodayAtHomeCard';
+import { FreeWeekCard, TreatmentWeekCard } from '../../component/care-plan/TreatmentWeekCard';
+import { NoPetState } from '../../component/pet/NoPetState';
+import { BrandMark } from '../../component/ui/BrandMark';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
+import { useAppointments, useWeekFreeDates } from '../../control/useAppointmentsControl';
 import { useCarePlan } from '../../control/useCarePlanControl';
-import { useActivePetId, usePets } from '../../control/usePetsControl';
+import { useActivePetId, usePet, usePets } from '../../control/usePetsControl';
+import { activePlansLabel, treatmentsOf } from '../../model/care';
+import {
+  activeTreatmentWeek,
+  freeWeek,
+  medicationLines,
+  openPreventiveItems,
+  suspendedTreatmentWeek,
+  todayIso,
+  todayTreatmentItems,
+  upcomingVisit,
+  weekEndIso,
+  type WeekDayCell,
+} from '../../model/careHome';
+import { petArticle, speciesLabel } from '../../model/pet';
 import type { PlanoTabParamList } from '../navigation/types';
-import { colors, radii, spacing } from '../../styles/theme';
+import { colors, spacing } from '../../styles/theme';
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CarePlan'>;
 
@@ -20,13 +42,21 @@ export function CarePlanScreen({ route }: Props) {
 
   const { data: plan, isLoading: isLoadingPlan, isError: isPlanError } = useCarePlan(petId);
 
+  const { data: pet } = usePet(petId);
+
+  const weekStart = todayIso();
+  const { data: appointments } = useAppointments(petId || undefined);
+  const { data: weekFreeDates } = useWeekFreeDates(weekStart, weekEndIso(weekStart), !!petId);
+
   const insets = useSafeAreaInsets();
+
+  const tabBarSpace = useTabBarSpace();
 
   if (isLoadingPets || isLoadingPlan) {
     return <LoadingIndicator label="Carregando evolução..." />;
   }
 
-  if (isPetsError || isPlanError || !plan || !petId) {
+  if (isPetsError || isPlanError) {
     return (
       <ErrorState
         type="500"
@@ -37,60 +67,100 @@ export function CarePlanScreen({ route }: Props) {
     );
   }
 
-  const tasks = plan.tasks || [];
-  const doneCount = tasks.filter((task) => task.completed).length;
-  const pointsToday = tasks.reduce((sum, task) => (task.completed ? sum + task.points : sum), 0);
+  if (!petId) {
+    return (
+      <View style={[styles.screen, styles.noPet, { paddingTop: Math.max(insets.top, 16) }]}>
+        <NoPetState onRegister={() => navigation.getParent()?.navigate('PetTab', { screen: 'NovoPet' })} />
+      </View>
+    );
+  }
+
+  if (!plan) {
+    return (
+      <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
+        <BrandMark style={styles.noPlanMark} />
+        <NoPlanState
+          petName={pet?.nome ?? 'pet'}
+          petSex={pet?.sexo}
+          onSchedule={() => navigation.getParent()?.navigate('AgendaTab', { screen: 'AgendamentoTutor' })}
+        />
+      </View>
+    );
+  }
+
+  const today = todayIso();
+  const treatmentWeek = activeTreatmentWeek(plan, today);
+  const suspendedWeek = suspendedTreatmentWeek(plan, today);
+  const todayItems = treatmentWeek ? todayTreatmentItems(plan, today) : [];
+  const preventive = openPreventiveItems(plan);
+  const modelLabel = pet?.especie ? `modelo de plano · ${speciesLabel(pet.especie).toLowerCase()}` : undefined;
+  const petName = pet?.nome ?? 'pet';
+
+  const openCheckIn = () => navigation.navigate('CheckInEntry', { petId });
+
+  const openWeekDay = (day: WeekDayCell) => {
+    navigation.getParent()?.navigate('AgendaTab', {
+      screen: 'AgendamentoTutor',
+      params: day.dot === 'APPOINTMENT' ? undefined : { petId, date: day.iso },
+    });
+  };
+
+  const openScheduling = () => {
+    navigation.getParent()?.navigate('AgendaTab', {
+      screen: 'AgendamentoTutor',
+      params: { petId, reason: 'Vacinação' },
+    });
+  };
 
   return (
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
-      <View style={styles.headerCard}>
-        <View style={styles.headerTexts}>
-          <Text style={styles.headerTitle}>Evolucao</Text>
-          <Text style={styles.headerSubtitle}>{plan.weekLabel}</Text>
-        </View>
-        <Image
-          source={require('../../../assets/images/logo-header-principal-trasparente.png')}
-          style={styles.headerLogo}
-          resizeMode="contain"
-        />
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
       >
-        <ProgressBarCard doneCount={doneCount} totalCount={tasks.length} />
-
-        <Text style={styles.sectionLabel}>Histórico do Tratamento</Text>
-
-        {!plan.history || plan.history.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>Nenhuma tarefa de cuidado registrada ainda.</Text>
+        <View style={styles.header}>
+          <BrandMark />
+          <View style={styles.headerTexts}>
+            <Text style={styles.headerTitle}>{`Cuidados ${petArticle(pet?.sexo)} ${petName}`}</Text>
+            <Text style={styles.headerSubtitle}>{activePlansLabel(plan)}</Text>
           </View>
-        ) : (
-          <View style={styles.timeline}>
-            {plan.history.map((item) => (
-              <View key={item.id} style={styles.historyRow}>
-                <View style={styles.historyDateCol}>
-                  <Text style={styles.historyDay}>{item.dayLabel}</Text>
-                  <Text style={styles.historyDate}>{item.dateLabel}</Text>
-                </View>
-                <View style={styles.timelineDotCol}>
-                  <View style={[styles.timelineDot, item.completed && styles.timelineDotDone]} />
-                  <View style={styles.timelineLine} />
-                </View>
-                <View style={[styles.timelineCard, item.completed && styles.timelineCardDone]}>
-                  <Text style={[styles.timelineTitle, item.completed && styles.timelineTitleDone]}>
-                    {item.title}
-                  </Text>
-                  <Text style={item.completed ? styles.timelineBodyDone : styles.timelineBody}>
-                    {item.completed ? 'Check-in realizado ✓' : 'Check-in feito'}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
+        </View>
+
+        {plan.suspended ? (
+          <SuspendedTreatmentCard
+            medications={plan.suspended.medications}
+            suspendedAt={plan.suspended.at}
+            week={suspendedWeek}
+            clinic={plan.clinic}
+          />
+        ) : null}
+
+        {treatmentWeek ? <TreatmentWeekCard week={treatmentWeek} showLegend medications={medicationLines(plan, today)} /> : null}
+
+        {!treatmentWeek && !plan.suspended ? (
+          <FreeWeekCard
+            week={freeWeek(today, upcomingVisit(appointments, petId, today), weekFreeDates ?? [])}
+            onPressDay={openWeekDay}
+          />
+        ) : null}
+
+        {todayItems.length > 0 ? (
+          <TodayAtHomeCard
+            items={todayItems}
+            treatments={treatmentsOf(plan)}
+            petName={petName}
+            petSex={pet?.sexo}
+            onPress={openCheckIn}
+          />
+        ) : null}
+
+        <PreventiveCard
+          title="Preventivo"
+          items={preventive}
+          emptyText="Nenhum cuidado preventivo agendado."
+          idleLabel={modelLabel}
+          onPressItem={openScheduling}
+        />
       </ScrollView>
     </View>
   );
@@ -98,55 +168,11 @@ export function CarePlanScreen({ route }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  headerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.md,
-    marginBottom: spacing.xs,
-    marginHorizontal: spacing.lg,
-    shadowColor: colors.surfaceDark,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  headerTexts: { flex: 1 },
+  noPet: { padding: spacing.lg },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerTexts: { flex: 1, gap: 2 },
+  noPlanMark: { marginLeft: spacing.lg },
   headerTitle: { fontFamily: 'Sora', fontSize: 24, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
-  headerSubtitle: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: colors.success, marginTop: 2 },
-  headerLogo: { width: 80, height: 40 },
+  headerSubtitle: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   content: { padding: spacing.lg, gap: spacing.md },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginLeft: spacing.xs,
-    marginTop: spacing.md,
-  },
-  emptyCard: {
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  emptyText: { color: colors.textSecondary, textAlign: 'center' },
-  timeline: { gap: 0, marginTop: spacing.xs },
-  historyRow: { flexDirection: 'row', gap: spacing.sm },
-  historyDateCol: { width: 44, alignItems: 'flex-end', paddingTop: 12 },
-  historyDay: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  historyDate: { fontSize: 12, color: colors.textSecondary },
-  timelineDotCol: { alignItems: 'center', width: 16 },
-  timelineDot: { width: 12, height: 12, borderRadius: radii.pill, backgroundColor: colors.borderStrong, marginTop: 14, borderWidth: 2, borderColor: colors.background },
-  timelineDotDone: { backgroundColor: colors.success },
-  timelineLine: { flex: 1, width: 2, backgroundColor: colors.border, marginTop: 4, marginBottom: 4 },
-  timelineCard: { flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.md, marginBottom: spacing.md, gap: 4 },
-  timelineCardDone: { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0 },
-  timelineTitle: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
-  timelineTitleDone: { color: colors.textSecondary },
-  timelineBody: { fontSize: 13, color: colors.warning, fontWeight: '600' },
-  timelineBodyDone: { fontSize: 13, color: colors.success, fontWeight: '600' },
 });

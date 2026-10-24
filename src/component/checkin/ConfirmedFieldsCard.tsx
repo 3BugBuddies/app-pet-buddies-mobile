@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
 
@@ -14,17 +15,19 @@ interface ConfirmedFieldsCardProps {
 export function ConfirmedFieldsCard({ fields }: ConfirmedFieldsCardProps) {
   return (
     <View style={styles.card}>
-      {fields.map((field, index) => (
-        <View key={field.label}>
-          <View style={styles.row}>
-            <Text style={styles.label}>{field.label}</Text>
-            <View style={[styles.valuePill, field.flagged && styles.valuePillFlagged]}>
-              <Text style={[styles.valueText, field.flagged && styles.valueTextFlagged]}>
-                {field.value}
-              </Text>
+      <Text style={styles.header}>O que encontrei</Text>
+      {fields.map((field) => (
+        <View key={`${field.label}-${field.value}`} style={styles.row}>
+          {field.flagged ? (
+            <View style={styles.flagDot} />
+          ) : (
+            <View style={styles.checkCircle}>
+              <Ionicons name="checkmark" size={14} color={colors.textPrimary} />
             </View>
-          </View>
-          {index < fields.length - 1 ? <View style={styles.divider} /> : null}
+          )}
+          <Text style={styles.text}>
+            {field.label} · {field.value}
+          </Text>
         </View>
       ))}
     </View>
@@ -34,41 +37,44 @@ export function ConfirmedFieldsCard({ fields }: ConfirmedFieldsCardProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radii.lg,
     padding: spacing.md,
+    gap: spacing.sm,
+  },
+  header: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.textSecondary,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  label: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  valuePill: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
     backgroundColor: colors.background,
+    borderRadius: radii.md,
+    padding: spacing.md,
   },
-  valuePillFlagged: {
-    backgroundColor: colors.cardMax,
+  checkCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: radii.pill,
+    backgroundColor: colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  valueText: {
+  flagDot: {
+    width: 12,
+    height: 12,
+    borderRadius: radii.pill,
+    backgroundColor: colors.error,
+    marginHorizontal: 6,
+  },
+  text: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '600',
     color: colors.textPrimary,
-  },
-  valueTextFlagged: {
-    color: colors.warning,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
   },
 });

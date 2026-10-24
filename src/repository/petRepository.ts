@@ -1,5 +1,5 @@
 import { apiJava, USE_API } from './apiClient';
-import { Pet } from '../model/pet';
+import { Pet, withoutReadOnlyFields } from '../model/pet';
 import type { PetProfileDetails } from '../model/care';
 import { FAKE_PETS } from './fakeData';
 
@@ -35,7 +35,7 @@ const getPetsByResponsavelId = async (responsavelId: string): Promise<Pet[]> => 
 const createPet = async (pet: Pet): Promise<Pet> => {
   if (USE_API) {
     // Omite `id` no POST (gerado pelo banco) e converte responsavelId para número
-    const { id: _id, ...body } = pet;
+    const { id: _id, ...body } = withoutReadOnlyFields(pet);
     const payload = { ...body, responsavelId: Number(pet.responsavelId) };
     const response = await apiJava.post('/animal', payload);
     return { ...response.data, id: response.data.id?.toString() ?? '' };
@@ -45,7 +45,7 @@ const createPet = async (pet: Pet): Promise<Pet> => {
 
 const updatePet = async (pet: Pet): Promise<Pet> => {
   if (USE_API) {
-    const payload = { ...pet, responsavelId: Number(pet.responsavelId) };
+    const payload = { ...withoutReadOnlyFields(pet), responsavelId: Number(pet.responsavelId) };
     const response = await apiJava.put(`/animal/${pet.id}`, payload);
     return { ...response.data, id: response.data.id?.toString() ?? '' };
   }

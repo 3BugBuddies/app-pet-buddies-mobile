@@ -34,6 +34,8 @@ export interface CareTask {
   time: string;
   points: number;
   completed: boolean;
+  // PRESCRICAO = medicação (tem check-in); PROTOCOLO = vacina/vermífugo do plano preventivo.
+  origin?: string | null;
   // % de adesão histórica do tutor nesse item — só usado na visão da vet
   // (PlanoPacienteScreen); ausente na visão do tutor.
   adherencePct?: number;
@@ -45,6 +47,78 @@ export interface ClinicalMilestone {
   whenLabel: string;
   tagLabel?: string;
   done: boolean;
+}
+
+export type CareItemStatus =
+  | 'PENDENTE'
+  | 'REALIZADO'
+  | 'SUSPENSO'
+  | 'ENCAMINHADO'
+  | 'CANCELADO'
+  | 'ATRASADO';
+
+// REALIZADO, SUSPENSO e ENCAMINHADO encerram o item (o check-in grava um deles por desfecho).
+export const CLOSED_STATUSES: readonly CareItemStatus[] = ['REALIZADO', 'SUSPENSO', 'ENCAMINHADO'];
+
+export const isStatusClosed = (status: CareItemStatus): boolean => CLOSED_STATUSES.includes(status);
+
+export type StatusTone = 'success' | 'warning' | 'alert' | 'neutral';
+
+export interface StatusDisplay {
+  label: string;
+  tone: StatusTone;
+}
+
+export function statusDisplay(status: CareItemStatus, medication: boolean, overdue: boolean): StatusDisplay {
+  switch (status) {
+    case 'REALIZADO':
+      return { label: medication ? 'Dose dada' : 'Feito', tone: 'success' };
+    case 'SUSPENSO':
+      return { label: 'Sem dose', tone: 'warning' };
+    case 'ENCAMINHADO':
+      return { label: 'Clínica acionada', tone: 'alert' };
+    case 'ATRASADO':
+      return { label: 'Atrasado', tone: 'alert' };
+    case 'CANCELADO':
+      return { label: 'Cancelado', tone: 'neutral' };
+    case 'PENDENTE':
+      return overdue ? { label: 'Atrasado', tone: 'alert' } : { label: 'Pendente', tone: 'neutral' };
+  }
+}
+
+// Item do plano para a aba Cuidados. `treatment` = item nascido de prescrição.
+export interface CareItem {
+  id: string;
+  title: string;
+  dateIso: string;
+  dateLabel: string;
+  type: string;
+  status: CareItemStatus;
+  overdue: boolean;
+  treatment: boolean;
+  executedAt?: string | null;
+  doseApplied?: number | null;
+  interval?: string | null;
+  unit?: string | null;
+  prescriptionId?: number | null;
+}
+
+export interface TreatmentInfo {
+  prescriptionId?: number | null;
+  doseMin?: number | null;
+  doseMax?: number | null;
+  medication: string;
+  unit: string | null;
+  frequencyPerDay: number | null;
+  start: string;
+  end: string;
+}
+
+export interface SuspendedTreatment {
+  medication: string;
+  medications: string[];
+  at: string;
+  items: CareItem[];
 }
 
 export interface CareHistoryItem {
@@ -67,6 +141,16 @@ export interface CarePlan {
   totalWeeks?: number;
   milestones?: ClinicalMilestone[];
   history?: CareHistoryItem[];
+  items: CareItem[];
+  createdAt?: string | null;
+  category?: 'PREVENTIVO' | 'TRATAMENTO' | 'POS_CIRURGICO';
+  endDate?: string | null;
+  modelName?: string | null;
+  treatment?: TreatmentInfo | null;
+  // Todos os medicamentos do plano; ausente quando o back ainda manda só `treatment`.
+  treatments?: TreatmentInfo[];
+  clinic?: ClinicaContato | null;
+  suspended?: SuspendedTreatment | null;
 }
 
 export interface CheckInInterpretation {
@@ -90,15 +174,38 @@ export interface CheckInDoseResult {
   vetCrmv: string;
   prescriptionDateLabel: string;
   pointsEarned: number;
+  // false = nenhuma regra casou (dose-base da receita). Ausente nos resultados locais/mock.
+  ruleApplied?: boolean;
+  medicationLabel?: string;
+  // O desfecho gravou o status de um item do plano (itemPlanoCuidadoId presente).
+  itemClosed?: boolean;
+  // A regra aplicada suspendeu a dose de hoje (desfecho SEM_DOSE): não há dose a dar.
+  suspended?: boolean;
+  // Uma linha por medicamento; só preenchido quando o relato cobre mais de um.
+  lines?: CheckInDoseLine[];
+}
+
+export interface CheckInDoseLine {
+  medication: string;
+  doseLabel: string;
+  suspended: boolean;
+  ruleLabel: string;
 }
 
 export interface CheckInEscalationResult {
   status: 'ESCALATION';
   reasonLabel: string;
+  // true = reasonLabel lista condições do catálogo; false = texto do relato.
+  reasonFromConditions?: boolean;
+  clinicName?: string;
+  clinicPhone?: string;
   ruleDescription: string;
   vetName: string;
   vetCrmv: string;
   suggestedSlotLabel: string;
+  // Todas as regras que acionaram a clínica e os medicamentos suspensos com o tratamento.
+  rules?: string[];
+  medications?: string[];
 }
 
 // Nenhuma regra da prescrição bateu com o relato — princípio do produto: cai
@@ -110,24 +217,6 @@ export interface CheckInNoRuleResult {
 }
 
 export type CheckInResult = CheckInDoseResult | CheckInEscalationResult | CheckInNoRuleResult;
-
-export interface CareScore {
-  totalPoints: number;
-  pointsToday: number;
-  tier: string;
-  nextTier: string;
-  pointsToNextTier: number;
-  progressPct: number;
-  streakDays: number;
-  appointmentsCount: number;
-  homeAdherencePct: number;
-}
-
-export interface Badge {
-  id: string;
-  name: string;
-  unlocked: boolean;
-}
 
 // --- DTOs do fluxo de IA: Check-in Narrado (POST /api/checkin/extracao) ---
 
@@ -143,6 +232,9 @@ export interface CondicaoObservadaExtracao {
   valorBooleano?: boolean;
   valorNumerico?: number;
   confianca: number; // 0.0 – 1.0
+  rotulo?: string | null;
+  unidade?: string | null;
+  critica?: boolean;
 }
 
 // Corpo cru da resposta de /checkin/extracao — sem envelope HATEOAS.
@@ -176,6 +268,17 @@ export interface CheckinDesfecho {
   doseAplicada: number | null;
   unidade: string | null;
   regraAplicadaId: number | null;
+  regraDescricao?: string | null;
+  // Campos novos do back-end (A5): ausentes em respostas antigas.
+  veterinarioNome?: string | null;
+  veterinarioCrmv?: string | null;
+  clinicaNome?: string | null;
+  prescritaEm?: string | null;
+}
+
+export interface ClinicaContato {
+  nome: string;
+  telefone: string;
 }
 
 export interface CheckinResponse {
@@ -187,6 +290,7 @@ export interface CheckinResponse {
   narrativa: string;
   escalado: boolean;
   desfechos: CheckinDesfecho[];
+  clinica?: ClinicaContato | null;
 }
 
 // Entrada da mutation de confirmação: o payload da API + o que a IA já tinha sinalizado
@@ -194,13 +298,68 @@ export interface CheckinResponse {
 export interface ConfirmCheckInInput {
   payload: CheckInRequest;
   redFlags: string[];
+  alarmLabels?: string[];
 }
 
 // Payload completo de POST /api/checkin (check-in em dois passos).
 export interface CheckInRequest {
   animalId: number | string;
   narrativa: string;
-  itemPlanoCuidadoId?: number;
   ticUtilizada?: string;
   condicoes: CondicaoConfirmadaRequest[];
+}
+
+const WEEKDAYS_PT = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+
+export function dayAndWeekday(iso: string, today: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  const weekday = iso === today ? 'hoje' : WEEKDAYS_PT[new Date(year, month - 1, day).getDay()];
+  return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')} · ${weekday}`;
+}
+
+export interface TreatmentGroup {
+  name: string;
+  rangeLabel: string;
+  perDay: number;
+  items: CareItem[];
+}
+
+// perDay só aparece quando o plano traz mais de um item do mesmo remédio no mesmo dia.
+export function groupTreatments(items: CareItem[]): TreatmentGroup[] {
+  const byName = new Map<string, CareItem[]>();
+  for (const item of items) byName.set(item.title, [...(byName.get(item.title) ?? []), item]);
+  return [...byName.entries()].map(([name, group]) => {
+    const sorted = [...group].sort((a, b) => a.dateIso.localeCompare(b.dateIso));
+    const counts = new Map<string, number>();
+    for (const item of sorted) counts.set(item.dateIso, (counts.get(item.dateIso) ?? 0) + 1);
+    const short = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+    const first = sorted[0].dateIso;
+    const last = sorted[sorted.length - 1].dateIso;
+    return {
+      name,
+      rangeLabel: first === last ? short(first) : `${first.slice(8, 10)} a ${short(last)}`,
+      perDay: Math.max(...counts.values()),
+      items: sorted,
+    };
+  });
+}
+
+// "A + B", ou "A + 2" quando são três ou mais.
+export function medicationsTitle(names: string[]): string {
+  if (names.length <= 2) return names.join(' + ');
+  return `${names[0]} + ${names.length - 1}`;
+}
+
+export function treatmentsOf(plan: CarePlan): TreatmentInfo[] {
+  if (plan.treatments && plan.treatments.length > 0) return plan.treatments;
+  return plan.treatment ? [plan.treatment] : [];
+}
+
+export function activePlansLabel(plan: CarePlan): string {
+  const parts: string[] = [];
+  const names = [...new Set(plan.items.filter((item) => item.treatment).map((item) => item.title))];
+  if (plan.items.some((item) => !item.treatment)) parts.push(plan.modelName ?? 'Preventivo');
+  if (names.length > 0) parts.push(`Tratamento com ${names.join(' + ')}`);
+  if (plan.suspended) parts.push('tratamento suspenso');
+  return parts.join(' · ');
 }

@@ -14,8 +14,8 @@ const medicalRecordSchema = object({
     .matches(DATA_ISO_REGEX, 'Use o formato AAAA-MM-DD')
     .required('Informe a data do atendimento'),
   anamnese: string().nullable(),
-  diagnostico: string().required('Informe o diagnóstico'),
-  tratamento: string().required('Informe o tratamento'),
+  diagnostico: string().nullable(),
+  tratamento: string().nullable(),
   observacao: string().nullable(),
   proximoRetorno: string().matches(DATA_ISO_REGEX, 'Use o formato AAAA-MM-DD').nullable(),
   proximaVacina: string().matches(DATA_ISO_REGEX, 'Use o formato AAAA-MM-DD').nullable(),

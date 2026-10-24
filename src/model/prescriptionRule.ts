@@ -15,6 +15,17 @@ const OPERADOR_SIMBOLO: Record<Operador, string> = {
   IGUAL: '=',
 };
 
+const ACAO_ROTULO: Record<TipoAcao, string> = {
+  DOSE_MIN: 'dose mínima',
+  DOSE_MAX: 'dose máxima',
+  DOSE_PADRAO: 'dose padrão',
+  ACIONAR_CLINICA: 'acionar clínica',
+  SUSPENDER: 'suspender',
+};
+
+const rotuloAcao = (acao?: string | null): string =>
+  (acao && ACAO_ROTULO[acao as TipoAcao]) || (acao ? acao.replace(/_/g, ' ').toLowerCase() : 'ação desconhecida');
+
 // Condição clínica do catálogo da clínica (GET /condicao-clinica). BOOLEANO = "aconteceu ou não";
 // NUMERICO exige operador e limite na regra (ex.: temperatura > 39,5).
 interface CondicaoClinica {
@@ -23,17 +34,19 @@ interface CondicaoClinica {
   rotulo: string;
   tipoDado: 'BOOLEANO' | 'NUMERICO';
   unidade?: string | null;
+  // Sinal de alarme: o back-end escala sozinho no check-in, então não vira regra de dose.
+  critica: boolean;
 }
 
 // Catálogo usado só no modo mock (USE_API = false). Com a API, vem de /condicao-clinica.
 const CONDICOES_CLINICAS: CondicaoClinica[] = [
-  { id: 1, codigo: 'FEZES_MOLES', rotulo: 'Fezes moles', tipoDado: 'BOOLEANO' },
-  { id: 2, codigo: 'NAO_EVACUOU', rotulo: 'Não evacuou', tipoDado: 'BOOLEANO' },
-  { id: 3, codigo: 'COMEU_POUCO', rotulo: 'Comeu pouco', tipoDado: 'BOOLEANO' },
-  { id: 4, codigo: 'VOMITO', rotulo: 'Vômito', tipoDado: 'BOOLEANO' },
-  { id: 5, codigo: 'SANGUE_NAS_FEZES', rotulo: 'Sangue nas fezes', tipoDado: 'BOOLEANO' },
-  { id: 6, codigo: 'APATIA', rotulo: 'Apatia', tipoDado: 'BOOLEANO' },
-  { id: 7, codigo: 'DIFICULDADE_RESPIRATORIA', rotulo: 'Dificuldade respiratória', tipoDado: 'BOOLEANO' },
+  { id: 1, codigo: 'FEZES_MOLES', rotulo: 'Fezes moles', tipoDado: 'BOOLEANO', critica: false },
+  { id: 2, codigo: 'NAO_EVACUOU', rotulo: 'Não evacuou', tipoDado: 'BOOLEANO', critica: false },
+  { id: 3, codigo: 'COMEU_POUCO', rotulo: 'Comeu pouco', tipoDado: 'BOOLEANO', critica: false },
+  { id: 4, codigo: 'VOMITO', rotulo: 'Vômito', tipoDado: 'BOOLEANO', critica: false },
+  { id: 5, codigo: 'SANGUE_NAS_FEZES', rotulo: 'Sangue nas fezes', tipoDado: 'BOOLEANO', critica: true },
+  { id: 6, codigo: 'APATIA', rotulo: 'Apatia', tipoDado: 'BOOLEANO', critica: true },
+  { id: 7, codigo: 'DIFICULDADE_RESPIRATORIA', rotulo: 'Dificuldade respiratória', tipoDado: 'BOOLEANO', critica: true },
 ];
 
 const prescriptionRuleSchema = object({
@@ -58,14 +71,35 @@ interface RegraDraft {
   limite?: number | null;
 }
 
+// Condição que a IA reconheceu no relato e que ainda não existe no catálogo da clínica.
+interface CondicaoNova {
+  rotulo: string;
+  tipoDado: 'BOOLEANO' | 'NUMERICO';
+}
+
 // Regra proposta pela IA em POST /prescricao/rascunho (RegraPrescricaoRequest do Java).
-// Não traz rótulo: ele vem do catálogo de condições.
+// Com condicaoNova, condicaoClinicaId vem nulo até a vet criar a condição.
 interface RegraPrescricaoRequest {
-  condicaoClinicaId: number;
+  condicaoClinicaId: number | null;
+  condicaoRotulo?: string | null;
+  condicaoNova?: CondicaoNova | null;
   operador?: Operador | null;
   limite?: number | null;
   acaoDose: TipoAcao;
+  ordem?: number | null;
 }
+
+// Texto sem acento e sem caixa, para comparar e buscar.
+const normalizarTexto = (texto: string): string =>
+  texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+
+// "Dor ao urinar" -> "DOR_AO_URINAR" (o código tem no máximo 60 caracteres).
+const derivarCodigo = (rotulo: string): string =>
+  normalizarTexto(rotulo)
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase()
+    .slice(0, 60);
 
 // "fezes moles" ou "temperatura > 39,5", conforme a condição seja booleana ou numérica.
 const descreverCondicao = (regra: RegraDraft): string => {
@@ -75,11 +109,15 @@ const descreverCondicao = (regra: RegraDraft): string => {
 };
 
 export {
+  ACAO_ROTULO,
   CONDICOES_CLINICAS,
   TP_ACAO,
   OPERADORES,
   OPERADOR_SIMBOLO,
+  derivarCodigo,
   descreverCondicao,
+  normalizarTexto,
   prescriptionRuleSchema,
+  rotuloAcao,
 };
-export type { CondicaoClinica, Operador, PrescriptionRule, RegraDraft, RegraPrescricaoRequest, TipoAcao };
+export type { CondicaoClinica, CondicaoNova, Operador, PrescriptionRule, RegraDraft, RegraPrescricaoRequest, TipoAcao };

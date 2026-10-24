@@ -7,19 +7,19 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Input } from '../../component/ui/Input';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { usePetFormControl } from '../../control/usePetFormControl';
+import { petArticle, sizeLabel } from '../../model/pet';
 import type { PetTabParamList } from '../navigation/types';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 // botao-passaro-1.png não existe nos assets — usando botao-passaro.png
 const ESPECIE_ICONS: Record<string, any> = {
   CACHORRO: require('../../../assets/botoes/botao-cachorro-1.png'),
@@ -42,7 +42,7 @@ const SEXO_LABEL: Record<string, string> = {
 type Props = NativeStackScreenProps<PetTabParamList, 'NovoPet'>;
 
 export function NovoPetScreen({ route, navigation }: Props) {
-  const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const petId = route.params?.petId;
 
   const {
@@ -54,9 +54,6 @@ export function NovoPetScreen({ route, navigation }: Props) {
     peso, handlePesoChange,
     dataNascimento,
     handleDataChange,
-    castrado, setCastrado,
-    condicaoCronica, setCondicaoCronica,
-    alergias, setAlergias,
     erros,
     salvar,
     isFetchingPet,
@@ -82,24 +79,12 @@ export function NovoPetScreen({ route, navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
     >
-      <ScrollView
+      <ScrollView keyboardDismissMode="on-drag"
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero banner ilustrado */}
-        <Image
-          source={require('../../../assets/images/banner.png')}
-          style={styles.heroBanner}
-          resizeMode="contain"
-        />
-        <Text style={styles.heroSubtitle}>
-          {petId
-            ? 'Atualize os dados do seu companheiro'
-            : 'Cadastre o novo companheiro...'}
-        </Text>
-
         {/* Cartão 1 — Informações básicas */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -123,7 +108,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
 
           {/* Espécie — COELHO removido, chip quadrado só com ícone */}
           <Text style={styles.fieldLabel}>Espécie *</Text>
-          <ScrollView
+          <ScrollView keyboardDismissMode="on-drag"
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.especieRow}
@@ -205,7 +190,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
                   accessibilityRole="button"
                 >
                   <Text style={[styles.porteLabel, active && styles.porteLabelActive]}>
-                    {p}
+                    {sizeLabel(p)}
                   </Text>
                 </Pressable>
               );
@@ -240,46 +225,6 @@ export function NovoPetScreen({ route, navigation }: Props) {
           </View>
         </View>
 
-        {/* Cartão 3 — Saúde */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconCircle, { backgroundColor: '#FFE4E4' }]}>
-              <Ionicons name="heart-outline" size={20} color="#EF4444" />
-            </View>
-            <View>
-              <Text style={styles.cardTitle}>Saúde</Text>
-              <Text style={styles.cardSubtitle}>Essas informações ajudam a cuidar ainda melhor.</Text>
-            </View>
-          </View>
-
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Castrado</Text>
-            <Switch
-              value={castrado}
-              onValueChange={setCastrado}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.surface}
-            />
-          </View>
-
-          <Input
-            label="Alergias"
-            placeholder="Descreva se houver (opcional)"
-            value={alergias}
-            onChangeText={setAlergias}
-          />
-
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Condição crônica</Text>
-            <Switch
-              value={condicaoCronica}
-              onValueChange={setCondicaoCronica}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor={colors.surface}
-            />
-          </View>
-        </View>
-
         {/* Aviso de campos obrigatórios */}
         <View style={styles.infoBox}>
           <Ionicons name="information-circle" size={20} color={colors.primary} />
@@ -289,10 +234,19 @@ export function NovoPetScreen({ route, navigation }: Props) {
           </View>
         </View>
 
+        {!petId ? (
+          <View style={styles.planNote}>
+            <Text style={styles.planNoteText}>
+              {`Ao salvar, a clínica monta o plano preventivo ${petArticle(sexo)} ${nome.trim() || 'pet'}.`}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Rodapé — empilhado: ação principal no topo */}
         <View style={styles.footer}>
           <Button
             label={petId ? 'Salvar alterações' : 'Salvar pet'}
+            backgroundColor={colors.action}
             loading={isSaving}
             onPress={salvar}
           />
@@ -314,20 +268,6 @@ const styles = StyleSheet.create({
   content: {
     padding: spacing.lg,
     gap: spacing.md,
-  },
-
-  // Hero banner
-  heroBanner: {
-    width: '100%',
-    height: 140,
-    borderRadius: radii.lg,
-    marginBottom: spacing.xs,
-  },
-  heroSubtitle: {
-    ...typography.subtitle,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
   },
 
   // Cards
@@ -468,20 +408,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Switch row
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.xs,
-  },
-  switchLabel: {
-    ...typography.body,
-    color: colors.textPrimary,
-    fontWeight: '500',
-  },
-
   // Info box
+  planNote: {
+    backgroundColor: colors.cardChia,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  planNoteText: { fontFamily: 'Inter', fontSize: 15, lineHeight: 22, color: colors.textPrimary },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',

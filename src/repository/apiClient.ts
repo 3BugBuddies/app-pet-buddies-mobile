@@ -28,14 +28,14 @@ const addAuthInterceptor = (instance: ReturnType<typeof axios.create>) => {
 }
 
 const apiJava = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_BASE_URL || 'http://petbuddies-java-rm563925.eastus.azurecontainer.io:8080/api'
+  baseURL: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://petbuddies-java-rm563925.azurewebsites.net/api'
 });
 addAuthInterceptor(apiJava);
 
 apiJava.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401 && !error.config.url?.endsWith('/auth/login')) {
+    if (error.response?.status === 401 && !error.config.url?.endsWith('/auth/login') && !error.config.url?.endsWith('/auth/senha')) {
       if (listeners.size > 0) {
         listeners.forEach(l => l());
       } else {

@@ -1,7 +1,7 @@
 // Campos baseados em T_PB_PRESCRICAO, em camelCase: o prefixo da coluna cai e a FK vira
 // "<entidade>Id", a mesma convencao dos DTOs da API.
 import { InferType, object, string, number, ref } from 'yup';
-import type { RegraDraft, RegraPrescricaoRequest } from './prescriptionRule';
+import type { Operador, RegraDraft, RegraPrescricaoRequest, TipoAcao } from './prescriptionRule';
 
 const DATA_ISO_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -54,6 +54,20 @@ interface PrescricaoDraft {
   duracaoDias: number;
   orientacao: string;
   regras: RegraDraft[];
+  // Origem na receita-modelo, quando a vet partiu de uma. Os dois juntos ou nenhum.
+  receitaModeloId?: number;
+  receitaModeloVersao?: number;
+}
+
+// Um medicamento da receita. A `key` é estável e só existe no cliente: identifica o cartão
+// enquanto a vet adiciona, remove e reordena.
+type ItemReceitaDraft = Omit<PrescricaoDraft, 'animalId' | 'registroAtendimentoId'> & { key: string };
+
+// A receita do atendimento: N medicamentos, uma assinatura.
+interface ReceitaDraft {
+  animalId: string;
+  registroAtendimentoId?: string;
+  itens: ItemReceitaDraft[];
 }
 
 // --- DTOs do fluxo de IA: Rascunho de Prescrição (POST /api/prescricao/rascunho) ---
@@ -65,7 +79,7 @@ export interface NarrativaPrescricaoRequest {
   narrativa: string;
 }
 
-// Campos de prescrição que a IA extraiu da narrativa — objeto aninhado dentro
+// Campos de prescrição que a IA extraiu da narrativa.
 export interface PrescricaoRequest {
   medicamento: string;
   doseMin: number;
@@ -76,9 +90,17 @@ export interface PrescricaoRequest {
   orientacao?: string;
 }
 
+// Um medicamento extraído do ditado (itens[] da resposta).
+export interface RascunhoItem {
+  prescricao: PrescricaoRequest;
+  confiancaPorCampo?: Record<string, unknown> | null;
+  regrasPropostas?: RegraPrescricaoRequest[] | null;
+}
+
 // Corpo completo da resposta de POST /api/prescricao/rascunho.
-// de confiança — não campos soltos na raiz.
+// `itens` vem ausente em back antigo; os campos legados trazem o 1º medicamento.
 export interface RascunhoPrescricaoResponse {
+  itens?: RascunhoItem[] | null;
   narrativaOriginal: string;
   extracaoDisponivel: boolean;
   motivoDegradacao: string | null;
@@ -87,5 +109,32 @@ export interface RascunhoPrescricaoResponse {
   condicoesDescartadas: string[];
 }
 
+// Receita-modelo da clínica (GET /api/receita-modelo). Campos como a API manda.
+interface PrescriptionTemplateRule {
+  id: number;
+  condicaoClinicaId: number;
+  condicaoRotulo: string;
+  condicaoTipoDado: 'BOOLEANO' | 'NUMERICO';
+  condicaoUnidade: string | null;
+  operador: Operador | null;
+  limite: number | null;
+  acaoDose: TipoAcao;
+  ordem: number | null;
+}
+
+interface PrescriptionTemplate {
+  id: number;
+  titulo: string;
+  medicamento: string;
+  doseMin: number;
+  doseMax: number;
+  unidade: string;
+  frequenciaDia: number;
+  duracaoDias: number;
+  orientacao: string | null;
+  versao: number;
+  regras: PrescriptionTemplateRule[];
+}
+
 export { Prescription, prescriptionSchema };
-export type { PrescricaoDraft };
+export type { ItemReceitaDraft, PrescricaoDraft, ReceitaDraft, PrescriptionTemplate, PrescriptionTemplateRule };

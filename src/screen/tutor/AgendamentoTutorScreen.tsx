@@ -6,22 +6,32 @@ import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
+import { BrandMark } from '../../component/ui/BrandMark';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useCreateAppointment, useFreeWindows, useVeterinarians } from '../../control/useAppointmentsControl';
+import { useAllPetsAppointments, useCreateAppointment, useFreeDates, useFreeWindows, useVeterinarians } from '../../control/useAppointmentsControl';
+import { formatAppointmentDate } from '../../model/formatDate';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { AgendaTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<AgendaTabParamList, 'AgendamentoTutor'>;
 
-const MOTIVOS = ['Consulta de Rotina', 'Vacinação', 'Exames', 'Pet Doente', 'Retorno'];
+const MOTIVOS = ['Consulta de rotina', 'Vacinação', 'Exames', 'Pet doente', 'Retorno'];
 
 // Data local AAAA-MM-DD (toISOString usaria UTC e adiantaria o dia à noite no Brasil).
 function isoLocal(d: Date): string {
   const mes = String(d.getMonth() + 1).padStart(2, '0');
   const dia = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
+function shortDayLabel(iso: string): string {
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  const nomes = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const d = new Date(ano, mes - 1, dia);
+  return `${nomes[d.getDay()]} ${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}`;
 }
 
 function gerarProximosDias(quantidade: number) {
@@ -43,6 +53,7 @@ function gerarProximosDias(quantidade: number) {
 export function AgendamentoTutorScreen({ route }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<AgendaTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pets, isLoading } = usePets();
   const createAppointment = useCreateAppointment();
   const { activePetId, setActivePetId } = useActivePetId();
@@ -50,19 +61,43 @@ export function AgendamentoTutorScreen({ route }: Props) {
 
   const DIAS = useMemo(() => gerarProximosDias(14), []);
   const [reason, setReason] = useState('');
-  const [selectedDate, setSelectedDate] = useState(DIAS[0].iso);
-  const [selectedJanelaId, setSelectedJanelaId] = useState<number | null>(null);
-  const [vetEscolhidoId, setVetEscolhidoId] = useState<string | null>(null);
+  const routePetId = route.params?.petId;
+  const routeReason = route.params?.reason;
+  const routeDate = route.params?.date;
+  const [escolhida, setEscolhida] = useState<string | null>(null);
 
-  // A API só lista janelas de um veterinário específico: com um só na clínica ele é
-  // escolhido automaticamente; com vários, o tutor escolhe.
+  useEffect(() => {
+    if (!routePetId && !routeReason && !routeDate) return;
+    if (routePetId) setActivePetId(routePetId);
+    if (routeReason) setReason(routeReason);
+    if (routeDate) setEscolhida(routeDate);
+    navigation.setParams({ petId: undefined, reason: undefined, date: undefined });
+  }, [routePetId, routeReason, routeDate, navigation, setActivePetId]);
+  const todas = useAllPetsAppointments((pets ?? []).map((p) => String(p.id)));
+  const proxima = useMemo(() => {
+    const agora = Date.now();
+    return todas
+      .filter((a) => (a.status === 'SCHEDULED' || a.status === 'CONFIRMED') && new Date(a.date).getTime() >= agora)
+      .sort((a, b) => a.date.localeCompare(b.date))[0];
+  }, [todas]);
+  const [selectedJanelaId, setSelectedJanelaId] = useState<number | null>(null);
+
+  // A API só lista janelas de um veterinário específico: usa-se o primeiro da clínica.
   const { data: veterinarios, isLoading: isLoadingVets } = useVeterinarians();
-  const veterinarioId = vetEscolhidoId ?? veterinarios?.[0]?.id;
+  const veterinarioId = veterinarios?.[0]?.id;
+  const { data: diasLivres } = useFreeDates(veterinarioId, DIAS[0].iso, DIAS[DIAS.length - 1].iso);
+  const livres = useMemo(() => new Set(diasLivres ?? []), [diasLivres]);
+  const selectedDate = escolhida && livres.has(escolhida) ? escolhida : (diasLivres?.[0] ?? '');
   const { data: janelasLivres, isLoading: isLoadingJanelas } = useFreeWindows(veterinarioId, selectedDate);
 
   useEffect(() => {
     setSelectedJanelaId(null);
   }, [selectedDate, veterinarioId]);
+
+  const selectedJanela = janelasLivres?.find((j) => j.id === selectedJanelaId);
+  const confirmLabel = selectedJanela
+    ? `Confirmar · ${shortDayLabel(selectedDate)} às ${selectedJanela.horaInicio.substring(0, 5)}`
+    : 'Escolha dia e horário';
 
   const handleSave = async () => {
     if (!petIdAtivo || !reason || !selectedDate || !selectedJanelaId) return;
@@ -88,10 +123,22 @@ export function AgendamentoTutorScreen({ route }: Props) {
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
       <View style={styles.topBar}>
-        <CheckInTopBar title="Nova Consulta" />
+        <BrandMark />
+        <View style={styles.topBarMain}>
+          <CheckInTopBar title="Agendar consulta" />
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]} showsVerticalScrollIndicator={false}>
+
+        {proxima ? (
+          <View style={styles.proximaCard}>
+            <Text style={styles.proximaLabel}>Sua próxima consulta</Text>
+            <Text style={styles.proximaText}>
+              {`${proxima.reason || 'Consulta'} · ${formatAppointmentDate(proxima.date).dayLabel} · ${formatAppointmentDate(proxima.date).timeLabel} · ${pets.find((p) => p.id === proxima.petId)?.nome ?? ''}`}
+            </Text>
+          </View>
+        ) : null}
 
         {/* Seção 1: Qual pet? */}
         <View style={styles.section}>
@@ -122,69 +169,47 @@ export function AgendamentoTutorScreen({ route }: Props) {
         {/* Seção 2: Motivo */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Motivo</Text>
-          <QuickChips options={MOTIVOS} onSelect={setReason} />
-          {reason ? (
-            <View style={styles.motivoTag}>
-              <Text style={styles.motivoTagText}>{reason}</Text>
-            </View>
-          ) : null}
+          <QuickChips options={MOTIVOS} onSelect={setReason} selected={reason} hideLabel />
         </View>
-
-        {/* Seção: Veterinário (só quando há mais de um para escolher) */}
-        {veterinarios && veterinarios.length > 1 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Veterinário</Text>
-            <View style={styles.petsRow}>
-              {veterinarios.map((vet) => {
-                const active = vet.id === veterinarioId;
-                return (
-                  <Pressable
-                    key={vet.id}
-                    onPress={() => setVetEscolhidoId(vet.id)}
-                    style={[styles.petChip, active && styles.petChipActive]}
-                  >
-                    <Text style={[styles.petName, active && styles.petNameActive]} numberOfLines={1}>
-                      {vet.nome}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        )}
 
         {/* Seção 3: Dia */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Dia</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.diasRow}>
+          <View style={styles.diasGrid}>
+            {DIAS.slice(0, 7).map((dia) => (
+              <Text key={dia.iso} style={styles.diaCabecalho}>{dia.diaSemana}</Text>
+            ))}
             {DIAS.map((dia) => {
               const active = dia.iso === selectedDate;
+              const livre = livres.has(dia.iso);
               return (
                 <Pressable
                   key={dia.iso}
-                  onPress={() => setSelectedDate(dia.iso)}
-                  style={[styles.diaBlock, active && styles.diaBlockActive]}
+                  disabled={!livre}
+                  onPress={() => setEscolhida(dia.iso)}
+                  style={[styles.diaBlock, active && styles.diaBlockActive, !livre && styles.horarioBlockDisabled]}
                 >
-                  <Text style={[styles.diaSemana, active && styles.diaTextActive]}>{dia.diaSemana}</Text>
                   <Text style={[styles.diaNúmero, active && styles.diaTextActive]}>{dia.numeroDia}</Text>
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
         </View>
 
         {/* Seção 4: Horário */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Horário</Text>
+          <Text style={styles.sectionLabel}>
+            {selectedDate ? `Horários de ${formatAppointmentDate(`${selectedDate}T12:00:00`).dayLabel}` : 'Horário'}
+          </Text>
           {isLoadingVets || isLoadingJanelas ? (
             <LoadingIndicator label="Buscando horários..." />
           ) : !veterinarioId ? (
             <Text style={styles.emptyText}>
               Nenhum veterinário disponível na clínica no momento.
             </Text>
-          ) : !janelasLivres || janelasLivres.length === 0 ? (
+          ) : !selectedDate || !janelasLivres || janelasLivres.length === 0 ? (
             <Text style={styles.emptyText}>
-              Nenhum horário disponível para esta data. Selecione outro dia.
+              Nenhum horário disponível nos próximos dias.
             </Text>
           ) : (
             <View style={styles.horariosGrid}>
@@ -206,8 +231,9 @@ export function AgendamentoTutorScreen({ route }: Props) {
         </View>
 
         <Button
-          label="Confirmar Agendamento"
+          label={confirmLabel}
           onPress={handleSave}
+          backgroundColor={selectedJanela ? colors.action : undefined}
           disabled={!petIdAtivo || !reason || !selectedDate || !selectedJanelaId}
           loading={createAppointment.isPending}
         />
@@ -223,9 +249,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
+  },
+  topBarMain: {
+    flex: 1,
   },
   content: {
     padding: spacing.lg,
@@ -289,25 +321,39 @@ const styles = StyleSheet.create({
   petNameActive: {
     color: colors.textLight,
   },
-  motivoTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    backgroundColor: `${colors.primary}1A`,
+  diasGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: spacing.sm,
   },
-  motivoTagText: {
-    fontSize: 14,
-    fontWeight: '600',
+  diaCabecalho: {
+    width: `${100 / 7}%`,
+    textAlign: 'center',
+    fontSize: 12,
+    color: colors.textSecondary,
+    textTransform: 'lowercase',
+  },
+  proximaCard: {
+    backgroundColor: colors.cardChia,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  proximaLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  proximaText: {
+    ...typography.subtitle,
     color: colors.textPrimary,
   },
-  diasRow: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xs,
-  },
   diaBlock: {
-    width: 56,
-    height: 64,
+    width: `${100 / 7 - 1}%`,
+    marginHorizontal: `${0.5}%`,
+    height: 48,
     borderRadius: radii.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
