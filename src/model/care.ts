@@ -139,6 +139,7 @@ export interface CarePlan {
   createdAt?: string | null;
   category?: 'PREVENTIVO' | 'TRATAMENTO' | 'POS_CIRURGICO';
   endDate?: string | null;
+  modelName?: string | null;
   treatment?: TreatmentInfo | null;
   clinic?: ClinicaContato | null;
   suspended?: SuspendedTreatment | null;
@@ -326,8 +327,8 @@ export function groupTreatments(items: CareItem[]): TreatmentGroup[] {
 export function activePlansLabel(plan: CarePlan): string {
   const parts: string[] = [];
   const names = [...new Set(plan.items.filter((item) => item.treatment).map((item) => item.title))];
+  if (plan.items.some((item) => !item.treatment)) parts.push(plan.modelName ?? 'Preventivo');
   if (names.length > 0) parts.push(`Tratamento com ${names.join(', ')}`);
-  if (plan.items.some((item) => !item.treatment)) parts.push('Preventivo');
   if (plan.suspended) parts.push('tratamento suspenso');
   return parts.join(' · ');
 }

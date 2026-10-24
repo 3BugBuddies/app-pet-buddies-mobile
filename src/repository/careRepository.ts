@@ -44,6 +44,7 @@ interface PlanoApi {
   instanciadoEm?: string | null;
   categoria?: CarePlan['category'];
   dataFim?: string | null;
+  modeloPlano?: string | null;
   eventos?: ItemPlanoApi[] | null;
   tratamento?: {
     medicamento: string;
@@ -164,6 +165,7 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
       createdAt: data.instanciadoEm ?? null,
       category: data.categoria,
       endDate: data.dataFim ?? null,
+      modelName: data.modeloPlano ?? null,
       treatment: data.tratamento
         ? {
             medication: data.tratamento.medicamento,
