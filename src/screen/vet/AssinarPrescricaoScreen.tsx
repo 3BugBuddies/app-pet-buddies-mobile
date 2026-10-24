@@ -102,7 +102,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
-      <CheckInTopBar title="Assinar e concluir" />
+      <CheckInTopBar title={draft ? 'Assinar e concluir' : 'Concluir atendimento'} />
 
       <View style={styles.card}>
         <Text style={styles.cardLabel}>{header}</Text>
@@ -139,7 +139,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
       </View>
 
       <Button
-        label={crmv ? `Assinar e concluir · CRMV ${crmv}` : 'Assinar e concluir'}
+        label={!draft ? 'Concluir atendimento' : crmv ? `Assinar e concluir · CRMV ${crmv}` : 'Assinar e concluir'}
         backgroundColor={colors.action}
         loading={completing}
         onPress={handleSign}
