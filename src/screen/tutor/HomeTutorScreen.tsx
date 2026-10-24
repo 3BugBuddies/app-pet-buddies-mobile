@@ -6,6 +6,7 @@ import { useContext, useMemo } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ClinicCard } from '../../component/home/ClinicCard';
+import { PataSeguraCard } from '../../component/home/PataSeguraCard';
 import { GreetingHeader } from '../../component/home/GreetingHeader';
 import { HeroPetCard } from '../../component/home/HeroPetCard';
 import { PreventiveCard } from '../../component/care-plan/PreventiveCard';
@@ -274,15 +275,7 @@ export function HomeTutorScreen() {
                 accessibilityRole="button"
                 onPress={() => navigation.navigate('HomeTab', { screen: 'PataSegura' })}
               >
-                <View style={[styles.fallbackCard, { backgroundColor: colors.cardMax, flex: 1, minHeight: 160 }]}>
-                  <View style={styles.fallbackHeader}>
-                    <Text style={styles.fallbackTitle}>Pata Segura</Text>
-                  </View>
-                  <Text style={[styles.fallbackSub, { marginTop: 'auto' }]}>
-                    Consulta efetivada vira ponto.
-                  </Text>
-                  <Text style={styles.fallbackAction}>Em breve</Text>
-                </View>
+                <PataSeguraCard />
               </Pressable>
             </View>
           </View>
@@ -341,36 +334,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: spacing.md,
-  },
-  fallbackCard: {
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.xs,
-  },
-  fallbackHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  fallbackTitle: {
-    fontFamily: 'Sora',
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  fallbackSub: {
-    fontFamily: 'Inter',
-    fontSize: 13,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  fallbackAction: {
-    fontFamily: 'Inter',
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginTop: spacing.sm,
   },
   // Context Selector styles
   petSelectorRow: {
