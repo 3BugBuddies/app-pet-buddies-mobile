@@ -61,13 +61,13 @@ export default function OnboardingScreen() {
       {/* CTAs */}
       <View style={styles.actions}>
         <Button
-          label="Cadastrar responsável"
+          label="Cadastrar Tutor"
           backgroundColor={colors.action}
           textColor={colors.textLight}
           onPress={() => navigation.navigate('Register')}
         />
         <Button
-          label="Cadastrar veterinária"
+          label="Cadastrar Veterinário"
           variant="secondary"
           onPress={() => navigation.navigate('Register')}
         />

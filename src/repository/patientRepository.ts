@@ -8,6 +8,7 @@ interface PlanEventDto {
   nome: string;
   dataAlvo: string;
   status: string;
+  origem?: string | null;
 }
 
 interface PlanDto {
@@ -44,6 +45,7 @@ const getPlanSummary = async (petId: string): Promise<PlanSummary | null> => {
       category: data.categoria,
       upcoming,
       endDate: data.dataFim ?? null,
+      treatmentName: eventos.find((e) => e.origem === 'PRESCRICAO')?.nome ?? null,
     };
   } catch (err: unknown) {
     if (isAxiosError(err) && err.response?.status === 404) return null;

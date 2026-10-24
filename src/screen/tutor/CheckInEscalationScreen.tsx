@@ -43,14 +43,14 @@ export function CheckInEscalationScreen({ route }: Props) {
 
       {result.clinicPhone ? (
         <>
-          <Text style={styles.clinic}>
-            {result.clinicName ? `${result.clinicName} · ` : ''}
-            <Text style={styles.clinicPhone}>{result.clinicPhone}</Text>
-          </Text>
           <Button
             label="Ligar para a clínica"
             onPress={() => Linking.openURL(`tel:${result.clinicPhone?.replace(/\D/g, '')}`)}
           />
+          <Text style={styles.clinic}>
+            {result.clinicName ? `${result.clinicName} · ` : ''}
+            <Text style={styles.clinicPhone}>{result.clinicPhone}</Text>
+          </Text>
         </>
       ) : null}
     </ScrollView>
