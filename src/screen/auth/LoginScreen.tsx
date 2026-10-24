@@ -97,7 +97,7 @@ export function LoginScreen() {
                   }}
                   style={styles.demoChip}
                 >
-                  <Text style={styles.demoChipText}>🐾 Tutor (Maria)</Text>
+                  <Text style={styles.demoChipText}>🐾 Responsável (Maria)</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => {

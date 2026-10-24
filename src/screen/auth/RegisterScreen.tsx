@@ -12,7 +12,7 @@ import { colors, radii, spacing, typography } from '../../styles/theme';
 
 const PERFIL_LABEL: Record<string, string> = {
   TUTOR: 'Responsável',
-  VET: 'Veterinário',
+  VET: 'Veterinária',
 };
 
 export function RegisterScreen() {
@@ -80,11 +80,12 @@ export function RegisterScreen() {
                 <FieldError message={erros.telefone} />
 
                 <Input
-                  label="Endereço (opcional)"
+                  label="Endereço · opcional"
                   placeholder="Rua, número, bairro e cidade"
                   value={endereco}
                   onChangeText={setEndereco}
                 />
+                <Text style={styles.hint}>A clínica usa para traçar a rota até você.</Text>
               </>
             ) : (
               <>
@@ -134,6 +135,7 @@ const styles = StyleSheet.create({
   perfilChipAtivo: { backgroundColor: colors.primary, borderColor: colors.primary },
   perfilChipText: { ...typography.body, color: colors.textSecondary },
   perfilChipTextAtivo: { color: colors.textLight, fontWeight: 'bold' },
+  hint: { ...typography.caption, color: colors.textSecondary, marginTop: -spacing.xs, marginBottom: spacing.sm },
   buttonSpacing: { marginTop: spacing.sm },
   apiError: { ...typography.caption, color: colors.error, marginBottom: spacing.sm },
   loginLink: { marginTop: spacing.lg, alignItems: 'center' },

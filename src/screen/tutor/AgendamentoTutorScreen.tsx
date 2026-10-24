@@ -17,7 +17,7 @@ import { colors, radii, spacing, typography } from '../../styles/theme';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<AgendaTabParamList, 'AgendamentoTutor'>;
 
-const MOTIVOS = ['Consulta de Rotina', 'Vacinação', 'Exames', 'Pet Doente', 'Retorno'];
+const MOTIVOS = ['Consulta de rotina', 'Vacinação', 'Exames', 'Pet doente', 'Retorno'];
 
 // Data local AAAA-MM-DD (toISOString usaria UTC e adiantaria o dia à noite no Brasil).
 function isoLocal(d: Date): string {

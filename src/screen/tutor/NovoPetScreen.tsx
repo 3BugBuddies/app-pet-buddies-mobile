@@ -15,6 +15,7 @@ import { Button } from '../../component/ui/Button';
 import { Input } from '../../component/ui/Input';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { usePetFormControl } from '../../control/usePetFormControl';
+import { petArticle, sizeLabel } from '../../model/pet';
 import type { PetTabParamList } from '../navigation/types';
 import { colors, radii, spacing, typography } from '../../styles/theme';
 
@@ -189,7 +190,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
                   accessibilityRole="button"
                 >
                   <Text style={[styles.porteLabel, active && styles.porteLabelActive]}>
-                    {p}
+                    {sizeLabel(p)}
                   </Text>
                 </Pressable>
               );
@@ -232,6 +233,14 @@ export function NovoPetScreen({ route, navigation }: Props) {
             <Text style={styles.infoMuted}>As validações são aplicadas no envio.</Text>
           </View>
         </View>
+
+        {!petId ? (
+          <View style={styles.planNote}>
+            <Text style={styles.planNoteText}>
+              {`Ao salvar, a clínica monta o plano preventivo ${petArticle(sexo)} ${nome.trim() || 'pet'}.`}
+            </Text>
+          </View>
+        ) : null}
 
         {/* Rodapé — empilhado: ação principal no topo */}
         <View style={styles.footer}>
@@ -400,6 +409,12 @@ const styles = StyleSheet.create({
   },
 
   // Info box
+  planNote: {
+    backgroundColor: colors.cardChia,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  planNoteText: { fontFamily: 'Inter', fontSize: 15, lineHeight: 22, color: colors.textPrimary },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',

@@ -36,7 +36,11 @@ export function PetTabStack() {
         })}
       />
       <Stack.Screen name="MeusPets" component={MeusPetsScreen} options={{ title: 'Meus Pets' }} />
-      <Stack.Screen name="NovoPet" component={NovoPetScreen} options={{ title: 'Novo Pet' }} />
+      <Stack.Screen
+        name="NovoPet"
+        component={NovoPetScreen}
+        options={({ route }) => ({ title: route.params?.petId ? 'Editar pet' : 'Novo pet' })}
+      />
     </Stack.Navigator>
   );
 }
