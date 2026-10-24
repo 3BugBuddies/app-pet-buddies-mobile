@@ -1,10 +1,13 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
 
 export function PataSeguraCard() {
   return (
     <View style={styles.card}>
-      <Text style={styles.label}>Pata Segura</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.label}>Pata Segura</Text>
+        <Image source={require('../../../assets/images/pata-segura.png')} style={styles.shield} resizeMode="contain" />
+      </View>
       <Text style={styles.title}>Em breve</Text>
       <Text style={styles.text}>Consulta efetivada vira ponto.</Text>
     </View>
@@ -20,6 +23,8 @@ const styles = StyleSheet.create({
     minHeight: 160,
     flex: 1,
   },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  shield: { width: 28, height: 28 },
   label: {
     fontFamily: 'Inter',
     fontSize: 11,

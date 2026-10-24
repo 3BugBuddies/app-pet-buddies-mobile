@@ -6,6 +6,7 @@ import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
+import { BrandMark } from '../../component/ui/BrandMark';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useAllPetsAppointments, useCreateAppointment, useFreeDates, useFreeWindows, useVeterinarians } from '../../control/useAppointmentsControl';
 import { formatAppointmentDate } from '../../model/formatDate';
@@ -120,7 +121,10 @@ export function AgendamentoTutorScreen({ route }: Props) {
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
       <View style={styles.topBar}>
-        <CheckInTopBar title="Agendar consulta" />
+        <BrandMark />
+        <View style={styles.topBarMain}>
+          <CheckInTopBar title="Agendar consulta" />
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]} showsVerticalScrollIndicator={false}>
@@ -243,9 +247,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
+  },
+  topBarMain: {
+    flex: 1,
   },
   content: {
     padding: spacing.lg,

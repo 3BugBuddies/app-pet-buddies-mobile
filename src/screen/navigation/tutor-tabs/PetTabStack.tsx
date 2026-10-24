@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { PetProfileScreen } from '../../tutor/PetProfileScreen';
 import { MeusPetsScreen } from '../../tutor/MeusPetsScreen';
 import { NovoPetScreen } from '../../tutor/NovoPetScreen';
+import { BrandMark } from '../../../component/ui/BrandMark';
 import { colors } from '../../../styles/theme';
 import type { PetTabParamList } from '../types';
 
@@ -26,11 +27,7 @@ export function PetTabStack() {
                   <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
                 </Pressable>
               )}
-              <Image
-                source={require('../../../../assets/images/logo-header-principal-trasparente.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
+              <BrandMark />
             </View>
           ),
         })}
@@ -47,5 +44,4 @@ export function PetTabStack() {
 
 const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  logo: { width: 76, height: 38 },
 });

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
 import type { CareItem } from '../../model/care';
+import { BrandMark } from '../ui/BrandMark';
 import { clockLabel, doseText, isItemPending } from '../../model/careHome';
 import { petDefiniteArticle } from '../../model/pet';
 
@@ -22,8 +23,8 @@ function ClosedRow({ item, unit }: { item: CareItem; unit: string | null | undef
   if (item.status === 'REALIZADO') {
     return (
       <View style={[styles.row, { backgroundColor: colors.limeSoft }]}>
-        <View style={[styles.closedCircle, { backgroundColor: colors.lime }]}>
-          <Ionicons name="checkmark" size={14} color={colors.textPrimary} />
+        <View style={styles.doneDisc}>
+          <BrandMark style={styles.doneMark} />
         </View>
         <View style={styles.texts}>
           <Text style={styles.title}>{`${item.title}${dose}`}</Text>
@@ -92,6 +93,8 @@ export function TodayAtHomeCard({ items, unit, petName, petSex, onPressItem }: T
 }
 
 const styles = StyleSheet.create({
+  doneDisc: { width: 36, height: 36, borderRadius: radii.pill, backgroundColor: '#FFF3D4', alignItems: 'center', justifyContent: 'center' },
+  doneMark: { width: 30, height: 30 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,

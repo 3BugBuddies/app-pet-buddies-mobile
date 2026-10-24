@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { BrandMark } from '../../component/ui/BrandMark';
 import { Button } from '../../component/ui/Button';
 import { formatHourShort } from '../../model/closingSummary';
 import { formatShortDate } from '../../model/formatDate';
@@ -42,7 +42,7 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 40), paddingBottom: tabBarSpace }]}>
       <View style={styles.content}>
         <View style={styles.iconCircle}>
-          <Ionicons name="checkmark" size={56} color={colors.primary} />
+          <BrandMark style={styles.celebrationMark} />
         </View>
 
         <Text style={styles.title}>Atendimento concluído</Text>
@@ -89,11 +89,12 @@ function Block({ label, title, sub }: { label: string; title: string; sub?: stri
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background, justifyContent: 'space-between' },
   content: { paddingHorizontal: spacing.lg, alignItems: 'center', marginTop: spacing.xl },
+  celebrationMark: { width: 104, height: 104 },
   iconCircle: {
-    width: 88,
-    height: 88,
+    width: 128,
+    height: 128,
     borderRadius: radii.pill,
-    backgroundColor: colors.success,
+    backgroundColor: '#FFF3D4',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,

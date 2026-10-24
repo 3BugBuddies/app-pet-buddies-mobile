@@ -8,6 +8,7 @@ import { SuspendedTreatmentCard } from '../../component/care-plan/SuspendedTreat
 import { TodayAtHomeCard } from '../../component/care-plan/TodayAtHomeCard';
 import { TreatmentWeekCard } from '../../component/care-plan/TreatmentWeekCard';
 import { NoPetState } from '../../component/pet/NoPetState';
+import { BrandMark } from '../../component/ui/BrandMark';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useCarePlan } from '../../control/useCarePlanControl';
@@ -67,6 +68,7 @@ export function CarePlanScreen({ route }: Props) {
   if (!plan) {
     return (
       <View style={[styles.screen, { paddingTop: Math.max(insets.top, 16) }]}>
+        <BrandMark style={styles.noPlanMark} />
         <NoPlanState
           petName={pet?.nome ?? 'pet'}
           petSex={pet?.sexo}
@@ -105,9 +107,12 @@ export function CarePlanScreen({ route }: Props) {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
       >
-        <View style={styles.headerTexts}>
-          <Text style={styles.headerTitle}>{`Cuidados ${petArticle(pet?.sexo)} ${petName}`}</Text>
-          <Text style={styles.headerSubtitle}>{activePlansLabel(plan)}</Text>
+        <View style={styles.header}>
+          <BrandMark />
+          <View style={styles.headerTexts}>
+            <Text style={styles.headerTitle}>{`Cuidados ${petArticle(pet?.sexo)} ${petName}`}</Text>
+            <Text style={styles.headerSubtitle}>{activePlansLabel(plan)}</Text>
+          </View>
         </View>
 
         {plan.suspended ? (
@@ -146,7 +151,9 @@ export function CarePlanScreen({ route }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   noPet: { padding: spacing.lg },
-  headerTexts: { gap: 2 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerTexts: { flex: 1, gap: 2 },
+  noPlanMark: { marginLeft: spacing.lg },
   headerTitle: { fontFamily: 'Sora', fontSize: 24, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
   headerSubtitle: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   content: { padding: spacing.lg, gap: spacing.md },
