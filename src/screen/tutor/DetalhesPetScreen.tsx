@@ -141,7 +141,7 @@ export function DetalhesPetScreen({ route }: Props) {
         <View style={styles.suspendedBand}>
           <Ionicons name="alert-circle-outline" size={20} color={colors.textPrimary} />
           <Text style={styles.suspendedText}>
-            Tratamento suspenso pelo alarme de {formatShortDate(suspenso.em)} · {suspenso.medicamento}
+            Tratamento suspenso pelo alarme de {formatShortDate(suspenso.em)} · {suspenso.medicamentos.join(' + ')}
           </Text>
         </View>
       ) : null}

@@ -12,6 +12,7 @@ import { Input } from '../../component/ui/Input';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useClosingForm } from '../../control/useClosingControl';
 import type { ProcedureSection } from '../../model/closing';
+import type { ItemReceitaDraft } from '../../model/prescription';
 import { formatHourShort } from '../../model/closingSummary';
 import { formatDateBR, formatShortDate } from '../../model/formatDate';
 import type { PacientesTabParamList } from '../navigation/types';
@@ -123,7 +124,9 @@ export function ProntuarioFormScreen({ route }: Props) {
   };
 
   const prescricaoSummary = prescricao
-    ? `${prescricao.medicamento} · ${prescricao.doseMin}–${prescricao.doseMax} ${prescricao.unidade} · ${prescricao.frequenciaDia}×/dia · ${prescricao.duracaoDias} dias`
+    ? prescricao.itens.length === 1
+      ? medicationLine(prescricao.itens[0])
+      : prescricao.itens.map((i) => medicationLine(i)).join('\n')
     : 'Toque para preencher a receita';
 
   return (
@@ -227,11 +230,11 @@ export function ProntuarioFormScreen({ route }: Props) {
           {receitaMarked ? (
             <AccordionRow
               icon="file-document-outline"
-              title="Receita"
+              title={prescricao && prescricao.itens.length > 1 ? `Receita · ${prescricao.itens.length} medicamentos` : 'Receita'}
               summary={prescricaoSummary}
               done={!!prescricao}
               forward
-              onPress={() => navigation.navigate('Prescricao', { animalId: petId })}
+              onPress={() => navigation.navigate('Prescricao', { animalId: petId, receita: prescricao })}
             />
           ) : null}
 
@@ -246,6 +249,9 @@ export function ProntuarioFormScreen({ route }: Props) {
     </View>
   );
 }
+
+const medicationLine = (i: ItemReceitaDraft) =>
+  `${i.medicamento} · ${i.doseMin}–${i.doseMax} ${i.unidade} · ${i.frequenciaDia}×/dia · ${i.duracaoDias} dias`;
 
 function todayIso() {
   const d = new Date();

@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
-import type { FreeWeek, TreatmentWeek, WeekDayCell } from '../../model/careHome';
+import type { FreeWeek, MedicationLine, TreatmentWeek, WeekDayCell } from '../../model/careHome';
 import { WeekStrip } from './WeekStrip';
 
 interface TreatmentWeekCardProps {
   week: TreatmentWeek;
   showLegend?: boolean;
+  medications?: MedicationLine[];
   onSeeCare?: () => void;
 }
 
@@ -36,8 +37,28 @@ function Legend({ week }: { week: TreatmentWeek }) {
   );
 }
 
-export function TreatmentWeekCard({ week, showLegend, onSeeCare }: TreatmentWeekCardProps) {
-  const doses = `${week.dosesGiven} ${week.dosesGiven === 1 ? 'dose dada' : 'doses dadas'}`;
+function MedicationLines({ lines }: { lines: MedicationLine[] }) {
+  return (
+    <View style={styles.medications}>
+      {lines.map((line) => (
+        <View key={line.name} style={styles.medicationRow}>
+          <Text style={styles.medicationName} numberOfLines={1}>
+            {[line.name, line.dose].filter(Boolean).join(' · ')}
+          </Text>
+          <Text style={styles.medicationMeta}>
+            {[line.frequency, line.ended ? 'encerrado' : `até ${line.endLabel}`].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function TreatmentWeekCard({ week, showLegend, medications, onSeeCare }: TreatmentWeekCardProps) {
+  const multi = week.medications.length > 1;
+  const doses = multi
+    ? `${week.reportsDone} ${week.reportsDone === 1 ? 'relato feito' : 'relatos feitos'}`
+    : `${week.dosesGiven} ${week.dosesGiven === 1 ? 'dose dada' : 'doses dadas'}`;
   const content = (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -49,6 +70,7 @@ export function TreatmentWeekCard({ week, showLegend, onSeeCare }: TreatmentWeek
       </View>
       <WeekStrip days={week.days} />
       {showLegend ? <Legend week={week} /> : null}
+      {medications && medications.length > 1 ? <MedicationLines lines={medications} /> : null}
       <View style={styles.footer}>
         <Text style={styles.footerText}>{`${doses} · termina em ${week.endLabel}`}</Text>
         {onSeeCare ? (
@@ -109,6 +131,10 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: 'Sora', fontSize: 16, fontWeight: '700', color: colors.textPrimary },
   counter: { fontFamily: 'Inter', fontSize: 12, color: colors.textSecondary },
+  medications: { gap: 8 },
+  medicationRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.sm },
+  medicationName: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: colors.textPrimary, flexShrink: 1 },
+  medicationMeta: { fontFamily: 'Inter', fontSize: 12, color: colors.textSecondary },
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 10, height: 10, borderRadius: radii.pill },

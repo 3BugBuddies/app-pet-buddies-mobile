@@ -1,20 +1,75 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
-import type { CareItem } from '../../model/care';
+import type { CareItem, TreatmentInfo } from '../../model/care';
 import { BrandMark } from '../ui/BrandMark';
-import { clockLabel, doseText, isItemPending } from '../../model/careHome';
+import { clockLabel, doseRangeText, doseText, isItemPending, medicationKey, unitOf } from '../../model/careHome';
 import { petDefiniteArticle } from '../../model/pet';
 
 interface TodayAtHomeCardProps {
   items: CareItem[];
-  unit: string | null | undefined;
+  treatments: TreatmentInfo[];
   petName: string;
   petSex?: string | null;
-  onPressItem: (item: CareItem) => void;
+  onPress: () => void;
 }
 
-function ClosedRow({ item, unit }: { item: CareItem; unit: string | null | undefined }) {
+function DayReportRow({ items, treatments, onPress, petName, petSex }: TodayAtHomeCardProps) {
+  const count = new Set(items.map(medicationKey)).size;
+  const title = `Relato de hoje · ${count} remédios`;
+  const pending = items.some((item) => isItemPending(item));
+
+  if (pending) {
+    const doses = items
+      .map((item) => {
+        const info = treatments.find((t) => t.prescriptionId != null && t.prescriptionId === item.prescriptionId);
+        return [item.title, info ? doseRangeText(info) : null].filter(Boolean).join(' ');
+      })
+      .join(' · ');
+    return (
+      <Pressable accessibilityRole="button" style={styles.row} onPress={onPress}>
+        <View style={styles.pendingDot} />
+        <View style={styles.texts}>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.sub}>{doses}</Text>
+          <Text style={styles.sub}>{`Toque para contar como ${petDefiniteArticle(petSex)} ${petName} passou`}</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+      </Pressable>
+    );
+  }
+
+  const referred = items.some((item) => item.status === 'ENCAMINHADO');
+  const given = items.some((item) => item.status === 'REALIZADO');
+  const time = clockLabel(items.map((item) => item.executedAt).find(Boolean));
+  const parts = items.map((item) => {
+    if (item.status === 'ENCAMINHADO') return `${item.title} · clínica acionada`;
+    if (item.doseApplied == null) return `${item.title} sem dose`;
+    const dose = [doseText(item.doseApplied), unitOf(treatments, item)].filter(Boolean).join(' ');
+    return `${item.title} ${dose}`;
+  });
+  const text = [...parts, time ? `às ${time}` : null].filter(Boolean).join(' · ');
+
+  return (
+    <View style={[styles.row, { backgroundColor: referred ? colors.dangerSoft : colors.limeSoft }]}>
+      {given ? (
+        <View style={styles.doneDisc}>
+          <BrandMark style={styles.doneMark} />
+        </View>
+      ) : (
+        <View style={[styles.closedCircle, { backgroundColor: referred ? colors.danger : colors.lime }]}>
+          {referred ? <Text style={styles.mark}>!</Text> : <Ionicons name="remove" size={14} color={colors.textPrimary} />}
+        </View>
+      )}
+      <View style={styles.texts}>
+        <Text style={styles.title}>{text}</Text>
+        <Text style={styles.sub}>{title}</Text>
+      </View>
+    </View>
+  );
+}
+
+function ClosedRow({ item, unit }: { item: CareItem; unit: string | null }) {
   const time = clockLabel(item.executedAt);
   const counted = time ? `Contado às ${time} · ` : '';
   const dose =
@@ -61,32 +116,34 @@ function ClosedRow({ item, unit }: { item: CareItem; unit: string | null | undef
   );
 }
 
-export function TodayAtHomeCard({ items, unit, petName, petSex, onPressItem }: TodayAtHomeCardProps) {
+export function TodayAtHomeCard({ items, treatments, petName, petSex, onPress }: TodayAtHomeCardProps) {
+  const combined = new Set(items.map(medicationKey)).size > 1;
   const done = items.filter((item) => !isItemPending(item)).length;
+  const total = combined ? 1 : items.length;
+  const doneCount = combined ? (done === items.length ? 1 : 0) : done;
   return (
     <View style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.cardTitle}>Hoje em casa</Text>
-        <Text style={styles.counter}>{`${done} de ${items.length} ${items.length === 1 ? 'feita' : 'feitas'}`}</Text>
+        <Text style={styles.counter}>{`${doneCount} de ${total} ${total === 1 ? 'feita' : 'feitas'}`}</Text>
       </View>
-      {items.map((item) =>
-        isItemPending(item) ? (
-          <Pressable
-            key={item.id}
-            accessibilityRole="button"
-            style={styles.row}
-            onPress={() => onPressItem(item)}
-          >
-            <View style={styles.pendingDot} />
-            <View style={styles.texts}>
-              <Text style={styles.title}>{`${item.title} · hoje`}</Text>
-              <Text style={styles.sub}>{`Toque para contar como ${petDefiniteArticle(petSex)} ${petName} passou`}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-          </Pressable>
-        ) : (
-          <ClosedRow key={item.id} item={item} unit={unit} />
-        ),
+      {combined ? (
+        <DayReportRow items={items} treatments={treatments} petName={petName} petSex={petSex} onPress={onPress} />
+      ) : (
+        items.map((item) =>
+          isItemPending(item) ? (
+            <Pressable key={item.id} accessibilityRole="button" style={styles.row} onPress={onPress}>
+              <View style={styles.pendingDot} />
+              <View style={styles.texts}>
+                <Text style={styles.title}>{`${item.title} · hoje`}</Text>
+                <Text style={styles.sub}>{`Toque para contar como ${petDefiniteArticle(petSex)} ${petName} passou`}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </Pressable>
+          ) : (
+            <ClosedRow key={item.id} item={item} unit={unitOf(treatments, item)} />
+          ),
+        )
       )}
     </View>
   );

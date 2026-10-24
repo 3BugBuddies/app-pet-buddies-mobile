@@ -22,6 +22,7 @@ export function CheckInResultScreen({ route }: Props) {
   const safeDoseLabel = result.doseLabel || 'Dose recomendada';
   const ruleApplied = result.ruleApplied !== false;
   const suspended = result.suspended === true;
+  const lines = result.lines && result.lines.length > 1 ? result.lines : null;
 
   const handleFinish = () => {
     // Limpa o stack do PlanoTab para a aba Cuidados não reter as telas do check-in.
@@ -45,6 +46,20 @@ export function CheckInResultScreen({ route }: Props) {
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
       <CheckInTopBar title="Check-in" stepLabel="3 de 3" />
 
+      {lines ? (
+        <View style={styles.doseCard}>
+          <Text style={styles.doseLabel}>Doses de hoje</Text>
+          {lines.map((line) => (
+            <View key={line.medication} style={styles.doseLine}>
+              <View style={styles.doseLineHead}>
+                <Text style={styles.doseLineName}>{line.medication}</Text>
+                <Text style={styles.doseLineValue}>{line.doseLabel}</Text>
+              </View>
+              <Text style={styles.doseRange}>{[pet?.nome, line.ruleLabel].filter(Boolean).join(' · ')}</Text>
+            </View>
+          ))}
+        </View>
+      ) : (
       <View style={styles.doseCard}>
         <Text style={styles.doseLabel}>Dose de hoje</Text>
         <Text style={[styles.doseValue, safeDoseLabel.length > 8 && styles.doseValueLong]} numberOfLines={2}>
@@ -59,10 +74,13 @@ export function CheckInResultScreen({ route }: Props) {
           </View>
         ) : null}
       </View>
+      )}
 
       <View style={styles.ruleCard}>
         <Text style={styles.ruleLabel}>{ruleHeader}</Text>
-        <Text style={styles.ruleCode}>{result.ruleDescription || 'Orientação padrão sem alteração de dosagem'}</Text>
+        {lines ? null : (
+          <Text style={styles.ruleCode}>{result.ruleDescription || 'Orientação padrão sem alteração de dosagem'}</Text>
+        )}
       </View>
 
       {result.itemClosed ? (
@@ -70,9 +88,9 @@ export function CheckInResultScreen({ route }: Props) {
           <View style={styles.recordCheck}>
             <Ionicons name="checkmark" size={14} color={colors.textPrimary} />
           </View>
-          <Text style={styles.recordText}>Item do plano</Text>
+          <Text style={styles.recordText}>{lines ? 'Itens do plano' : 'Item do plano'}</Text>
           <View style={styles.recordPill}>
-            <Text style={styles.recordPillText}>{suspended ? 'Sem dose' : 'Dose dada'}</Text>
+            <Text style={styles.recordPillText}>{suspended ? 'Sem dose' : lines?.some((line) => line.suspended) ? 'Doses dadas' : 'Dose dada'}</Text>
           </View>
         </View>
       ) : null}
@@ -125,6 +143,10 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     lineHeight: 32,
   },
+  doseLine: { gap: 2 },
+  doseLineHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', gap: spacing.sm },
+  doseLineName: { flexShrink: 1, fontSize: 18, fontWeight: '700', color: colors.textPrimary },
+  doseLineValue: { fontSize: 22, fontWeight: '700', color: colors.textPrimary },
   doseRange: {
     fontSize: 15,
     color: colors.textSecondary,

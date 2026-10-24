@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
+import { medicationEndLabel } from '../../model/treatmentSummary';
 import { dayAndWeekday, groupTreatments, statusDisplay, type CareItem, type StatusTone } from '../../model/care';
 
 interface CareItemsSectionProps {
@@ -39,13 +40,19 @@ export function CareItemsSection({ title, items, emptyText, grouped }: CareItems
       ) : grouped ? (
         groupTreatments(items).map((group) => (
           <View key={group.name} style={styles.group}>
-            <Text style={styles.groupTitle}>
-              {[group.name, group.rangeLabel, group.perDay > 1 ? `${group.perDay}×/dia` : null].filter(Boolean).join(' · ')}
-            </Text>
+            <View style={styles.groupHead}>
+              <Text style={[styles.groupTitle, styles.textBlock]}>
+                {[group.name, group.perDay > 1 ? `${group.perDay}×/dia` : null].filter(Boolean).join(' · ')}
+              </Text>
+              <Text style={styles.groupEnd}>{medicationEndLabel(group.items, today)}</Text>
+            </View>
             {group.items.map((item) => (
               <View key={item.id} style={styles.row}>
                 <View style={styles.textBlock}>
                   <Text style={styles.itemTitle}>{dayAndWeekday(item.dateIso, today)}</Text>
+                  {item.doseApplied != null ? (
+                    <Text style={styles.itemDose}>{[item.doseApplied, item.unit].filter(Boolean).join(' ')}</Text>
+                  ) : null}
                 </View>
                 {renderPill(item)}
               </View>
@@ -82,7 +89,10 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Sora', fontSize: 18, fontWeight: '700', color: colors.textPrimary },
   empty: { fontSize: 14, color: colors.textSecondary },
   group: { gap: spacing.xs },
-  groupTitle: { fontSize: 14, fontWeight: '700', color: colors.textSecondary, marginTop: spacing.xs },
+  groupHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xs },
+  groupTitle: { fontSize: 14, fontWeight: '700', color: colors.textSecondary },
+  groupEnd: { fontSize: 13, color: colors.textSecondary },
+  itemDose: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

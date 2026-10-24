@@ -11,6 +11,7 @@ import { usePet } from '../../control/usePetsControl';
 import type { ClosingDoneSummary, ProcedureDraft } from '../../model/closing';
 import { firstName, formatHourShort, localIsoNow } from '../../model/closingSummary';
 import { formatDateBR, formatShortDate } from '../../model/formatDate';
+import type { ItemReceitaDraft } from '../../model/prescription';
 import { descreverCondicao, rotuloAcao } from '../../model/prescriptionRule';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +26,9 @@ const procedureLabel = (p: ProcedureDraft) =>
 
 export function AssinarPrescricaoScreen({ route }: Props) {
   const { closing } = route.params;
-  const draft = closing.prescription;
+  const draft = closing.receita;
+  const itens = draft?.itens ?? [];
+  const multi = itens.length > 1;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList, 'AssinarPrescricao'>>();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -50,17 +53,17 @@ export function AssinarPrescricaoScreen({ route }: Props) {
   const registroSub = [closing.weight ? `${closing.weight} kg` : null, closing.notes.trim() || 'sem observação']
     .filter(Boolean)
     .join(' · ');
-  const rules = draft?.regras.map((r) => `${descreverCondicao(r).toLowerCase()} → ${rotuloAcao(r.acao).toLowerCase()}`) ?? [];
-  const receitaSub = draft
-    ? [
-        `${draft.doseMin}–${draft.doseMax} ${draft.unidade}`,
-        `${draft.frequenciaDia}×/dia`,
-        `${draft.duracaoDias} dias`,
-        rules.length > 0 ? `${rules.length === 1 ? 'regra' : 'regras'}: ${rules.join('; ')}` : null,
-      ]
-        .filter(Boolean)
-        .join(' · ')
-    : '';
+  const receitaSub = (item: ItemReceitaDraft) => {
+    const rules = item.regras.map((r) => `${descreverCondicao(r).toLowerCase()} → ${rotuloAcao(r.acao).toLowerCase()}`);
+    return [
+      `${item.doseMin}–${item.doseMax} ${item.unidade}`,
+      `${item.frequenciaDia}×/dia`,
+      `${item.duracaoDias} dias`,
+      rules.length > 0 ? `${rules.length === 1 ? 'regra' : 'regras'}: ${rules.join('; ')}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  };
 
   const handleSign = async () => {
     try {
@@ -79,7 +82,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
       others: closing.procedures
         .filter((p) => p.section !== 'VACINA_VERMIFUGO')
         .map((p) => ({ label: procedureLabel(p), nome: p.nome.trim() })),
-      medicamento: draft?.medicamento ?? null,
+      medicamentos: itens.map((i) => ({ nome: i.medicamento, duracaoDias: i.duracaoDias })),
     };
     navigation.dispatch(
       CommonActions.reset({
@@ -91,7 +94,11 @@ export function AssinarPrescricaoScreen({ route }: Props) {
 
   const signItems: { icon: IconName; title: string; sub?: string }[] = draft
     ? [
-        { icon: 'document-text-outline', title: 'A receita fica assinada', sub: `com seu nome e CRMV${crmv ? ` ${crmv}` : ''}` },
+        {
+          icon: 'document-text-outline',
+          title: multi ? `A receita fica assinada, com os ${itens.length} medicamentos` : 'A receita fica assinada',
+          sub: `com seu nome e CRMV${crmv ? ` ${crmv}` : ''}`,
+        },
         { icon: 'lock-closed-outline', title: 'Ela não muda mais' },
         { icon: 'phone-portrait-outline', title: seesInApp },
       ]
@@ -120,7 +127,10 @@ export function AssinarPrescricaoScreen({ route }: Props) {
               : undefined;
           return <Block key={p.key} label={procedureLabel(p)} title={p.nome.trim()} sub={sub} extra={composeNotes(p)} />;
         })}
-        {draft ? <Block label="Receita" title={draft.medicamento} sub={receitaSub} /> : null}
+        {multi ? <Text style={styles.blockLabel}>Receita · {itens.length} medicamentos</Text> : null}
+        {itens.map((item) => (
+          <Block key={item.key} label={multi ? 'Medicamento' : 'Receita'} title={item.medicamento} sub={receitaSub(item)} />
+        ))}
       </View>
 
       <View style={styles.card}>
