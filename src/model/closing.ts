@@ -1,5 +1,5 @@
 import type { MedicalRecord } from './medicalRecord';
-import type { PrescricaoDraft } from './prescription';
+import type { ReceitaDraft } from './prescription';
 import type { Operador, TipoAcao } from './prescriptionRule';
 import type { TipoProcedimento } from './procedure';
 
@@ -12,12 +12,6 @@ interface OpenPlanItem {
   dataAlvo: string;
   vencido: boolean;
 }
-
-// Origem opcional da prescrição (receita-modelo); a API exige os dois campos juntos ou nenhum.
-type ClosingPrescriptionDraft = PrescricaoDraft & {
-  receitaModeloId?: number | null;
-  receitaModeloVersao?: number | null;
-};
 
 interface ProcedureDraft {
   key: string;
@@ -38,7 +32,7 @@ interface ClosingDraft {
   notes: string;
   weight: string;
   procedures: ProcedureDraft[];
-  prescription: ClosingPrescriptionDraft | null;
+  receita: ReceitaDraft | null;
 }
 
 interface ClosingDoneSummary {
@@ -48,7 +42,7 @@ interface ClosingDoneSummary {
   responsavel: string;
   vaccines: { nome: string; alvo: string | null }[];
   others: { label: string; nome: string }[];
-  medicamento: string | null;
+  medicamentos: { nome: string; duracaoDias: number }[];
 }
 
 interface ClosingProcedure {
@@ -94,7 +88,6 @@ export type {
   ClosingDraft,
   ClosingPayload,
   ClosingPrescription,
-  ClosingPrescriptionDraft,
   ClosingProcedure,
   ClosingRule,
   OpenPlanItem,

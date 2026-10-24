@@ -2,15 +2,15 @@ import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing } from '../../styles/theme';
 
 interface TreatmentCardProps {
-  name: string;
+  names: string[];
   until?: string | null;
 }
 
-export function TreatmentCard({ name, until }: TreatmentCardProps) {
+export function TreatmentCard({ names, until }: TreatmentCardProps) {
   return (
     <View style={styles.card}>
       <Text style={styles.label}>Tratamento em andamento</Text>
-      <Text style={styles.value}>{until ? `${name} até ${until}` : name}</Text>
+      <Text style={styles.value}>{until ? `${names.join(' + ')} até ${until}` : names.join(' + ')}</Text>
     </View>
   );
 }

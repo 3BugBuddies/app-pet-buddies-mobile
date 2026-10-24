@@ -15,8 +15,11 @@ interface PlanDto {
   categoria: PlanSummary['category'];
   dataFim?: string | null;
   eventos?: PlanEventDto[] | null;
-  tratamentoSuspenso?: { medicamento: string; em: string } | null;
+  tratamentos?: { medicamento: string; fim?: string | null }[] | null;
+  tratamentoSuspenso?: { medicamento: string; medicamentos?: string[] | null; em: string } | null;
 }
+
+const distinct = (names: string[]) => [...new Set(names.filter(Boolean))];
 
 const getClinicPatients = async (): Promise<ClinicPatient[]> => {
   if (!USE_API) return [];
@@ -42,12 +45,23 @@ const getPlanSummary = async (petId: string): Promise<PlanSummary | null> => {
       .filter((e) => e.status === 'PENDENTE' && e.dataAlvo >= hoje)
       .sort((a, b) => a.dataAlvo.localeCompare(b.dataAlvo))
       .map((e) => ({ id: String(e.id), name: e.nome, targetDate: e.dataAlvo }));
+    // Os eventos só servem de reserva: back antigo não manda tratamentos[].
+    const treatmentNames = data.tratamentos
+      ? distinct(data.tratamentos.map((t) => t.medicamento))
+      : distinct(eventos.filter((e) => e.origem === 'PRESCRICAO').map((e) => e.nome));
+    const lastEnd = (data.tratamentos ?? []).map((t) => t.fim ?? '').sort().pop();
+    const suspended = data.tratamentoSuspenso;
     return {
       category: data.categoria,
       upcoming,
-      endDate: data.dataFim ?? null,
-      treatmentName: eventos.find((e) => e.origem === 'PRESCRICAO')?.nome ?? null,
-      suspendedTreatment: data.tratamentoSuspenso ?? null,
+      endDate: lastEnd || (data.dataFim ?? null),
+      treatmentNames,
+      suspendedTreatment: suspended
+        ? {
+            medicamentos: suspended.medicamentos?.length ? suspended.medicamentos : [suspended.medicamento],
+            em: suspended.em,
+          }
+        : null,
     };
   } catch (err: unknown) {
     if (isAxiosError(err) && err.response?.status === 404) return null;

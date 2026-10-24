@@ -53,6 +53,7 @@ interface PlanoApi {
     inicio: string;
     fim: string;
   } | null;
+  tratamentos?: { medicamento: string; unidade?: string | null }[] | null;
   clinica?: ClinicaContato | null;
   tratamentoSuspenso?: { medicamento: string; em: string; itens?: ItemPlanoApi[] | null } | null;
 }
@@ -150,7 +151,12 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
         };
       });
 
-    const items: CareItem[] = [...eventos].sort((a, b) => a.dataAlvo.localeCompare(b.dataAlvo)).map(toCareItem);
+    const unitByMedication = new Map<string, string | null | undefined>(
+      (data.tratamentos ?? (data.tratamento ? [data.tratamento] : [])).map((t) => [t.medicamento, t.unidade])
+    );
+    const items: CareItem[] = [...eventos]
+      .sort((a, b) => a.dataAlvo.localeCompare(b.dataAlvo))
+      .map((e) => ({ ...toCareItem(e), unit: unitByMedication.get(e.nome) ?? null }));
 
     return {
       petId,

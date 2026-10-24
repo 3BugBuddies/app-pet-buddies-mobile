@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
 import type {
   ClosingDraft,
-  ClosingPrescriptionDraft,
   OpenPlanItem,
   ClosingPrescription,
   ProcedureDraft,
@@ -13,7 +12,7 @@ import type {
   ProcedureSection,
 } from '../model/closing';
 import { medicalRecordSchema } from '../model/medicalRecord';
-import { prescriptionSchema } from '../model/prescription';
+import { prescriptionSchema, type ReceitaDraft } from '../model/prescription';
 import type { TipoProcedimento } from '../model/procedure';
 import { normalizeSearch } from '../model/text';
 import {
@@ -55,7 +54,7 @@ const composeNotes = (p: ProcedureDraft) =>
     .filter(Boolean)
     .join(' · ') || undefined;
 
-const useClosingForm = (petId: string, initialAppointmentId: string | undefined, prescription: ClosingPrescriptionDraft | null) => {
+const useClosingForm = (petId: string, initialAppointmentId: string | undefined, receita: ReceitaDraft | null) => {
   const { session } = useContext(AuthContext);
   const veterinarioId = session?.veterinarioId;
   const { data: pet } = usePet(petId);
@@ -76,7 +75,7 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
   const [weight, setWeight] = useState('');
   const [procedures, setProcedures] = useState<ProcedureDraft[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [receitaOn, setReceitaOn] = useState(!!prescription);
+  const [receitaOn, setReceitaOn] = useState(!!receita);
   const counter = useRef(0);
   const seeded = useRef({ reason: false, weight: false, item: false });
   const baseline = useRef({ reason: '', weight: '' });
@@ -199,7 +198,7 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
     reason.trim() !== baseline.current.reason ||
     weight !== baseline.current.weight ||
     notes.trim() ||
-    prescription ||
+    receita ||
     procedures.some((p) => p.nome.trim() || p.batch.trim() || p.notes.trim() || p.itemPlanoId != null || p.manualItem)
   );
 
@@ -215,7 +214,7 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
       notes,
       weight,
       procedures,
-      prescription,
+      receita,
     };
   };
 
@@ -250,9 +249,8 @@ const useCompleteAppointment = () => {
         throw new Error('Sessão sem veterinário: entre novamente para concluir o atendimento.');
       }
 
-      let prescricoes: ClosingPrescription[] = [];
-      if (draft.prescription) {
-        const d = draft.prescription;
+      const prescricoes: ClosingPrescription[] = [];
+      for (const d of draft.receita?.itens ?? []) {
         const p = await prescriptionSchema.validate(
           {
             id: null,
@@ -264,7 +262,7 @@ const useCompleteAppointment = () => {
             duracaoDias: d.duracaoDias,
             dataInicio: isoLocal(new Date()),
             orientacao: d.orientacao || undefined,
-            animalId: String(d.animalId),
+            animalId: String(draft.petId),
             veterinarioId: String(veterinarioId),
             registroAtendimentoId: null,
             materialOrigemId: null,
@@ -272,29 +270,27 @@ const useCompleteAppointment = () => {
           },
           { abortEarly: false }
         );
-        prescricoes = [
-          {
-            medicamento: p.medicamento,
-            doseMin: p.doseMin,
-            doseMax: p.doseMax,
-            unidade: p.unidade,
-            frequenciaDia: p.frequenciaDia,
-            duracaoDias: p.duracaoDias,
-            dataInicio: p.dataInicio,
-            orientacao: p.orientacao ?? undefined,
-            ...(d.receitaModeloId != null && d.receitaModeloVersao != null
-              ? { receitaModeloId: d.receitaModeloId, receitaModeloVersao: d.receitaModeloVersao }
-              : {}),
-            regras: d.regras.map((regra, index) => ({
-              condicaoClinicaId: regra.condicaoClinicaId,
-              rotuloCongelado: regra.rotuloCongelado,
-              operador: regra.operador ?? undefined,
-              limite: regra.limite ?? undefined,
-              acaoDose: regra.acao,
-              ordem: index + 1,
-            })),
-          },
-        ];
+        prescricoes.push({
+          medicamento: p.medicamento,
+          doseMin: p.doseMin,
+          doseMax: p.doseMax,
+          unidade: p.unidade,
+          frequenciaDia: p.frequenciaDia,
+          duracaoDias: p.duracaoDias,
+          dataInicio: p.dataInicio,
+          orientacao: p.orientacao ?? undefined,
+          ...(d.receitaModeloId != null && d.receitaModeloVersao != null
+            ? { receitaModeloId: d.receitaModeloId, receitaModeloVersao: d.receitaModeloVersao }
+            : {}),
+          regras: d.regras.map((regra, index) => ({
+            condicaoClinicaId: regra.condicaoClinicaId,
+            rotuloCongelado: regra.rotuloCongelado,
+            operador: regra.operador ?? undefined,
+            limite: regra.limite ?? undefined,
+            acaoDose: regra.acao,
+            ordem: index + 1,
+          })),
+        });
       }
 
       if (draft.weight) {
@@ -317,8 +313,10 @@ const useCompleteAppointment = () => {
           consultaId,
           dataAtendimento: isoLocal(new Date()),
           anamnese: draft.reason.trim() || undefined,
-          tratamento: draft.prescription
-            ? `Receita · ${draft.prescription.medicamento} ${draft.prescription.doseMin}–${draft.prescription.doseMax} ${draft.prescription.unidade} · ${draft.prescription.frequenciaDia}×/dia · ${draft.prescription.duracaoDias} dias`
+          tratamento: draft.receita
+            ? `Receita · ${draft.receita.itens
+                .map((i) => `${i.medicamento} ${i.doseMin}–${i.doseMax} ${i.unidade} · ${i.frequenciaDia}×/dia · ${i.duracaoDias} dias`)
+                .join(' + ')}`
             : undefined,
           observacao: draft.notes.trim() || undefined,
         },
