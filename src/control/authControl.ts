@@ -2,19 +2,12 @@ import { useContext, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
 import { loginSchema } from '../model/login';
+import { formatPhone } from '../model/phone';
 import { registerSchema } from '../model/register';
 import { PERFIS, type Perfil } from '../model/session';
 import { clearSession, getSession, login, register, saveSession } from '../repository/authRepository';
 
 const SESSION_QUERY_KEY = ['auth', 'sessao'];
-
-const aplicarMascaraTelefone = (valor: string) => {
-  let v = valor.replace(/\D/g, '');
-  if (v.length > 11) v = v.slice(0, 11);
-  if (v.length > 6) return `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-  if (v.length > 2) return `(${v.slice(0, 2)}) ${v.slice(2)}`;
-  return v;
-};
 
 const sanitizarCrmv = (valor: string) => valor.toUpperCase();
 
@@ -86,7 +79,7 @@ const useRegisterControl = () => {
   const [crmv, setCrmv] = useState('');
   const [erros, setErros] = useState<Record<string, string>>({});
 
-  const handleTelefoneChange = (text: string) => setTelefone(aplicarMascaraTelefone(text));
+  const handleTelefoneChange = (text: string) => setTelefone(formatPhone(text));
   const handleCrmvChange = (text: string) => setCrmv(sanitizarCrmv(text));
 
   const registerMutation = useMutation({

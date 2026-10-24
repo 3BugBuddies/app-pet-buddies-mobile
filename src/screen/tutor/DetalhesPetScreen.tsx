@@ -10,6 +10,7 @@ import { usePet } from '../../control/usePetsControl';
 import { usePlanSummary } from '../../control/usePatientsControl';
 import { formatAppointmentDate, formatDateBR, formatShortDate } from '../../model/formatDate';
 import { breedLabel, sexLabel } from '../../model/pet';
+import { formatPhone } from '../../model/phone';
 import type { PacientesTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 
@@ -54,7 +55,8 @@ export function DetalhesPetScreen({ route }: Props) {
   const details = [breedLabel(pet.raca), sexLabel(pet.sexo).toLowerCase(), nascimento]
     .filter(Boolean)
     .join(' · ');
-  const telefone = pet.responsavelTelefone;
+  const telefone = pet.responsavelTelefone ? formatPhone(pet.responsavelTelefone) : null;
+  const suspenso = summary?.suspendedTreatment;
   const endereco = pet.responsavelEndereco;
   const upcoming = (summary?.upcoming ?? []).slice(0, MAX_CARES);
 
@@ -135,6 +137,15 @@ export function DetalhesPetScreen({ route }: Props) {
         </View>
       ) : null}
 
+      {suspenso ? (
+        <View style={styles.suspendedBand}>
+          <Ionicons name="alert-circle-outline" size={20} color={colors.textPrimary} />
+          <Text style={styles.suspendedText}>
+            Tratamento suspenso pelo alarme de {formatShortDate(suspenso.em)} · {suspenso.medicamento}
+          </Text>
+        </View>
+      ) : null}
+
       <View style={styles.card}>
         <View style={styles.cuidadosHead}>
           <Text style={styles.label}>Próximos cuidados</Text>
@@ -186,6 +197,15 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.md,
   },
+  suspendedBand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: '#FFF0E0',
+    borderRadius: radii.lg,
+    padding: spacing.md,
+  },
+  suspendedText: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.textPrimary },
   consultaBandText: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.textPrimary },
   hero: {
     backgroundColor: colors.cardChia,
