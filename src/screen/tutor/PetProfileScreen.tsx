@@ -133,8 +133,8 @@ export function PetProfileScreen({ route }: Props) {
         ]}
       />
 
-      {inTreatment && summary?.treatmentName ? (
-        <TreatmentCard name={summary.treatmentName} until={summary.endDate ? formatShortDate(summary.endDate) : null} />
+      {inTreatment && summary && summary.treatmentNames.length > 0 ? (
+        <TreatmentCard names={summary.treatmentNames} until={summary.endDate ? formatShortDate(summary.endDate) : null} />
       ) : null}
 
       <Text style={styles.sectionTitle}>Histórico</Text>

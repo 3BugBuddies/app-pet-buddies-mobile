@@ -99,6 +99,8 @@ export interface CareItem {
   executedAt?: string | null;
   doseApplied?: number | null;
   interval?: string | null;
+  // Unidade da dose, vinda do tratamento do medicamento do item.
+  unit?: string | null;
 }
 
 export interface TreatmentInfo {

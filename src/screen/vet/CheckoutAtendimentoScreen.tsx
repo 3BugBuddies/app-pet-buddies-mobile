@@ -63,8 +63,16 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
           {summary.others.map((o, index) => (
             <Block key={`${o.nome}-${index}`} label={o.label} title={o.nome} />
           ))}
-          {summary.medicamento ? (
-            <Block label="Receita" title={`${summary.medicamento} assinada`} sub={seesInApp} />
+          {summary.medicamentos.length > 0 ? (
+            <Block
+              label="Receita"
+              title={
+                summary.medicamentos.length === 1
+                  ? `${summary.medicamentos[0].nome} assinada`
+                  : `Receita assinada · ${summary.medicamentos.map((m) => `${m.nome} ${m.duracaoDias} ${m.duracaoDias === 1 ? 'dia' : 'dias'}`).join(', ')}`
+              }
+              sub={seesInApp}
+            />
           ) : null}
         </View>
       </View>

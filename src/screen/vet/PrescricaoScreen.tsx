@@ -14,10 +14,12 @@ import {
 import { transcribeAudio } from '../../repository/speechTranscriptionService';
 
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
+import { MedicationCard, closedSummary } from '../../component/prescricao/MedicationCard';
 import { Button } from '../../component/ui/Button';
 import { FieldError } from '../../component/forms/FieldError';
 import { Input } from '../../component/ui/Input';
 import {
+  type CondicaoNovaPendente,
   usePrescricaoDraftControl,
   useDraftPrescription,
   useNovaRegraControl,
@@ -25,8 +27,8 @@ import {
   useCriarCondicao,
   usePrescriptionTemplates,
 } from '../../control/usePrescriptionControl';
-import { extrairPrescricaoDaNarrativa } from '../../control/prescriptionExtractor';
-import type { PrescriptionTemplate } from '../../model/prescription';
+import { extrairPrescricoesDaNarrativa } from '../../control/prescriptionExtractor';
+import type { ItemReceitaDraft, PrescriptionTemplate } from '../../model/prescription';
 import { descreverCondicao, OPERADOR_SIMBOLO, rotuloAcao, type Operador, type RegraDraft, type TipoAcao } from '../../model/prescriptionRule';
 import { usePet } from '../../control/usePetsControl';
 import { usePatients } from '../../control/usePatientsControl';
@@ -36,22 +38,12 @@ import { colors, radii, spacing } from '../../styles/theme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
-// Regra proposta pela IA cuja condição ainda não existe na clínica: espera "Criar e usar" ou "Descartar".
-interface CondicaoNovaPendente {
-  chave: string;
-  rotulo: string;
-  tipoDado: 'BOOLEANO' | 'NUMERICO';
-  acao: TipoAcao;
-  operador: Operador | null;
-  limite: number | null;
-}
-
 const capitalizar = (texto: string) => texto.charAt(0).toUpperCase() + texto.slice(1);
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'Prescricao'>;
 
 export function PrescricaoScreen({ route }: Props) {
-  const { animalId } = route.params;
+  const { animalId, receita } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -71,25 +63,29 @@ export function PrescricaoScreen({ route }: Props) {
 
   const [templateModalVisible, setTemplateModalVisible] = useState(false);
   const [ruleModalVisible, setRuleModalVisible] = useState(false);
-  const [condicoesNovas, setCondicoesNovas] = useState<CondicaoNovaPendente[]>([]);
+  const [ruleTargetKey, setRuleTargetKey] = useState<string | null>(null);
+  // Quantos medicamentos o último ditado trouxe; só aparece no resultado quando passa de um.
+  const [foundCount, setFoundCount] = useState<number | null>(null);
   const [criandoTipo, setCriandoTipo] = useState<'BOOLEANO' | 'NUMERICO' | null>(null);
   const [criandoUnidade, setCriandoUnidade] = useState('');
 
   const {
-    medicamento, setMedicamento,
-    doseMin, setDoseMin,
-    doseMax, setDoseMax,
-    unidade, setUnidade,
-    frequenciaDia, setFrequenciaDia,
-    duracaoDias, setDuracaoDias,
-    orientacao, setOrientacao,
-    regras, setRegras,
-    setReceitaModelo,
+    itens,
+    openKey,
+    toggleOpen,
+    addItem,
+    removeItem,
+    updateItem,
+    setRegras,
+    replaceItens,
+    condicoesNovas,
+    setCondicoesNovas,
     erros,
     validar,
   } = usePrescricaoDraftControl({
     animalId,
-    registroAtendimentoId: '',
+    registroAtendimentoId: receita?.registroAtendimentoId ?? '',
+    initial: receita,
   });
 
   const { data: catalogo = [], isLoading: isLoadingCondicoes } = useCondicoesClinicas();
@@ -107,17 +103,18 @@ export function PrescricaoScreen({ route }: Props) {
     reiniciar: reiniciarRegra,
   } = useNovaRegraControl(catalogo);
 
-  const abrirModalRegra = () => {
+  const abrirModalRegra = (key: string) => {
     reiniciarRegra();
     setCriandoTipo(null);
     setCriandoUnidade('');
+    setRuleTargetKey(key);
     setRuleModalVisible(true);
   };
 
   const handleAddRule = () => {
     const regra = construirRegra();
-    if (!regra) return;
-    setRegras(prev => [...prev, regra]);
+    if (!regra || !ruleTargetKey) return;
+    setRegras(ruleTargetKey, (prev) => [...prev, regra]);
     setRuleModalVisible(false);
   };
 
@@ -143,11 +140,11 @@ export function PrescricaoScreen({ route }: Props) {
     }
   };
 
-  // Faixa "Condição nova": cria a condição proposta pela IA e já usa na regra.
-  const handleCriarEUsar = async (nova: CondicaoNovaPendente) => {
+  // Faixa "Condição nova": cria a condição proposta pela IA e já usa na regra do medicamento dela.
+  const handleCriarEUsar = async (key: string, nova: CondicaoNovaPendente) => {
     try {
       const criada = await criarCondicao.mutateAsync({ rotulo: nova.rotulo, tipoDado: nova.tipoDado });
-      setRegras((prev) => [
+      setRegras(key, (prev) => [
         ...prev,
         {
           condicaoClinicaId: criada.id,
@@ -157,26 +154,27 @@ export function PrescricaoScreen({ route }: Props) {
           limite: criada.tipoDado === 'NUMERICO' ? nova.limite : null,
         },
       ]);
-      setCondicoesNovas((prev) => prev.filter((c) => c.chave !== nova.chave));
+      setCondicoesNovas(key, (condicoesNovas[key] ?? []).filter((c) => c.chave !== nova.chave));
     } catch (error: any) {
       Alert.alert('Não foi possível criar a condição', buildApiErrorMessage(error));
     }
   };
 
-  const handleDescartarNova = (chave: string) =>
-    setCondicoesNovas((prev) => prev.filter((c) => c.chave !== chave));
+  const handleDescartarNova = (key: string, chave: string) =>
+    setCondicoesNovas(key, (condicoesNovas[key] ?? []).filter((c) => c.chave !== chave));
 
-  // Copia a receita-modelo para o formulário; tudo continua editável e a origem segue junto.
+  // Copia a receita-modelo para o medicamento aberto; tudo continua editável e a origem segue junto.
   const handleApplyTemplate = (modelo: PrescriptionTemplate) => {
-    setMedicamento(modelo.medicamento);
-    setDoseMin(modelo.doseMin);
-    setDoseMax(modelo.doseMax);
-    setUnidade(modelo.unidade);
-    setFrequenciaDia(modelo.frequenciaDia);
-    setDuracaoDias(modelo.duracaoDias);
-    setOrientacao(modelo.orientacao ?? '');
-    setRegras(
-      [...modelo.regras]
+    const target = itens.find((i) => i.key === openKey) ?? itens[itens.length - 1];
+    updateItem(target.key, {
+      medicamento: modelo.medicamento,
+      doseMin: modelo.doseMin,
+      doseMax: modelo.doseMax,
+      unidade: modelo.unidade,
+      frequenciaDia: modelo.frequenciaDia,
+      duracaoDias: modelo.duracaoDias,
+      orientacao: modelo.orientacao ?? '',
+      regras: [...modelo.regras]
         .sort((x, y) => (x.ordem ?? 0) - (y.ordem ?? 0))
         .map((r) => ({
           condicaoClinicaId: r.condicaoClinicaId,
@@ -184,10 +182,11 @@ export function PrescricaoScreen({ route }: Props) {
           acao: r.acaoDose,
           operador: r.operador,
           limite: r.limite,
-        }))
-    );
-    setCondicoesNovas([]);
-    setReceitaModelo({ id: modelo.id, versao: modelo.versao });
+        })),
+      receitaModeloId: modelo.id,
+      receitaModeloVersao: modelo.versao,
+    });
+    setCondicoesNovas(target.key, []);
     setTemplateModalVisible(false);
   };
 
@@ -252,16 +251,30 @@ export function PrescricaoScreen({ route }: Props) {
     }
   };
 
-  // Preenche o formulário com o extrator local (sem IA da API). Os valores são só uma sugestão.
+  const itemFromExtraction = (e: {
+    medicamento?: string;
+    doseMin?: number | null;
+    doseMax?: number | null;
+    unidade?: string | null;
+    frequenciaDia?: number | null;
+    duracaoDias?: number | null;
+    orientacao?: string | null;
+  }): Omit<ItemReceitaDraft, 'key'> => ({
+    medicamento: e.medicamento ?? '',
+    doseMin: e.doseMin ?? 0,
+    doseMax: e.doseMax ?? 0,
+    unidade: e.unidade ?? 'mg',
+    frequenciaDia: e.frequenciaDia ?? 1,
+    duracaoDias: e.duracaoDias ?? 7,
+    orientacao: e.orientacao ?? '',
+    regras: [],
+  });
+
+  // Preenche a receita com o extrator local (sem IA da API). Os valores são só uma sugestão.
   const preencherComExtratorLocal = (texto: string, aviso: string) => {
-    const extraido = extrairPrescricaoDaNarrativa(texto);
-    if (extraido.medicamento) setMedicamento(extraido.medicamento);
-    setDoseMin(extraido.doseMin);
-    setDoseMax(extraido.doseMax);
-    setUnidade(extraido.unidade);
-    setFrequenciaDia(extraido.frequenciaDia);
-    setDuracaoDias(extraido.duracaoDias);
-    if (extraido.orientacao) setOrientacao(extraido.orientacao);
+    const extraidos = extrairPrescricoesDaNarrativa(texto);
+    replaceItens(extraidos.map(itemFromExtraction));
+    setFoundCount(extraidos.length);
     Alert.alert('Prescrição Estruturada', aviso);
   };
 
@@ -285,46 +298,48 @@ export function PrescricaoScreen({ route }: Props) {
         return;
       }
 
-      const prescricao = rascunho.prescricao;
-      setMedicamento(prescricao.medicamento ?? '');
-      setDoseMin(prescricao.doseMin ?? 0);
-      setDoseMax(prescricao.doseMax ?? 0);
-      setUnidade(prescricao.unidade ?? 'mg');
-      setFrequenciaDia(prescricao.frequenciaDia ?? 1);
-      setDuracaoDias(prescricao.duracaoDias ?? 7);
-      if (prescricao.orientacao) setOrientacao(prescricao.orientacao);
-      setReceitaModelo(null);
+      // Back antigo não manda itens[]: o 1º medicamento vem nos campos legados.
+      const propostos = rascunho.itens?.length
+        ? rascunho.itens
+        : [{ prescricao: rascunho.prescricao, regrasPropostas: rascunho.regrasPropostas }];
 
       // Regras da condição conhecida entram direto (o rótulo vem do servidor); sinal de alarme não
       // vira regra. As de condição nova esperam a vet criar ou descartar.
-      const prontas: RegraDraft[] = [];
-      const pendentes: CondicaoNovaPendente[] = [];
-      (rascunho.regrasPropostas ?? []).forEach((r, i) => {
-        const idCond = r.condicaoClinicaId != null ? Number(r.condicaoClinicaId) : null;
-        const doCatalogo = idCond != null ? catalogo.find((c) => c.id === idCond) : undefined;
-        const rotulo = r.condicaoRotulo || r.condicaoNova?.rotulo || doCatalogo?.rotulo || `Condição #${idCond}`;
-        if (idCond == null || r.condicaoNova) {
-          pendentes.push({
-            chave: `nova-${i}`,
-            rotulo,
-            tipoDado: r.condicaoNova?.tipoDado ?? (r.operador ? 'NUMERICO' : 'BOOLEANO'),
+      const pendentesPorIndice: CondicaoNovaPendente[][] = [];
+      const novos = propostos.map((proposto, n) => {
+        const prontas: RegraDraft[] = [];
+        const pendentes: CondicaoNovaPendente[] = [];
+        (proposto.regrasPropostas ?? []).forEach((r, i) => {
+          const idCond = r.condicaoClinicaId != null ? Number(r.condicaoClinicaId) : null;
+          const doCatalogo = idCond != null ? catalogo.find((c) => c.id === idCond) : undefined;
+          const rotulo = r.condicaoRotulo || r.condicaoNova?.rotulo || doCatalogo?.rotulo || `Condição #${idCond}`;
+          if (idCond == null || r.condicaoNova) {
+            pendentes.push({
+              chave: `nova-${n}-${i}`,
+              rotulo,
+              tipoDado: r.condicaoNova?.tipoDado ?? (r.operador ? 'NUMERICO' : 'BOOLEANO'),
+              acao: r.acaoDose,
+              operador: r.operador ?? null,
+              limite: r.limite ?? null,
+            });
+            return;
+          }
+          if (doCatalogo?.critica) return;
+          prontas.push({
+            condicaoClinicaId: idCond,
+            rotuloCongelado: rotulo,
             acao: r.acaoDose,
             operador: r.operador ?? null,
             limite: r.limite ?? null,
           });
-          return;
-        }
-        if (doCatalogo?.critica) return;
-        prontas.push({
-          condicaoClinicaId: idCond,
-          rotuloCongelado: rotulo,
-          acao: r.acaoDose,
-          operador: r.operador ?? null,
-          limite: r.limite ?? null,
         });
+        pendentesPorIndice.push(pendentes);
+        return { ...itemFromExtraction(proposto.prescricao), regras: prontas };
       });
-      setRegras(prontas);
-      setCondicoesNovas(pendentes);
+
+      const keys = replaceItens(novos);
+      keys.forEach((key, n) => setCondicoesNovas(key, pendentesPorIndice[n]));
+      setFoundCount(novos.length);
     } catch (error: any) {
       console.warn('[PrescricaoScreen] IA do servidor indisponível ou recusou a requisição:', error);
       try {
@@ -339,13 +354,21 @@ export function PrescricaoScreen({ route }: Props) {
   };
 
   const irParaAssinatura = async () => {
-    if (condicoesNovas.length > 0) {
+    if (Object.values(condicoesNovas).some((lista) => lista.length > 0)) {
       Alert.alert('Condição nova pendente', 'Crie ou descarte as condições novas antes de adicionar ao atendimento.');
       return;
     }
     const draft = await validar();
     if (draft) navigation.popTo('ProntuarioForm', { petId: animalId, prescricao: draft }, { merge: true });
   };
+
+  const pendentesTodas = itens.flatMap((item) => (condicoesNovas[item.key] ?? []).map((nova) => ({ item, nova })));
+  const errosDoItem = (key: string) =>
+    Object.fromEntries(
+      Object.entries(erros)
+        .filter(([k]) => k.startsWith(`${key}.`))
+        .map(([k, v]) => [k.slice(key.length + 1), v])
+    );
 
   return (
     <>
@@ -420,30 +443,37 @@ export function PrescricaoScreen({ route }: Props) {
           loading={draftPrescription.isPending}
           onPress={() => handleGerarIA()}
         />
-        {condicoesNovas.length > 0 ? (
+        {pendentesTodas.length > 0 || (foundCount ?? 0) > 1 ? (
           <>
             <Text style={styles.resultLabel}>Resultado do assistente</Text>
-            {condicoesNovas.map((nova) => (
-          <View key={nova.chave} style={styles.novaBand}>
-            <Text style={styles.novaBandTitle}>Condição nova: «{nova.rotulo}»</Text>
-            <Text style={styles.novaBandSub}>O ditado trouxe uma condição que o catálogo da clínica não tem.</Text>
-            <View style={styles.novaBandActions}>
-              <Button
-                label="Criar e usar"
-                loading={criarCondicao.isPending}
-                onPress={() => handleCriarEUsar(nova)}
-                style={styles.flex1}
-              />
-              <Button
-                label="Descartar"
-                variant="secondary"
-                disabled={criarCondicao.isPending}
-                onPress={() => handleDescartarNova(nova.chave)}
-                style={styles.flex1}
-              />
-            </View>
-          </View>
-        ))}
+            {(foundCount ?? 0) > 1 ? (
+              <Text style={styles.novaBandSub}>{foundCount} medicamentos encontrados. Confira cada cartão abaixo.</Text>
+            ) : null}
+            {pendentesTodas.map(({ item, nova }) => (
+              <View key={nova.chave} style={styles.novaBand}>
+                <Text style={styles.novaBandTitle}>Condição nova: «{nova.rotulo}»</Text>
+                <Text style={styles.novaBandSub}>
+                  {itens.length > 1 && item.medicamento
+                    ? `O ditado trouxe, para ${item.medicamento}, uma condição que o catálogo da clínica não tem.`
+                    : 'O ditado trouxe uma condição que o catálogo da clínica não tem.'}
+                </Text>
+                <View style={styles.novaBandActions}>
+                  <Button
+                    label="Criar e usar"
+                    loading={criarCondicao.isPending}
+                    onPress={() => handleCriarEUsar(item.key, nova)}
+                    style={styles.flex1}
+                  />
+                  <Button
+                    label="Descartar"
+                    variant="secondary"
+                    disabled={criarCondicao.isPending}
+                    onPress={() => handleDescartarNova(item.key, nova.chave)}
+                    style={styles.flex1}
+                  />
+                </View>
+              </View>
+            ))}
           </>
         ) : null}
       </View>
@@ -454,108 +484,23 @@ export function PrescricaoScreen({ route }: Props) {
         <View style={styles.divider} />
       </View>
 
-      {/* UX Otimizada: Formulário Limpo, Agrupamento Lógico e Inputs Numéricos Livres */}
-      <View style={styles.medCard}>
-        <Text style={styles.sectionLabel}>Dados do Medicamento</Text>
-        
-        <Input
-          label="Nome do Medicamento"
-          placeholder="medicamento genérico ou comercial"
-          value={medicamento}
-          onChangeText={setMedicamento}
-          hasError={!!erros.medicamento}
+      {itens.map((item) => (
+        <MedicationCard
+          key={item.key}
+          item={item}
+          single={itens.length === 1}
+          open={openKey === item.key}
+          errors={errosDoItem(item.key)}
+          onToggle={() => toggleOpen(item.key)}
+          onRemove={() => removeItem(item.key)}
+          onChange={(patch) => updateItem(item.key, patch)}
+          onAddRule={() => abrirModalRegra(item.key)}
         />
-        <FieldError message={erros.medicamento} />
+      ))}
 
-        {/* Linha de Dosagem e Unidade agrupadas */}
-        <View style={styles.row}>
-          <View style={styles.flex2}>
-            <Input
-              label="Dose Mínima"
-              keyboardType="decimal-pad"
-              placeholder="0.0"
-              value={doseMin ? String(doseMin) : ''}
-              onChangeText={(v) => setDoseMin(Number(v.replace(',', '.')) || 0)}
-              hasError={!!erros.doseMin}
-            />
-          </View>
-          <View style={styles.flex2}>
-            <Input
-              label="Dose Máxima"
-              keyboardType="decimal-pad"
-              placeholder="0.0"
-              value={doseMax ? String(doseMax) : ''}
-              onChangeText={(v) => setDoseMax(Number(v.replace(',', '.')) || 0)}
-              hasError={!!erros.doseMax}
-            />
-          </View>
-          <View style={styles.flex1}>
-            <Input
-              label="Unid."
-              placeholder="mg, ml, g..."
-              value={unidade}
-              onChangeText={setUnidade}
-              hasError={!!erros.unidade}
-            />
-          </View>
-        </View>
-        <FieldError message={erros.doseMax} />
-
-        {/* Linha de Posologia agrupada */}
-        <View style={styles.row}>
-          <View style={styles.flex1}>
-            <Input
-              label="Vezes ao dia"
-              keyboardType="number-pad"
-              placeholder=""
-              value={String(frequenciaDia || '')}
-              onChangeText={(v) => setFrequenciaDia(Number(v) || 0)}
-              hasError={!!erros.frequenciaDia}
-            />
-          </View>
-          <View style={styles.flex1}>
-            <Input
-              label="Dias de tratamento"
-              keyboardType="number-pad"
-              placeholder=""
-              value={String(duracaoDias || '')}
-              onChangeText={(v) => setDuracaoDias(Number(v) || 0)}
-              hasError={!!erros.duracaoDias}
-            />
-          </View>
-        </View>
-
-        <Input
-          label="Orientação para o responsável (opcional)"
-          placeholder=""
-          value={orientacao}
-          onChangeText={setOrientacao}
-          returnKeyType="done"
-        />
-      </View>
-
-      <View style={styles.regrasSection}>
-        <Text style={styles.sectionLabel}>Regras de dose · se → então</Text>
-        <Text style={styles.noteText}>
-          Opcional. Adicione regras para que o app adapte a dose conforme os sintomas relatados pelo responsável no check-in.
-        </Text>
-
-        {regras.length === 0 ? (
-          <Text style={styles.regrasVazias}>Nenhuma regra adicionada</Text>
-        ) : (
-          regras.map((regra, index) => (
-            <View key={index} style={styles.regraRow}>
-              <View style={styles.regraDot} />
-              <Text style={styles.regraText} numberOfLines={2}>
-                Se <Text style={styles.regraBold}>{descreverCondicao(regra)}</Text>
-                <Text style={styles.regraArrow}> → </Text>
-                {rotuloAcao(regra.acao)}
-              </Text>
-            </View>
-          ))
-        )}
-        <Button label="+ Adicionar regra" variant="secondary" onPress={abrirModalRegra} />
-      </View>
+      <Pressable accessibilityRole="button" onPress={() => addItem()} style={styles.addMedication}>
+        <Text style={styles.addMedicationText}>+ Adicionar medicamento</Text>
+      </Pressable>
 
       <Button
         label="Salvar receita"
@@ -1000,21 +945,16 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // UX: Clean Form Card
-  medCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
   flex1: { flex: 1 },
-  flex2: { flex: 2 },
+  addMedication: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.borderStrong,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  addMedicationText: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
   
   // Rules Section
   sectionLabel: {
@@ -1024,51 +964,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  regrasSection: {
-    gap: spacing.sm,
-  },
   noteText: {
     fontSize: 13,
     lineHeight: 19,
     color: colors.textSecondary,
     marginBottom: spacing.xs,
-  },
-  regrasVazias: {
-    fontSize: 14,
-    color: colors.textMuted,
-    fontStyle: 'italic',
-  },
-  regraRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  regraDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.primary,
-    flexShrink: 0,
-  },
-  regraText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textPrimary,
-  },
-  regraBold: {
-    fontWeight: '700',
-    color: colors.textPrimary,
-  },
-  regraArrow: {
-    color: colors.textPrimary,
-    fontWeight: '700',
   },
   resultLabel: {
     fontSize: 12,

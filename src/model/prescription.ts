@@ -59,6 +59,17 @@ interface PrescricaoDraft {
   receitaModeloVersao?: number;
 }
 
+// Um medicamento da receita. A `key` é estável e só existe no cliente: identifica o cartão
+// enquanto a vet adiciona, remove e reordena.
+type ItemReceitaDraft = Omit<PrescricaoDraft, 'animalId' | 'registroAtendimentoId'> & { key: string };
+
+// A receita do atendimento: N medicamentos, uma assinatura.
+interface ReceitaDraft {
+  animalId: string;
+  registroAtendimentoId?: string;
+  itens: ItemReceitaDraft[];
+}
+
 // --- DTOs do fluxo de IA: Rascunho de Prescrição (POST /api/prescricao/rascunho) ---
 
 // O veterinário dita a conduta em linguagem natural; a IA estrutura os campos.
@@ -79,8 +90,17 @@ export interface PrescricaoRequest {
   orientacao?: string;
 }
 
+// Um medicamento extraído do ditado (itens[] da resposta).
+export interface RascunhoItem {
+  prescricao: PrescricaoRequest;
+  confiancaPorCampo?: Record<string, unknown> | null;
+  regrasPropostas?: RegraPrescricaoRequest[] | null;
+}
+
 // Corpo completo da resposta de POST /api/prescricao/rascunho.
+// `itens` vem ausente em back antigo; os campos legados trazem o 1º medicamento.
 export interface RascunhoPrescricaoResponse {
+  itens?: RascunhoItem[] | null;
   narrativaOriginal: string;
   extracaoDisponivel: boolean;
   motivoDegradacao: string | null;
@@ -117,4 +137,4 @@ interface PrescriptionTemplate {
 }
 
 export { Prescription, prescriptionSchema };
-export type { PrescricaoDraft, PrescriptionTemplate, PrescriptionTemplateRule };
+export type { ItemReceitaDraft, PrescricaoDraft, ReceitaDraft, PrescriptionTemplate, PrescriptionTemplateRule };

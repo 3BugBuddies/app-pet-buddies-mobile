@@ -7,8 +7,7 @@ import type {
   CheckInNoRuleResult,
 } from '../../model/care';
 import type { ClosingDoneSummary, ClosingDraft } from '../../model/closing';
-import type { PrescricaoDraft } from '../../model/prescription';
-import type { RegraDraft } from '../../model/prescriptionRule';
+import type { ReceitaDraft } from '../../model/prescription';
 
 
 export type AuthStackParamList = {
@@ -65,11 +64,10 @@ export type HojeTabParamList = {
 export type PacientesTabParamList = {
   Pacientes: undefined;
   DetalhesPet: { petId: string; consultaId?: string };
-  ProntuarioForm: { petId: string; consultaId?: string; prescricao?: PrescricaoDraft };
+  ProntuarioForm: { petId: string; consultaId?: string; prescricao?: ReceitaDraft };
   PlanoPaciente: { petId: string };
   // Closing: ProntuarioForm -> (Prescricao opcional, volta ao form) -> AssinarPrescricao -> CheckoutAtendimento.
-  Prescricao: { animalId: string; novaRegra?: RegraDraft };
-  NovaRegra: { animalId: string };
+  Prescricao: { animalId: string; receita?: ReceitaDraft };
   AssinarPrescricao: { closing: ClosingDraft };
   CheckoutAtendimento: { summary: ClosingDoneSummary };
 };
