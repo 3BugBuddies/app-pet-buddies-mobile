@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
 import type { PlanoTabParamList } from '../navigation/types';
@@ -19,6 +19,14 @@ export function CheckInNoRuleScreen({ route }: Props) {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
       <CheckInTopBar title="Check-in" stepLabel="3 de 3" />
+
+      <View style={styles.waitBlock}>
+        <Image
+          source={require('../../../assets/images/logo-cat-transparente.png')}
+          style={styles.waitImage}
+          resizeMode="contain"
+        />
+      </View>
 
       <Text style={styles.title}>Sua veterinária vai ler este relato.</Text>
       <Text style={styles.body}>
@@ -49,6 +57,16 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
     paddingBottom: spacing.xl,
+  },
+  waitBlock: {
+    backgroundColor: '#DCEFFD',
+    borderRadius: radii.lg,
+    padding: 20,
+    alignItems: 'center',
+  },
+  waitImage: {
+    width: 150,
+    height: 150,
   },
   label: {
     fontSize: 12,

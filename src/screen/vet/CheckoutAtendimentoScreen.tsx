@@ -1,13 +1,13 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StyleSheet, Text, View } from 'react-native';
+import { BrandMark } from '../../component/ui/BrandMark';
 import { Button } from '../../component/ui/Button';
 import type { PacientesTabParamList, VetTabParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing } from '../../styles/theme';
-import { Ionicons } from '@expo/vector-icons';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PacientesTabParamList, 'CheckoutAtendimento'>;
@@ -31,7 +31,7 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
     <View style={[styles.screen, { paddingTop: Math.max(insets.top, 40), paddingBottom: tabBarSpace }]}>
       <View style={styles.content}>
         <View style={styles.iconCircle}>
-          <Ionicons name="checkmark-circle" size={80} color={colors.success} />
+          <BrandMark style={styles.celebrationMark} />
         </View>
 
         <Text style={styles.title}>Atendimento concluído</Text>
@@ -73,7 +73,17 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   iconCircle: {
+    width: 128,
+    height: 128,
+    borderRadius: radii.pill,
+    backgroundColor: '#FFF3D4',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing.md,
+  },
+  celebrationMark: {
+    width: 104,
+    height: 104,
   },
   title: {
     fontSize: 28,

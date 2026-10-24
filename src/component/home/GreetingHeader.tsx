@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing } from '../../styles/theme';
+import { BrandMark } from '../ui/BrandMark';
 import { formatTodayLabel } from '../../model/formatDate';
 
 interface GreetingHeaderProps {
@@ -14,6 +15,7 @@ interface GreetingHeaderProps {
 export function GreetingHeader({ greeting, userName, onAvatarPress, onLogout }: GreetingHeaderProps) {
   return (
     <View style={styles.row}>
+      <BrandMark style={styles.mark} />
       <View style={styles.textContainer}>
         <Text style={styles.date}>{formatTodayLabel()}</Text>
         <Text style={styles.name} numberOfLines={1}>
@@ -40,6 +42,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.lg,
+  },
+  mark: {
+    marginRight: 12,
   },
   textContainer: {
     flex: 1,

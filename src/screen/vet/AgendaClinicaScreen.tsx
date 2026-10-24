@@ -9,6 +9,7 @@ import { ActivePlansCard } from '../../component/vet-agenda/ActivePlansCard';
 import { AgendaHeroCard } from '../../component/vet-agenda/AgendaHeroCard';
 import { HomePendingCard } from '../../component/vet-agenda/HomePendingCard';
 import { NextPatientsCard, type NextPatientItem } from '../../component/vet-agenda/NextPatientsCard';
+import { BrandMark } from '../../component/ui/BrandMark';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useAppointments, useVetCrmv } from '../../control/useAppointmentsControl';
 import { AuthContext } from '../../context/authContext';
@@ -89,10 +90,13 @@ export function AgendaClinicaScreen() {
     <>
       <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
         <View style={styles.header}>
-          <View>
-            <Text style={styles.dateLabel}>{dateLabel}</Text>
-            <Text style={styles.vetName}>Dra. {session?.nome ?? 'vet'}</Text>
-            {crmv ? <Text style={styles.crmv}>CRMV {crmv}</Text> : null}
+          <View style={styles.identity}>
+            <BrandMark />
+            <View>
+              <Text style={styles.dateLabel}>{dateLabel}</Text>
+              <Text style={styles.vetName}>Dra. {session?.nome ?? 'vet'}</Text>
+              {crmv ? <Text style={styles.crmv}>CRMV {crmv}</Text> : null}
+            </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
             <View style={styles.avatar}>
@@ -146,6 +150,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   dateLabel: {
     ...typography.body,

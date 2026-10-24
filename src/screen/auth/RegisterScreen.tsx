@@ -6,6 +6,7 @@ import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Card } from '../../component/ui/Card';
 import { Input } from '../../component/ui/Input';
+import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useRegisterControl } from '../../control/authControl';
 import type { AuthStackParamList } from '../navigation/types';
 import { colors, radii, spacing, typography } from '../../styles/theme';
@@ -35,6 +36,9 @@ export function RegisterScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
+      <View style={styles.logoArea}>
+        <LogoHeader size="large" />
+      </View>
       <Text style={styles.title}>Criar conta</Text>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -125,6 +129,7 @@ export function RegisterScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
+  logoArea: { paddingHorizontal: spacing.lg },
   scrollContent: { flexGrow: 1, justifyContent: 'center', padding: spacing.lg, paddingBottom: spacing.xl },
   title: { ...typography.title, color: colors.textPrimary, paddingHorizontal: spacing.lg, marginBottom: spacing.sm },
   card: { gap: 0 },

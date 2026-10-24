@@ -293,6 +293,11 @@ export function HomeTutorScreen() {
                 <View style={[styles.fallbackCard, { backgroundColor: colors.cardMax, flex: 1, minHeight: 160 }]}>
                   <View style={styles.fallbackHeader}>
                     <Text style={styles.fallbackTitle}>Pata Segura</Text>
+                    <Image
+                      source={require('../../../assets/images/pata-segura.png')}
+                      style={styles.shield}
+                      resizeMode="contain"
+                    />
                   </View>
                   <Text style={[styles.fallbackSub, { marginTop: 'auto' }]}>
                     Consulta efetivada vira ponto.
@@ -368,6 +373,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: spacing.xs,
+  },
+  shield: {
+    width: 28,
+    height: 28,
   },
   fallbackTitle: {
     fontFamily: 'Sora',
