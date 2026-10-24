@@ -23,9 +23,10 @@ export function CheckInConfirmScreen({ route }: Props) {
 
   const condicoesSeguras = extracaoResponse.condicoes || [];
   const redFlagsSeguras = extracaoResponse.redFlags || [];
-  // Aviso prévio só pelos sinais de alerta da IA. `degradado` significa "a IA não conseguiu
-  // interpretar", não escalação — quem confirma a escalação é `escalado`, na resposta do POST.
-  const isEscalation = redFlagsSeguras.length > 0;
+  // Condição marcada como sinal de alarme também avisa: o back escala por ela mesmo sem red flag.
+  const alarmesCatalogo = condicoesSeguras.flatMap((c) => (c.critica && c.valorBooleano && c.rotulo ? [c.rotulo] : []));
+  const sinaisNoAviso = [...alarmesCatalogo, ...redFlagsSeguras];
+  const isEscalation = sinaisNoAviso.length > 0;
   const isDegradado = extracaoResponse.degradado;
 
   // Monta os campos de revisão a partir do que a IA extraiu da narrativa
@@ -105,9 +106,9 @@ export function CheckInConfirmScreen({ route }: Props) {
           <Text style={styles.escalationBody}>
             A IA cruzou o relato com a prescrição da veterinária e encontrou um sinal que pede atenção. Se você confirmar, o plano de cuidados é interrompido e você recebe a orientação para procurar a clínica.
           </Text>
-          {redFlagsSeguras.length > 0 && (
+          {sinaisNoAviso.length > 0 && (
             <View style={styles.flagsList}>
-              {redFlagsSeguras.map((flag, i) => (
+              {sinaisNoAviso.map((flag, i) => (
                 <View key={i} style={styles.flagRow}>
                   <View style={styles.flagDot} />
                   <Text style={styles.flagText}>{flag}</Text>
