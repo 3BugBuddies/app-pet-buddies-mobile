@@ -83,6 +83,8 @@ const sexLabel = (sex?: string | null): string => (sex && SEX_LABELS[sex]) || se
 
 const petArticle = (sex?: string | null): 'da' | 'do' => (sex === 'FEMEA' ? 'da' : 'do');
 
+const petDefiniteArticle = (sex?: string | null): 'a' | 'o' => (sex === 'FEMEA' ? 'a' : 'o');
+
 const breedLabel = (breed?: string | null): string =>
   !breed || breed === 'SEM_RACA' ? 'Sem raça definida' : breed;
 
@@ -106,6 +108,7 @@ export {
   sizeLabel,
   sexLabel,
   petArticle,
+  petDefiniteArticle,
   breedLabel,
   remainingAppointmentsLabel,
   withoutReadOnlyFields,

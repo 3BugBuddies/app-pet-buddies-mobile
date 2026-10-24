@@ -23,7 +23,7 @@ import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
 import { colors, radii, spacing } from '../../styles/theme';
 import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
 import { planStateLabel } from '../../model/care';
-import { breedLabel, sexLabel, type Pet } from '../../model/pet';
+import { breedLabel, sexLabel, type Pet, petDefiniteArticle } from '../../model/pet';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 function petDetails(pet: Pet): string {
@@ -224,7 +224,7 @@ export function HomeTutorScreen() {
               />
               {hasPendingMedication ? (
                 <Button
-                  label={`Contar como a ${activePet.nome} passou`}
+                  label={`Contar como ${petDefiniteArticle(activePet.sexo)} ${activePet.nome} passou`}
                   backgroundColor={colors.action}
                   textColor={colors.textLight}
                   onPress={handleStartCheckIn}
