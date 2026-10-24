@@ -151,7 +151,9 @@ export function CheckInEntryScreen({ route }: Props) {
 
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
-      <CheckInTopBar title="Check-in" stepLabel="1 de 3" />
+      <View style={styles.topBar}>
+        <CheckInTopBar title="Check-in" stepLabel="1 de 3" />
+      </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView keyboardDismissMode="on-drag"
@@ -203,6 +205,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  topBar: {
+    paddingHorizontal: spacing.lg,
   },
   flex: {
     flex: 1,

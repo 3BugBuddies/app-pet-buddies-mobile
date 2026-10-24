@@ -11,6 +11,7 @@ import { usePet } from '../../control/usePetsControl';
 import type { ClosingDoneSummary, ProcedureDraft } from '../../model/closing';
 import { firstName, formatHourShort, localIsoNow } from '../../model/closingSummary';
 import { formatDateBR, formatShortDate } from '../../model/formatDate';
+import { capitalize, daysText, doseBounds } from '../../model/careHome';
 import type { ItemReceitaDraft } from '../../model/prescription';
 import { descreverCondicao, rotuloAcao } from '../../model/prescriptionRule';
 import type { PacientesTabParamList } from '../navigation/types';
@@ -56,9 +57,9 @@ export function AssinarPrescricaoScreen({ route }: Props) {
   const receitaSub = (item: ItemReceitaDraft) => {
     const rules = item.regras.map((r) => `${descreverCondicao(r).toLowerCase()} → ${rotuloAcao(r.acao).toLowerCase()}`);
     return [
-      `${item.doseMin}–${item.doseMax} ${item.unidade}`,
+      `${doseBounds(item.doseMin, item.doseMax)} ${item.unidade}`,
       `${item.frequenciaDia}×/dia`,
-      `${item.duracaoDias} dias`,
+      daysText(item.duracaoDias),
       rules.length > 0 ? `${rules.length === 1 ? 'regra' : 'regras'}: ${rules.join('; ')}` : null,
     ]
       .filter(Boolean)
@@ -82,7 +83,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
       others: closing.procedures
         .filter((p) => p.section !== 'VACINA_VERMIFUGO')
         .map((p) => ({ label: procedureLabel(p), nome: p.nome.trim() })),
-      medicamentos: itens.map((i) => ({ nome: i.medicamento, duracaoDias: i.duracaoDias })),
+      medicamentos: itens.map((i) => ({ nome: capitalize(i.medicamento), duracaoDias: i.duracaoDias })),
     };
     navigation.dispatch(
       CommonActions.reset({
@@ -129,7 +130,7 @@ export function AssinarPrescricaoScreen({ route }: Props) {
         })}
         {multi ? <Text style={styles.blockLabel}>Receita · {itens.length} medicamentos</Text> : null}
         {itens.map((item) => (
-          <Block key={item.key} label={multi ? 'Medicamento' : 'Receita'} title={item.medicamento} sub={receitaSub(item)} />
+          <Block key={item.key} label={multi ? 'Medicamento' : 'Receita'} title={capitalize(item.medicamento)} sub={receitaSub(item)} />
         ))}
       </View>
 

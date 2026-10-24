@@ -5,6 +5,7 @@ import { Input } from '../ui/Input';
 import { FieldError } from '../forms/FieldError';
 import type { ItemReceitaDraft } from '../../model/prescription';
 import { descreverCondicao, rotuloAcao } from '../../model/prescriptionRule';
+import { capitalize, daysText, doseBounds, doseText } from '../../model/careHome';
 import { colors, radii, spacing } from '../../styles/theme';
 
 interface MedicationCardProps {
@@ -20,9 +21,8 @@ interface MedicationCardProps {
 }
 
 const doseLabel = (item: ItemReceitaDraft) => {
-  if (!item.doseMin && !item.doseMax) return '';
-  const range = item.doseMax && item.doseMax !== item.doseMin ? `${item.doseMin}–${item.doseMax}` : String(item.doseMin || item.doseMax);
-  return `${range} ${item.unidade}`.trim();
+  const range = doseBounds(item.doseMin, item.doseMax);
+  return range ? `${range} ${item.unidade}`.trim() : '';
 };
 
 const intervalLabel = (perDay: number) => {
@@ -34,10 +34,10 @@ const intervalLabel = (perDay: number) => {
 export const closedSummary = (item: ItemReceitaDraft) => {
   const rules = item.regras.length;
   return {
-    title: [item.medicamento.trim() || 'Novo medicamento', doseLabel(item)].filter(Boolean).join(' · '),
+    title: [capitalize(item.medicamento.trim()) || 'Novo medicamento', doseLabel(item)].filter(Boolean).join(' · '),
     sub: [
       intervalLabel(item.frequenciaDia),
-      item.duracaoDias ? `${item.duracaoDias} dias` : '',
+      item.duracaoDias ? daysText(item.duracaoDias) : '',
       rules > 0 ? `${rules} ${rules === 1 ? 'regra' : 'regras'} de dose` : '',
     ]
       .filter(Boolean)
@@ -66,7 +66,7 @@ export function MedicationCard({ item, single, open, errors, onToggle, onRemove,
             label="Dose Mínima"
             keyboardType="decimal-pad"
             placeholder="0.0"
-            value={item.doseMin ? String(item.doseMin) : ''}
+            value={item.doseMin ? doseText(item.doseMin) : ''}
             onChangeText={(v) => onChange({ doseMin: Number(v.replace(',', '.')) || 0 })}
             hasError={!!errors.doseMin}
           />
@@ -76,7 +76,7 @@ export function MedicationCard({ item, single, open, errors, onToggle, onRemove,
             label="Dose Máxima"
             keyboardType="decimal-pad"
             placeholder="0.0"
-            value={item.doseMax ? String(item.doseMax) : ''}
+            value={item.doseMax ? doseText(item.doseMax) : ''}
             onChangeText={(v) => onChange({ doseMax: Number(v.replace(',', '.')) || 0 })}
             hasError={!!errors.doseMax}
           />

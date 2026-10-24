@@ -87,24 +87,37 @@ export function extractPhone(text: string): string | undefined {
   return text.match(/\(\d{2}\)\s?\d{4,5}-\d{4}/)?.[0];
 }
 
+function reasonOf(
+  alarmLabels: string[],
+  redFlags: string[],
+  observedLabels: string[],
+  acionar: CheckinDesfecho | undefined,
+): string {
+  if (alarmLabels.length > 0) return alarmLabels.join(', ');
+  if (redFlags.length > 0) return redFlags.join(', ');
+  if (observedLabels.length > 0) return observedLabels.join(', ');
+  return acionar?.regraDescricao || 'um sinal de alerta';
+}
+
 export function resolveCheckInResponse(
   response: CheckinResponse,
   redFlags: string[],
   alarmLabels: string[] = [],
+  observedLabels: string[] = [],
 ): CheckInResult {
   const desfechos = response.desfechos ?? [];
   const acionar = desfechos.find((d) => d.desfecho === 'ACIONAR_CLINICA');
 
-  if (response.escalado) {
+  // O back nem sempre marca `escalado` quando a regra manda acionar a clínica: o desfecho também vale.
+  if (response.escalado || acionar) {
     const { vetName, vetCrmv } = prescriber(acionar ?? desfechos[0]);
     const rules = desfechos
       .filter((d) => d.desfecho === 'ACIONAR_CLINICA')
       .map((d) => `${d.medicamento} · ${d.regraDescricao ?? 'acionar a clínica'}`);
     const escalation: CheckInEscalationResult = {
       status: 'ESCALATION',
-      reasonLabel:
-        alarmLabels.length > 0 ? alarmLabels.join(', ') : redFlags.length > 0 ? redFlags.join(', ') : 'um sinal de alerta',
-      reasonFromConditions: alarmLabels.length > 0,
+      reasonLabel: reasonOf(alarmLabels, redFlags, observedLabels, acionar),
+      reasonFromConditions: alarmLabels.length > 0 || (redFlags.length === 0 && observedLabels.length > 0),
       clinicName: response.clinica?.nome,
       clinicPhone: response.clinica?.telefone ?? extractPhone(JSON.stringify(response)),
       ruleDescription: acionar

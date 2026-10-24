@@ -299,6 +299,7 @@ export interface ConfirmCheckInInput {
   payload: CheckInRequest;
   redFlags: string[];
   alarmLabels?: string[];
+  observedLabels?: string[];
 }
 
 // Payload completo de POST /api/checkin (check-in em dois passos).

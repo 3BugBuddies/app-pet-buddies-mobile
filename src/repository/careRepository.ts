@@ -218,11 +218,11 @@ const getPlan = async (petId: string): Promise<CarePlan | null> => {
   return getFakeCarePlan(petId);
 };
 
-const confirmCheckIn = async ({ payload, redFlags, alarmLabels }: ConfirmCheckInInput): Promise<CheckInResult> => {
+const confirmCheckIn = async ({ payload, redFlags, alarmLabels, observedLabels }: ConfirmCheckInInput): Promise<CheckInResult> => {
   if (USE_API) {
     // Rota correta: POST /checkin
     const response = await apiJava.post<CheckinResponse>('/checkin', payload);
-    return resolveCheckInResponse(response.data, redFlags, alarmLabels);
+    return resolveCheckInResponse(response.data, redFlags, alarmLabels, observedLabels);
   }
   const hoje = new Date().toLocaleDateString('pt-BR');
   return {
