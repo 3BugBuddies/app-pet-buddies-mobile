@@ -1,4 +1,4 @@
-# Pet Buddies — Aplicativo Mobile (Sprint 3)
+# Pet Buddies — Aplicativo Mobile (Sprint 4)
 
 Aplicativo mobile desenvolvido em React Native / Expo para a plataforma **Clyvo Vet**, que conecta tutores de pets e veterinários em uma jornada contínua de cuidado animal. O app permite gerenciar consultas, planos de cuidado, check-ins clínicos e prontuários de forma integrada com o backend Java Spring.
 
@@ -15,9 +15,15 @@ Aplicativo mobile desenvolvido em React Native / Expo para a plataforma **Clyvo 
 
 ---
 
-## Vídeo de Apresentação
+## Links da Entrega
 
-▶️ [Assista no YouTube](<!-- inserir link aqui -->)
+| Item | Link |
+|------|------|
+| Vídeo de apresentação (YouTube) | <!-- inserir link do vídeo aqui --> |
+| App publicado (Firebase App Distribution) | <!-- inserir link do convite aqui --> |
+| Backend (API Java Spring) | `https://petbuddies-java-rm563925.azurewebsites.net/api` |
+
+A tela **Sobre o app** mostra o hash do commit da versão instalada. Veja [Rastreabilidade da versão publicada](#rastreabilidade-da-versão-publicada).
 
 ---
 
@@ -25,8 +31,46 @@ Aplicativo mobile desenvolvido em React Native / Expo para a plataforma **Clyvo 
 
 Tutores de pets com condições crônicas frequentemente não sabem quando e como administrar medicamentos, e veterinários não têm visibilidade sobre a adesão do paciente entre consultas. O **Pet Buddies** resolve isso oferecendo:
 
-- **Para o tutor**: plano de cuidado personalizado, check-in diário inteligente com dose calculada automaticamente, agenda de consultas e histórico do pet
-- **Para o veterinário**: painel de pacientes em acompanhamento, registro de prontuários, criação de planos e prescrições com regras de dose adaptativas
+- **Para o tutor**: plano de cuidado personalizado, check-in diário inteligente com dose calculada automaticamente, agenda de consultas, lembretes e histórico do pet
+- **Para o veterinário**: agenda e painel de pacientes em acompanhamento, registro de prontuários, criação de planos e prescrições com regras de dose adaptativas
+
+---
+
+## Funcionalidades
+
+### Perfil Tutor
+
+| Funcionalidade | Integração |
+|----------------|-----------|
+| Cadastro, login e sessão persistida | API Java (`/auth/registro`, `/auth/login`) |
+| Minha conta: editar perfil, trocar senha e sair | API Java (`/responsavel`, `/auth/senha`) |
+| Pets: cadastrar, editar, listar e excluir | API Java (`/animal`) |
+| Agendar consulta (dias e horários livres do veterinário) | API Java (`/consulta/agendamento`, `/janela-atendimento`) |
+| Plano de cuidado (aba Cuidados): tratamento, semana e histórico | API Java (`/motor/plano`) |
+| Check-in diário por texto ou voz, com a dose calculada pelas regras da receita | API Java (`/checkin/extracao`, `/checkin`) |
+| Notificação ao agendar e lembrete antes da consulta | Local (`expo-notifications`) |
+| Tema claro, escuro ou automático | Local |
+
+### Perfil Veterinário
+
+| Funcionalidade | Integração |
+|----------------|-----------|
+| Hoje: agenda do dia e atendimento imediato (sem agenda) | API Java (`/consulta`) |
+| Agenda da semana com horários livres e ocupados | API Java (`/janela-atendimento`) |
+| Lista de pacientes e plano de cuidado de cada paciente | API Java (`/animal`, `/motor/plano`) |
+| Prontuário, receita (por texto, voz ou receita-modelo), regras de dose, assinatura e fechamento do atendimento | API Java (`/registro-atendimento`, `/prescricao`, `/receita-modelo`, `/condicao-clinica`, `/consulta/{id}/fechamento`) |
+
+---
+
+## Requisitos da Sprint 4
+
+| Requisito | Onde está no app |
+|-----------|------------------|
+| Telas funcionais | 28 telas (3 de autenticação, 15 do tutor, 9 do veterinário e 1 compartilhada); as que exibem ou gravam dados usam a API Java |
+| Publicação | Firebase App Distribution (link acima) e tela **Sobre o app** com o hash do commit |
+| Notificações | Local: confirmação ao agendar e lembrete 1 h antes; o toque abre a aba Agenda |
+| Arquitetura | `model` / `repository` / `control` / `screen`, sem chamada HTTP nas telas |
+| Tema claro/escuro | Automático, Claro ou Escuro, escolhido em **Sobre o app** |
 
 ---
 
@@ -34,14 +78,17 @@ Tutores de pets com condições crônicas frequentemente não sabem quando e com
 
 | Tecnologia | Versão | Uso |
 |-----------|--------|-----|
-| React Native | 0.86.3 | Framework mobile |
-| Expo | ~57.0.20 | Toolchain e build |
+| React Native | 0.88.0 | Framework mobile |
+| Expo | ~58.0.21 | Toolchain e build |
 | TypeScript | ~6.0.3 | Tipagem estática |
-| TanStack Query | ^5.102.8 | Gerenciamento de estado e cache de API |
-| React Navigation | ^7.x | Navegação entre telas (Bottom Tabs + Stack) |
-| Axios | ^1.20.0 | Cliente HTTP para a API |
-| AsyncStorage | 2.2.0 | Persistência de sessão local |
+| TanStack Query | ^5.102.8 | Estado e cache de API (`useQuery` / `useMutation`) |
+| React Navigation | ^7 | Navegação (Bottom Tabs + Native Stack) |
+| Axios | ^1.20.0 | Cliente HTTP, com interceptors |
 | Yup | ^1.7.1 | Validação de formulários |
+| expo-secure-store | ~58.0.2 | Sessão do usuário (token) |
+| expo-notifications | ~58.1.7 | Notificações locais |
+| expo-audio | ~58.0.10 | Gravação de voz (check-in e receita) |
+| AsyncStorage | 2.2.0 | Preferência de tema |
 
 **Backend:** API Java Spring (HATEOAS) em `https://petbuddies-java-rm563925.azurewebsites.net/api`
 
@@ -51,32 +98,75 @@ Tutores de pets com condições crônicas frequentemente não sabem quando e com
 
 ```
 src/
-├── component/          # Componentes de UI reutilizáveis
-│   ├── ui/             # Primitivos (Button, Card, Input, LoadingIndicator…)
-│   ├── home/           # Cards da tela Home do tutor
-│   ├── pet-profile/    # Cards do perfil do pet
-│   ├── care-plan/      # Componentes do plano de cuidado
-│   ├── checkin/        # Componentes do fluxo de check-in
-│   └── vet-agenda/     # Componentes da agenda do veterinário
-├── control/            # Hooks de lógica de negócio (TanStack Query)
-├── model/              # Tipos e schemas de validação (Yup)
-├── repository/         # Camada de acesso à API (Axios)
-├── context/            # Contexto de autenticação (AuthContext)
-├── screen/             # Telas do aplicativo
-│   ├── auth/           # Login, Cadastro, Onboarding
+├── component/          # Componentes de UI reutilizáveis, por área (ui, home, care-plan, checkin, closing…)
+├── control/            # Lógica de negócio em hooks (TanStack Query, formulários, tema, notificações)
+├── model/              # Tipos, schemas de validação (Yup) e regras puras
+├── repository/         # Acesso a dados: API (Axios), SecureStore, AsyncStorage, notificações
+├── context/            # Contextos React (AuthContext, ThemeContext)
+├── screen/             # Telas
+│   ├── auth/           # Onboarding, Login, Cadastro
 │   ├── tutor/          # Telas do perfil Tutor
 │   ├── vet/            # Telas do perfil Veterinário
-│   └── navigation/     # Configuração de rotas e stacks
-└── styles/             # Tema global (cores, tipografia, espaçamentos)
+│   ├── shared/         # Sobre o app (os dois perfis)
+│   └── navigation/     # Rotas, abas e stacks
+└── styles/             # Tema (paletas clara e escura, espaçamentos, tipografia) e hooks de tema
 ```
+
+As telas só renderizam e chamam hooks de `control/`. Os hooks de `control/` usam as funções de `repository/`, que são as únicas a conversar com a API.
+
+---
+
+## Autenticação
+
+1. O login e o cadastro usam a API Java; a sessão (token JWT e dados do perfil) é guardada no **SecureStore** (armazenamento criptografado do aparelho)
+2. Ao abrir o app, a sessão salva é lida: se existe, o usuário vai direto às abas, sem tela de login
+3. As rotas são protegidas pelo navegador: sem sessão só existe a pilha de autenticação, e o perfil define as abas (Tutor ou Veterinário)
+4. Todas as chamadas à API levam o token via interceptor do Axios. Uma resposta 401 mostra o aviso de sessão expirada e leva ao login
+5. Sair da conta apaga a sessão, o cache de dados e os lembretes agendados
+
+---
+
+## Notificações
+
+- **Evento gerador:** o tutor confirma o agendamento de uma consulta
+- **Na hora:** "Consulta agendada · *pet*", com o motivo, o dia e o horário
+- **Lembrete:** 1 hora antes da consulta. Se a consulta é para daqui a menos de 1 hora, só a confirmação é enviada
+- **Toque na notificação:** abre a aba **Agenda** do tutor, com o app aberto, em segundo plano ou fechado
+- Ao sair da conta, os lembretes agendados são cancelados, para não chegarem à próxima conta usada no aparelho
+
+---
+
+## Tema claro e escuro
+
+O app tem duas paletas. Em **Sobre o app → Aparência** o usuário escolhe **Automático** (segue o tema do aparelho), **Claro** ou **Escuro**. A escolha fica salva no aparelho.
+
+---
+
+## Rastreabilidade da versão publicada
+
+A tela **Sobre o app** (Minha conta, para o tutor; ícone de informação na tela Hoje, para o veterinário) mostra a versão, o **hash do commit**, a branch e a data de geração do build. Esses dados são gravados na hora do build por `app.config.ts`.
+
+Para o app publicado corresponder exatamente ao código entregue: gerar o build a partir de uma árvore **sem alterações pendentes** (`git status` limpo). Se o build sair com alterações não commitadas, a tela avisa.
+
+---
+
+## Inteligência Artificial no app
+
+O app usa IA em dois pontos, alinhados ao componente de IA da disciplina *Disruptive Architectures*:
+
+| Recurso | Como funciona |
+|---------|---------------|
+| **Transcrição de voz** (check-in do tutor e receita do veterinário) | O áudio gravado com `expo-audio` é enviado por HTTP à API de transcrição Whisper da Groq (`whisper-large-v3-turbo`), e o texto volta para o formulário |
+| **Extração de dados do texto** | O texto narrado vira campos estruturados (medicamento, dose, frequência, duração, regras). A extração principal é feita pelo servidor Java (`/checkin/extracao`, `/prescricao/rascunho`); o app tem um extrator local (`prescriptionExtractor.ts`) como alternativa quando o servidor não consegue interpretar o texto |
+
+Não foi adicionada nenhuma biblioteca de IA ao app: a transcrição é uma chamada HTTP comum, e a gravação usa o `expo-audio`.
 
 ---
 
 ## Pré-requisitos
 
-- [Node.js](https://nodejs.org/) 18 ou superior
-- [Expo CLI](https://docs.expo.dev/get-started/installation/) (`npm install -g expo-cli`)
-- Expo Go instalado no dispositivo móvel **ou** emulador Android/iOS configurado
+- [Node.js](https://nodejs.org/) **22.13 ou superior** (testado com 24)
+- Expo Go compatível com o **SDK 58** instalado no dispositivo, **ou** emulador Android/iOS configurado
 
 ---
 
@@ -85,12 +175,15 @@ src/
 ```bash
 # 1. Clone o repositório
 git clone <URL_DO_REPOSITÓRIO>
-cd app-pet-buddies-sprint3
+cd app-pet-buddies-mobile
 
 # 2. Instale as dependências
 npm install
 
-# 3. Inicie o servidor de desenvolvimento
+# 3. (Opcional) crie o arquivo de variáveis de ambiente
+cp .env.example .env
+
+# 4. Inicie o servidor de desenvolvimento
 npx expo start
 ```
 
@@ -99,59 +192,47 @@ Com o servidor rodando:
 - **Emulador Android**: pressione `a`
 - **Emulador iOS**: pressione `i`
 
-> A API backend já está em produção. Nenhuma configuração adicional de ambiente é necessária.
+Para checar os tipos: `npx tsc --noEmit`.
 
----
+### Variáveis de ambiente (opcionais)
 
-## Funcionalidades Implementadas
+| Variável | Para que serve |
+|----------|----------------|
+| `EXPO_PUBLIC_API_BASE_URL` | URL da API. Sem ela, o app usa a API de produção (Azure) |
+| `EXPO_PUBLIC_GROQ_API_KEY` | Chave da Groq para a transcrição de voz. Sem ela, a transcrição devolve um texto de exemplo, só para testar a interface |
 
-### Perfil Tutor
-| Funcionalidade | Integração |
-|----------------|-----------|
-| Cadastro e login | API Java (`/auth/registro`, `/auth/login`) |
-| Gerenciar pets (CRUD completo) | API Java (`/animal`) |
-| Agendar e cancelar consultas | API Java (`/consulta`) |
-| Plano de cuidado e check-in diário | API Java (`/motor/plano`, `/checkin`) |
-| Histórico de evolução | API Java |
-| Perfil e pontuação do pet | Local (Score — Sprint 4) |
+> As variáveis `EXPO_PUBLIC_*` são embutidas no app na hora do build. Use uma chave da Groq que possa ser revogada.
 
-### Perfil Veterinário
-| Funcionalidade | Integração |
-|----------------|-----------|
-| Agenda de consultas do dia | API Java (`/consulta`) |
-| Registro de prontuário | API Java (`/registro-atendimento`) |
-| Criação de prescrição com regras | API Java (`/prescricao`) |
-| Lista de pacientes | API Java |
+### Gerar o APK
 
----
-
-## Fluxo de Autenticação
-
-1. Ao abrir o app, a sessão salva é lida do AsyncStorage
-2. Se existe sessão válida, o usuário é redirecionado diretamente às abas (sem tela de login)
-3. Sessão expirada (401 da API) limpa o storage e redireciona ao login
-4. Logout remove a sessão do storage e do contexto React
+```bash
+eas build --platform android --profile preview
+```
 
 ---
 
 ## Telas Disponíveis
 
-**Auth Stack:** Onboarding · Login · Cadastro
+**Autenticação:** Onboarding · Login · Cadastro
 
 **Tutor (4 abas):**
-- **Início:** Resumo do pet ativo, próxima consulta, tarefas do dia
-- **Evolução:** Plano de cuidado, check-in narrado, resultado da dose
-- **Agenda:** Lista de consultas, agendamento de nova consulta, cancelamento
-- **Pet:** Lista de pets, perfil detalhado, adicionar pet, excluir pet
+- **Início:** resumo do pet ativo, próxima consulta, tarefas do dia, Pata Segura, Minha conta
+- **Cuidados:** plano de cuidado, check-in por texto ou voz, resultado da dose
+- **Agenda:** próxima consulta e agendamento de nova consulta
+- **Pet:** lista de pets, perfil, cadastro, edição e exclusão
 
-**Veterinário (2 abas):**
-- **Hoje:** Agenda do dia, registro de prontuário, prescrição com regras adaptativas
-- **Pacientes:** Lista de pacientes em acompanhamento, plano do paciente
+**Veterinário (3 abas):**
+- **Hoje:** agenda do dia, atendimento imediato, prontuário e prescrição com regras de dose
+- **Agenda:** semana com horários livres e ocupados
+- **Pacientes:** lista de pacientes em acompanhamento e plano do paciente
+
+**Os dois perfis:** Sobre o app (versão, hash do commit e aparência)
 
 ---
 
 ## Observações Técnicas
 
-- **Dados de Score e Badges** são exibidos localmente nesta sprint. Os endpoints `/pontuacao` e `/badges` estão previstos para a Sprint 4 da API Java
+- **Pata Segura (pontuação):** o saldo de pontos ainda não vem da API. A tela mostra o saldo zerado, e o endpoint `/pontuacao` está previsto para a API Java
 - **Protocolos veterinários** são dados do back-office .NET, não consumidos diretamente pelo app mobile (arquitetura definida em conjunto com a equipe de backend)
 - Toda chamada HTTP usa Bearer Token injetado automaticamente via interceptor do Axios
+- O aplicativo é voltado a Android e iOS. A execução no navegador não é suportada (SecureStore, gravação de áudio e notificações não existem na web)
