@@ -374,8 +374,8 @@ const useStyles = makeStyles((colors) => ({
     gap: 2,
   },
   diaBlockActive: {
-    backgroundColor: colors.textPrimary,
-    borderColor: colors.textPrimary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   diaSemana: {
     fontSize: 11,
