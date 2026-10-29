@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing } from '../../styles/theme';
 import type { DayDot, WeekDayCell } from '../../model/careHome';
@@ -45,7 +45,7 @@ function Dot({ dot }: { dot: DayDot }) {
 }
 
 export function WeekStrip({ days, tone = 'default', onPressDay }: WeekStripProps) {
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const scrolls = days.length > MAX_FIXED_DAYS;
   const todayIndex = days.findIndex((day) => day.isToday);
 
