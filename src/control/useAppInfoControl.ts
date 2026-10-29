@@ -14,7 +14,6 @@ export function useAppInfoControl() {
       version,
       commit: shortCommit(build.commitHash),
       commitFull: build.commitHash,
-      branch: build.branch,
       dirty: build.dirty,
       builtAtLabel: formatBuildDate(build.builtAt),
     };

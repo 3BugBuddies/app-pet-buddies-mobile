@@ -1,7 +1,6 @@
 // Gravado em extra.build pelo app.config.ts na hora de gerar o app.
 interface BuildMeta {
   commitHash: string;
-  branch: string | null;
   dirty: boolean;
   builtAt: string; // ISO; vazio quando o app foi gerado sem esses metadados
 }

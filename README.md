@@ -144,7 +144,7 @@ O app tem duas paletas. Na aba **Sobre → Aparência** o usuário escolhe **Aut
 
 ## Rastreabilidade da versão publicada
 
-A aba **Sobre** (presente nos dois perfis) mostra a versão, o **hash do commit**, a branch e a data de geração do build. Esses dados são gravados na hora do build por `app.config.ts`.
+A aba **Sobre** (presente nos dois perfis) mostra a versão, o **hash do commit** e a data de geração do build. Esses dados são gravados na hora do build por `app.config.ts`.
 
 Para o app publicado corresponder exatamente ao código entregue: gerar o build a partir de uma árvore **sem alterações pendentes** (`git status` limpo). Se o build sair com alterações não commitadas, a tela avisa.
 
