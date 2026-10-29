@@ -1,4 +1,4 @@
-import { apiJava, USE_API } from './apiClient';
+import { apiJava } from './apiClient';
 import type { PrescriptionTemplate } from '../model/prescription';
 
 const mapTemplate = (t: any): PrescriptionTemplate => ({
@@ -28,7 +28,6 @@ const mapTemplate = (t: any): PrescriptionTemplate => ({
 // Receitas-modelo ativas da clínica da vet (GET /receita-modelo, só VET). Lista vazia pode vir
 // sem `_embedded`; a chave da lista não foi conferida, então lê o primeiro array de `_embedded`.
 const getPrescriptionTemplates = async (): Promise<PrescriptionTemplate[]> => {
-  if (!USE_API) return [];
   const response = await apiJava.get('/receita-modelo');
   const embedded: Record<string, unknown> = response.data?._embedded ?? {};
   const lista = Object.values(embedded).find(Array.isArray) as any[] | undefined;

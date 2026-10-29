@@ -1,4 +1,4 @@
-import { apiJava, USE_API } from './apiClient';
+import { apiJava } from './apiClient';
 import type { OpenPlanItem } from '../model/closing';
 
 interface PlanItemDto {
@@ -15,7 +15,6 @@ interface ItemsPageDto {
 
 // tipo repetido na URL: o axios serializaria o array como tipo[]=..., que o Spring não liga.
 const getOpenPreventiveItems = async (animalId: string): Promise<OpenPlanItem[]> => {
-  if (!USE_API) return [];
   const response = await apiJava.get<ItemsPageDto>(
     `/motor/plano/${animalId}/eventos?tipo=VACINACAO&tipo=VERMIFUGACAO&abertos=true&size=50`
   );

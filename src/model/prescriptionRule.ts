@@ -38,17 +38,6 @@ interface CondicaoClinica {
   critica: boolean;
 }
 
-// Catálogo usado só no modo mock (USE_API = false). Com a API, vem de /condicao-clinica.
-const CONDICOES_CLINICAS: CondicaoClinica[] = [
-  { id: 1, codigo: 'FEZES_MOLES', rotulo: 'Fezes moles', tipoDado: 'BOOLEANO', critica: false },
-  { id: 2, codigo: 'NAO_EVACUOU', rotulo: 'Não evacuou', tipoDado: 'BOOLEANO', critica: false },
-  { id: 3, codigo: 'COMEU_POUCO', rotulo: 'Comeu pouco', tipoDado: 'BOOLEANO', critica: false },
-  { id: 4, codigo: 'VOMITO', rotulo: 'Vômito', tipoDado: 'BOOLEANO', critica: false },
-  { id: 5, codigo: 'SANGUE_NAS_FEZES', rotulo: 'Sangue nas fezes', tipoDado: 'BOOLEANO', critica: true },
-  { id: 6, codigo: 'APATIA', rotulo: 'Apatia', tipoDado: 'BOOLEANO', critica: true },
-  { id: 7, codigo: 'DIFICULDADE_RESPIRATORIA', rotulo: 'Dificuldade respiratória', tipoDado: 'BOOLEANO', critica: true },
-];
-
 const prescriptionRuleSchema = object({
   id: string().nullable(),
   prescricaoId: string().required(),
@@ -110,7 +99,6 @@ const descreverCondicao = (regra: RegraDraft): string => {
 
 export {
   ACAO_ROTULO,
-  CONDICOES_CLINICAS,
   TP_ACAO,
   OPERADORES,
   OPERADOR_SIMBOLO,

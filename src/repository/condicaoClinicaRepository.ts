@@ -1,6 +1,6 @@
 import { isAxiosError } from 'axios';
-import { apiJava, USE_API } from './apiClient';
-import { CONDICOES_CLINICAS, derivarCodigo, type CondicaoClinica } from '../model/prescriptionRule';
+import { apiJava } from './apiClient';
+import { derivarCodigo, type CondicaoClinica } from '../model/prescriptionRule';
 
 interface NovaCondicao {
   rotulo: string;
@@ -21,28 +21,21 @@ const mapCondicao = (c: any): CondicaoClinica => ({
 
 // A clínica da vet logada vem do cadastro dela (GET /veterinario/{id}).
 const getClinicaIdDoVeterinario = async (veterinarioId: number | string): Promise<number | null> => {
-  if (!USE_API) return null;
   const response = await apiJava.get(`/veterinario/${veterinarioId}`);
   return response.data?.clinicaId != null ? Number(response.data.clinicaId) : null;
 };
 
 // Catálogo de condições da clínica: alimenta a busca das regras e traduz os ids da IA em rótulos.
 const getCondicoesClinicas = async (clinicaId: number | null): Promise<CondicaoClinica[]> => {
-  if (USE_API) {
-    const response = await apiJava.get(`/condicao-clinica?clinicaId=${clinicaId}`);
-    const lista: any[] = response.data._embedded?.condicaoClinicaResponseList ?? [];
-    return lista.filter((c) => c.ativo !== false).map(mapCondicao);
-  }
-  return CONDICOES_CLINICAS;
+  const response = await apiJava.get(`/condicao-clinica?clinicaId=${clinicaId}`);
+  const lista: any[] = response.data._embedded?.condicaoClinicaResponseList ?? [];
+  return lista.filter((c) => c.ativo !== false).map(mapCondicao);
 };
 
 // Código duplicado na clínica (409) = a condição já existe: busca na lista e usa.
 const createCondicaoClinica = async (nova: NovaCondicao): Promise<CondicaoClinica> => {
   const rotulo = nova.rotulo.trim();
   const codigo = derivarCodigo(rotulo);
-  if (!USE_API) {
-    return { id: Date.now(), codigo, rotulo, tipoDado: nova.tipoDado, unidade: nova.unidade ?? null, critica: false };
-  }
   try {
     const response = await apiJava.post('/condicao-clinica', {
       codigo,

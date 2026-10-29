@@ -1,6 +1,5 @@
-import { apiJava, USE_API } from './apiClient';
+import { apiJava } from './apiClient';
 import { Prescription, type NarrativaPrescricaoRequest, type RascunhoPrescricaoResponse } from '../model/prescription';
-import { addFakePrescription, getFakePrescriptionsByAnimalId } from './fakeData';
 
 
 // Normaliza um item da lista do backend para o tipo interno Prescription
@@ -24,80 +23,45 @@ function mapPrescription(p: any): Prescription {
 }
 
 const getPrescriptionsByAnimalId = async (animalId: string): Promise<Prescription[]> => {
-  if (USE_API) {
-    // Filho não é aninhado — é filtro
-    const response = await apiJava.get(`/prescricao?animalId=${animalId}`);
-    const list = response.data._embedded?.prescricaoResponseList ?? [];
-    return list.map(mapPrescription);
-  }
-  return getFakePrescriptionsByAnimalId(animalId);
+  // Filho não é aninhado — é filtro
+  const response = await apiJava.get(`/prescricao?animalId=${animalId}`);
+  const list = response.data._embedded?.prescricaoResponseList ?? [];
+  return list.map(mapPrescription);
 };
 
 const createPrescription = async (prescription: Prescription): Promise<Prescription> => {
-  if (USE_API) {
-    // Backend exige wrapper: { "prescricoes": [...] }
-    const payload = {
-      medicamento: prescription.medicamento,
-      doseMin: prescription.doseMin,
-      doseMax: prescription.doseMax,
-      unidade: prescription.unidade,
-      frequenciaDia: prescription.frequenciaDia,
-      duracaoDias: prescription.duracaoDias,
-      dataInicio: prescription.dataInicio,
-      orientacao: prescription.orientacao ?? undefined,
-      animalId: Number(prescription.animalId),
-      veterinarioId: Number(prescription.veterinarioId),
-      registroAtendimentoId: prescription.registroAtendimentoId && !isNaN(Number(prescription.registroAtendimentoId))
-        ? Number(prescription.registroAtendimentoId)
-        : undefined,
-    };
-    // Retorna lista HATEOAS — pega o primeiro item criado
-    const response = await apiJava.post('/prescricao', { prescricoes: [payload] });
-    const list = response.data._embedded?.prescricaoResponseList ?? [];
-    return list.length > 0 ? mapPrescription(list[0]) : prescription;
-  }
-  return addFakePrescription(prescription);
+  // Backend exige wrapper: { "prescricoes": [...] }
+  const payload = {
+    medicamento: prescription.medicamento,
+    doseMin: prescription.doseMin,
+    doseMax: prescription.doseMax,
+    unidade: prescription.unidade,
+    frequenciaDia: prescription.frequenciaDia,
+    duracaoDias: prescription.duracaoDias,
+    dataInicio: prescription.dataInicio,
+    orientacao: prescription.orientacao ?? undefined,
+    animalId: Number(prescription.animalId),
+    veterinarioId: Number(prescription.veterinarioId),
+    registroAtendimentoId: prescription.registroAtendimentoId && !isNaN(Number(prescription.registroAtendimentoId))
+      ? Number(prescription.registroAtendimentoId)
+      : undefined,
+  };
+  // Retorna lista HATEOAS — pega o primeiro item criado
+  const response = await apiJava.post('/prescricao', { prescricoes: [payload] });
+  const list = response.data._embedded?.prescricaoResponseList ?? [];
+  return list.length > 0 ? mapPrescription(list[0]) : prescription;
 };
 
 // Rota exclusiva para veterinário: envia narrativa e recebe rascunho estruturado pela IA.
 // Exige perfil VET. O fechamento é único, então não há registro gravado: vai só o animalId.
 const draftPrescription = async (data: NarrativaPrescricaoRequest): Promise<RascunhoPrescricaoResponse> => {
-  if (USE_API) {
-    const payload = {
-      ...data,
-      animalId: Number(data.animalId),
-      registroAtendimentoId: data.registroAtendimentoId ? Number(data.registroAtendimentoId) : undefined,
-    };
-    const response = await apiJava.post('/prescricao/rascunho', payload);
-    return response.data;
-  }
-  return {
-    narrativaOriginal: data.narrativa,
-    extracaoDisponivel: true,
-    motivoDegradacao: null,
-    prescricao: {
-      medicamento: 'Amoxicilina',
-      doseMin: 5,
-      doseMax: 10,
-      unidade: 'mg',
-      frequenciaDia: 2,
-      duracaoDias: 7,
-      orientacao: 'Administrar junto com alimento',
-    },
-    regrasPropostas: [
-      { condicaoClinicaId: 1, condicaoRotulo: 'Fezes moles', acaoDose: 'DOSE_MIN' },
-      { condicaoClinicaId: 4, condicaoRotulo: 'Vômito', acaoDose: 'ACIONAR_CLINICA' },
-      {
-        condicaoClinicaId: null,
-        condicaoRotulo: 'Febre',
-        condicaoNova: { rotulo: 'Febre', tipoDado: 'NUMERICO' },
-        operador: 'MAIOR_QUE',
-        limite: 39.5,
-        acaoDose: 'ACIONAR_CLINICA',
-      },
-    ],
-    condicoesDescartadas: [],
+  const payload = {
+    ...data,
+    animalId: Number(data.animalId),
+    registroAtendimentoId: data.registroAtendimentoId ? Number(data.registroAtendimentoId) : undefined,
   };
+  const response = await apiJava.post('/prescricao/rascunho', payload);
+  return response.data;
 };
 
 export { getPrescriptionsByAnimalId, createPrescription, draftPrescription };

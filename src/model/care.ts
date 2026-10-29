@@ -1,22 +1,3 @@
-export interface PetVaccine {
-  id: string;
-  name: string;
-  dateLabel: string;
-  status: 'APPLIED' | 'SCHEDULED';
-}
-
-export interface PetProfileDetails {
-  petId: string;
-  ageLabel: string;
-  weightLabel: string;
-  neuteredLabel: string;
-  sexLabel: string;
-  planStatusLabel: string;
-  allergy?: string;
-  homeInstruction: string;
-  vaccines: PetVaccine[];
-}
-
 export interface WeekDay {
   label: string;
   dayNumber: number;
@@ -174,7 +155,7 @@ export interface CheckInDoseResult {
   vetCrmv: string;
   prescriptionDateLabel: string;
   pointsEarned: number;
-  // false = nenhuma regra casou (dose-base da receita). Ausente nos resultados locais/mock.
+  // false = nenhuma regra casou (dose-base da receita). Ausente conta como regra aplicada.
   ruleApplied?: boolean;
   medicationLabel?: string;
   // O desfecho gravou o status de um item do plano (itemPlanoCuidadoId presente).

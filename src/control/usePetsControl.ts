@@ -7,7 +7,6 @@ import {
   deletePet,
   getAllPets,
   getPetById,
-  getPetProfileDetails,
   getPetsByResponsavelId,
   updatePet,
 } from '../repository/petRepository';
@@ -40,15 +39,6 @@ export function usePet(id: string) {
     queryKey: [...PETS_KEY, id],
     queryFn: () => getPetById(id),
     enabled: !!id,
-  });
-}
-
-export function usePetProfileDetails(petId: string) {
-  return useQuery({
-    queryKey: ['petProfile', petId],
-    queryFn: () => getPetProfileDetails(petId),
-    enabled: !!petId,
-    retry: false,
   });
 }
 

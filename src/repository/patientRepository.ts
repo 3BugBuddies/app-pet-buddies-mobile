@@ -1,5 +1,5 @@
 import { isAxiosError } from 'axios';
-import { apiJava, USE_API } from './apiClient';
+import { apiJava } from './apiClient';
 import type { ClinicPatient, PlanSummary } from '../model/patient';
 import { isoLocal } from './appointmentRepository';
 
@@ -22,7 +22,6 @@ interface PlanDto {
 const distinct = (names: string[]) => [...new Set(names.filter(Boolean))];
 
 const getClinicPatients = async (): Promise<ClinicPatient[]> => {
-  if (!USE_API) return [];
   const response = await apiJava.get('/animal');
   const lista: any[] = response.data._embedded?.animalResponseList ?? [];
   return lista.map((p) => ({
@@ -36,7 +35,6 @@ const getClinicPatients = async (): Promise<ClinicPatient[]> => {
 
 // Sem plano ativo a API responde 404: o resumo é null.
 const getPlanSummary = async (petId: string): Promise<PlanSummary | null> => {
-  if (!USE_API) return null;
   try {
     const { data } = await apiJava.get<PlanDto>(`/motor/plano/${petId}`);
     const eventos = data.eventos ?? [];

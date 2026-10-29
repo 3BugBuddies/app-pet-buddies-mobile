@@ -1,7 +1,6 @@
 import { useContext, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AuthContext } from '../context/authContext';
-import { USE_API } from '../repository/apiClient';
 import {
   prescriptionSchema,
   type ItemReceitaDraft,
@@ -188,7 +187,7 @@ const useCondicoesClinicas = () => {
   return useQuery({
     queryKey: ['condicoesClinicas', clinicaId],
     queryFn: () => getCondicoesClinicas(clinicaId ?? null),
-    enabled: clinicaId != null || !USE_API,
+    enabled: clinicaId != null,
     staleTime: 5 * 60 * 1000,
   });
 };

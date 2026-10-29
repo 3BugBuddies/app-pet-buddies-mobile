@@ -1,15 +1,7 @@
-import { apiJava, USE_API } from './apiClient';
+import { apiJava } from './apiClient';
 import type { Appointment, CreateAppointmentInput } from '../model/appointment';
 import type { MedicalRecord } from '../model/medicalRecord';
 import type { ClosingPayload } from '../model/closing';
-import {
-  addFakeAppointment,
-  addFakePrescription,
-  addFakeRule,
-  deleteFakeAppointment,
-  getFakeAppointments,
-  updateFakeAppointment,
-} from './fakeData';
 
 
 // Converte o enum de status do backend (PT) para o tipo interno do app (EN)
@@ -37,94 +29,79 @@ const getAllAppointments = async (
   animalId?: string | number | null,
   veterinarioId?: string | number | null
 ): Promise<Appointment[]> => {
-  if (USE_API) {
-    const response = await apiJava.get('/consulta', {
-      params: {
-        animalId: animalId || undefined,
-        veterinarioId: veterinarioId || undefined,
-      },
-    });
-    const list = response.data._embedded?.consultaResponseList ?? [];
-    return list.map((c: any) => ({
-      id: c.id?.toString() ?? '',
-      petId: c.animalId?.toString() ?? '',
-      vetId: c.veterinarioId?.toString() ?? '',
-      date: c.dataHora,
-      type: c.tipo ?? undefined,
-      reason: c.observacao || '',
-      status: mapStatus(c.status),
-      backendStatus: c.status,
-      animalNome: c.animalNome ?? null,
-      veterinarioNome: c.veterinarioNome ?? null,
-    }));
-  }
-  const all = getFakeAppointments();
-  if (animalId) return all.filter((a) => a.petId === String(animalId));
-  return all;
+  const response = await apiJava.get('/consulta', {
+    params: {
+      animalId: animalId || undefined,
+      veterinarioId: veterinarioId || undefined,
+    },
+  });
+  const list = response.data._embedded?.consultaResponseList ?? [];
+  return list.map((c: any) => ({
+    id: c.id?.toString() ?? '',
+    petId: c.animalId?.toString() ?? '',
+    vetId: c.veterinarioId?.toString() ?? '',
+    date: c.dataHora,
+    type: c.tipo ?? undefined,
+    reason: c.observacao || '',
+    status: mapStatus(c.status),
+    backendStatus: c.status,
+    animalNome: c.animalNome ?? null,
+    veterinarioNome: c.veterinarioNome ?? null,
+  }));
 };
 
 const getAppointmentById = async (id: string): Promise<Appointment | undefined> => {
-  if (USE_API) {
-    const response = await apiJava.get(`/consulta/${id}`);
-    const c = response.data;
-    return {
-      id: c.id.toString(),
-      petId: c.animalId.toString(),
-      vetId: c.veterinarioId.toString(),
-      date: c.dataHora,
-      type: c.tipo ?? undefined,
-      reason: c.observacao || '',
-      status: mapStatus(c.status),
-      animalNome: c.animalNome ?? null,
-      veterinarioNome: c.veterinarioNome ?? null,
-    };
-  }
-  return getFakeAppointments().find((a) => a.id === id);
+  const response = await apiJava.get(`/consulta/${id}`);
+  const c = response.data;
+  return {
+    id: c.id.toString(),
+    petId: c.animalId.toString(),
+    vetId: c.veterinarioId.toString(),
+    date: c.dataHora,
+    type: c.tipo ?? undefined,
+    reason: c.observacao || '',
+    status: mapStatus(c.status),
+    animalNome: c.animalNome ?? null,
+    veterinarioNome: c.veterinarioNome ?? null,
+  };
 };
 
 const createAppointment = async (payload: CreateAppointmentInput): Promise<Appointment> => {
-  if (USE_API) {
-    // Backend: POST /consulta/agendamento
-    // Campos obrigatórios: animalId, dataHora (via janelaId), motivo, janelaId, tipo
-    const response = await apiJava.post('/consulta/agendamento', {
-      animalId: Number(payload.petId),
-      janelaId: payload.janelaId,
-      observacao: payload.reason,
-      tipo: deriveType(payload.reason),
-    });
-    const c = response.data;
-    return {
-      id: c.id.toString(),
-      petId: c.animalId.toString(),
-      vetId: c.veterinarioId?.toString() ?? '',
-      date: c.dataHora,
-      type: c.tipo ?? undefined,
-      reason: c.observacao || payload.reason,
-      status: mapStatus(c.status),
-    };
-  }
-  const nova: Appointment = { id: `appt-${Date.now()}`, vetId: 'vet-1', status: 'SCHEDULED', ...payload };
-  return addFakeAppointment(nova);
+  // Backend: POST /consulta/agendamento
+  // Campos obrigatórios: animalId, dataHora (via janelaId), motivo, janelaId, tipo
+  const response = await apiJava.post('/consulta/agendamento', {
+    animalId: Number(payload.petId),
+    janelaId: payload.janelaId,
+    observacao: payload.reason,
+    tipo: deriveType(payload.reason),
+  });
+  const c = response.data;
+  return {
+    id: c.id.toString(),
+    petId: c.animalId.toString(),
+    vetId: c.veterinarioId?.toString() ?? '',
+    date: c.dataHora,
+    type: c.tipo ?? undefined,
+    reason: c.observacao || payload.reason,
+    status: mapStatus(c.status),
+  };
 };
 
 const updateAppointment = async (
   id: string,
   payload: Partial<CreateAppointmentInput>
 ): Promise<Appointment> => {
-  if (USE_API) {
-    const response = await apiJava.put(`/consulta/${id}`, payload);
-    const c = response.data;
-    return {
-      id: c.id.toString(),
-      petId: c.animalId.toString(),
-      vetId: c.veterinarioId?.toString() ?? '',
-      date: c.dataHora,
-      type: c.tipo ?? undefined,
-      reason: c.observacao || '',
-      status: mapStatus(c.status),
-    };
-  }
-  return updateFakeAppointment(id, payload);
+  const response = await apiJava.put(`/consulta/${id}`, payload);
+  const c = response.data;
+  return {
+    id: c.id.toString(),
+    petId: c.animalId.toString(),
+    vetId: c.veterinarioId?.toString() ?? '',
+    date: c.dataHora,
+    type: c.tipo ?? undefined,
+    reason: c.observacao || '',
+    status: mapStatus(c.status),
+  };
 };
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -154,63 +131,20 @@ const toRegistroFechamento = (registro: MedicalRecord) => ({
 // Fecha o atendimento via POST /{id}/fechamento (atômico: registro + procedimentos + prescrições).
 // A API só fecha consulta AGENDADA ou CONFIRMADA e exige `registroAtendimento`.
 const fecharAtendimento = async (id: string, payload: ClosingPayload): Promise<void> => {
-  if (USE_API) {
-    await apiJava.post(`/consulta/${id}/fechamento`, {
-      registroAtendimento: toRegistroFechamento(payload.registroAtendimento),
-      procedimentos: payload.procedimentos,
-      prescricoes: payload.prescricoes.map((p) => ({
-        ...p,
-        regras: p.regras.map(({ rotuloCongelado: _rotulo, ...regra }) => regra),
-      })),
-    });
-    return;
-  }
-  // Mock: marca a consulta como realizada e guarda as prescrições assinadas (e suas regras).
-  const appt = getFakeAppointments().find((a) => a.id === id);
-  if (appt) {
-    updateFakeAppointment(id, { status: 'COMPLETED' } as any);
-  }
-  const registro = payload.registroAtendimento;
-  payload.prescricoes.forEach((p, i) => {
-    const prescricaoId = `presc-${Date.now()}-${i}`;
-    addFakePrescription({
-      id: prescricaoId,
-      medicamento: p.medicamento,
-      doseMin: p.doseMin,
-      doseMax: p.doseMax,
-      unidade: p.unidade,
-      frequenciaDia: p.frequenciaDia,
-      duracaoDias: p.duracaoDias,
-      dataInicio: p.dataInicio,
-      orientacao: p.orientacao ?? null,
-      materialOrigemId: null,
-      versaoOrigem: null,
-      animalId: String(registro.animalId ?? appt?.petId ?? ''),
-      veterinarioId: appt?.vetId ?? '',
-      registroAtendimentoId: registro.id ? String(registro.id) : null,
-    });
-    p.regras.forEach((r) =>
-      addFakeRule({
-        id: null,
-        prescricaoId,
-        condicaoClinicaId: r.condicaoClinicaId,
-        rotuloCongelado: r.rotuloCongelado ?? '',
-        acao: r.acaoDose,
-        operador: r.operador ?? null,
-        limite: r.limite ?? null,
-      })
-    );
+  await apiJava.post(`/consulta/${id}/fechamento`, {
+    registroAtendimento: toRegistroFechamento(payload.registroAtendimento),
+    procedimentos: payload.procedimentos,
+    prescricoes: payload.prescricoes.map((p) => ({
+      ...p,
+      regras: p.regras.map(({ rotuloCongelado: _rotulo, ...regra }) => regra),
+    })),
   });
 };
 
 // Cancela por POST /{id}/cancelamento: guarda o motivo e libera a janela. O DELETE apagaria o
 // histórico e dá 409 se a consulta já tiver registro ou plano.
 const deleteAppointment = async (id: string, motivo: string): Promise<void> => {
-  if (USE_API) {
-    await apiJava.post(`/consulta/${id}/cancelamento`, { motivo });
-    return;
-  }
-  deleteFakeAppointment(id);
+  await apiJava.post(`/consulta/${id}/cancelamento`, { motivo });
 };
 
 // Consulta ainda aberta (agendada/confirmada) do paciente para hoje, se houver.
@@ -238,33 +172,23 @@ const createWalkInAppointment = async (
   animalId: string,
   veterinarioId: string | number
 ): Promise<Appointment> => {
-  if (USE_API) {
-    const response = await apiJava.post('/consulta', {
-      tipo: 'ROTINA',
-      dataHora: dateTimeLocal(new Date()),
-      observacao: 'Atendimento imediato',
-      animalId: Number(animalId),
-      veterinarioId: Number(veterinarioId),
-    });
-    const c = response.data;
-    return {
-      id: c.id.toString(),
-      petId: c.animalId.toString(),
-      vetId: c.veterinarioId?.toString() ?? '',
-      date: c.dataHora,
-      type: c.tipo ?? undefined,
-      reason: c.observacao || 'Atendimento imediato',
-      status: mapStatus(c.status),
-    };
-  }
-  return addFakeAppointment({
-    id: `appt-${Date.now()}`,
-    petId: animalId,
-    vetId: String(veterinarioId),
-    date: dateTimeLocal(new Date()),
-    reason: 'Atendimento imediato',
-    status: 'SCHEDULED',
+  const response = await apiJava.post('/consulta', {
+    tipo: 'ROTINA',
+    dataHora: dateTimeLocal(new Date()),
+    observacao: 'Atendimento imediato',
+    animalId: Number(animalId),
+    veterinarioId: Number(veterinarioId),
   });
+  const c = response.data;
+  return {
+    id: c.id.toString(),
+    petId: c.animalId.toString(),
+    vetId: c.veterinarioId?.toString() ?? '',
+    date: c.dataHora,
+    type: c.tipo ?? undefined,
+    reason: c.observacao || 'Atendimento imediato',
+    status: mapStatus(c.status),
+  };
 };
 
 // Janela livre como o app a usa. A API manda `dataHoraInicio` (LocalDateTime); a duração
@@ -281,41 +205,26 @@ const getFreeDates = async (
   de: string,
   ate: string
 ): Promise<string[]> => {
-  if (USE_API) {
-    const response = await apiJava.get<string[]>('/janela-atendimento/livres', {
-      params: { veterinarioId, de, ate },
-    });
-    return response.data;
-  }
-  const datas: string[] = [];
-  for (let d = new Date(`${de}T12:00:00`); isoLocal(d) <= ate; d.setDate(d.getDate() + 1)) {
-    datas.push(isoLocal(d));
-  }
-  return datas;
+  const response = await apiJava.get<string[]>('/janela-atendimento/livres', {
+    params: { veterinarioId, de, ate },
+  });
+  return response.data;
 };
 
 const getFreeWindows = async (
   veterinarioId: string | number,
   dataISO: string
 ): Promise<JanelaAtendimento[]> => {
-  if (USE_API) {
-    // veterinarioId e data são obrigatórios na API; ela já exclui janela ocupada ou que já começou.
-    const response = await apiJava.get('/janela-atendimento/livres', {
-      params: { veterinarioId, data: dataISO },
-    });
-    const lista: any[] = response.data._embedded?.janelaAtendimentoResponseList ?? [];
-    return lista.map((j) => ({
-      id: j.id,
-      data: String(j.dataHoraInicio).slice(0, 10),
-      horaInicio: String(j.dataHoraInicio).slice(11, 19),
-    }));
-  }
-
-  return [
-    { id: 991, data: dataISO, horaInicio: '08:00:00' },
-    { id: 992, data: dataISO, horaInicio: '10:00:00' },
-    { id: 993, data: dataISO, horaInicio: '15:00:00' },
-  ];
+  // veterinarioId e data são obrigatórios na API; ela já exclui janela ocupada ou que já começou.
+  const response = await apiJava.get('/janela-atendimento/livres', {
+    params: { veterinarioId, data: dataISO },
+  });
+  const lista: any[] = response.data._embedded?.janelaAtendimentoResponseList ?? [];
+  return lista.map((j) => ({
+    id: j.id,
+    data: String(j.dataHoraInicio).slice(0, 10),
+    horaInicio: String(j.dataHoraInicio).slice(11, 19),
+  }));
 };
 
 // Todas as janelas do veterinário (livres e ocupadas); `consultaId` nulo é livre.
@@ -326,20 +235,12 @@ export interface VetWindow {
 }
 
 const getVetWindows = async (veterinarioId: string | number): Promise<VetWindow[]> => {
-  if (USE_API) {
-    const response = await apiJava.get('/janela-atendimento', { params: { veterinarioId } });
-    const lista: any[] = response.data._embedded?.janelaAtendimentoResponseList ?? [];
-    return lista.map((j) => ({
-      id: j.id,
-      dateTime: String(j.dataHoraInicio),
-      appointmentId: j.consultaId != null ? String(j.consultaId) : null,
-    }));
-  }
-  const today = isoLocal(new Date());
-  return ['09:30', '10:00', '10:30', '14:30', '15:00', '15:30'].map((h, i) => ({
-    id: 900 + i,
-    dateTime: `${today}T${h}:00`,
-    appointmentId: null,
+  const response = await apiJava.get('/janela-atendimento', { params: { veterinarioId } });
+  const lista: any[] = response.data._embedded?.janelaAtendimentoResponseList ?? [];
+  return lista.map((j) => ({
+    id: j.id,
+    dateTime: String(j.dataHoraInicio),
+    appointmentId: j.consultaId != null ? String(j.consultaId) : null,
   }));
 };
 
