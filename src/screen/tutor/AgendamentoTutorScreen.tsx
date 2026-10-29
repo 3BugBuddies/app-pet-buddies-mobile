@@ -9,6 +9,7 @@ import { Button } from '../../component/ui/Button';
 import { BrandMark } from '../../component/ui/BrandMark';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useAllPetsAppointments, useCreateAppointment, useFreeDates, useFreeWindows, useVeterinarians } from '../../control/useAppointmentsControl';
+import { useNotificationsControl } from '../../control/useNotificationsControl';
 import { formatAppointmentDate } from '../../model/formatDate';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { AgendaTabParamList } from '../navigation/types';
@@ -56,6 +57,7 @@ export function AgendamentoTutorScreen({ route }: Props) {
   const tabBarSpace = useTabBarSpace();
   const { data: pets, isLoading } = usePets();
   const createAppointment = useCreateAppointment();
+  const { notifyBooked } = useNotificationsControl();
   const { activePetId, setActivePetId } = useActivePetId();
   const petIdAtivo = activePetId ?? '';
 
@@ -102,11 +104,17 @@ export function AgendamentoTutorScreen({ route }: Props) {
   const handleSave = async () => {
     if (!petIdAtivo || !reason || !selectedDate || !selectedJanelaId) return;
     try {
-      await createAppointment.mutateAsync({
+      const appointment = await createAppointment.mutateAsync({
         petId: petIdAtivo,
         date: selectedDate,
         reason,
         janelaId: selectedJanelaId,
+      });
+      void notifyBooked({
+        appointmentId: appointment.id,
+        petName: pets?.find((p) => String(p.id) === petIdAtivo)?.nome ?? 'seu pet',
+        serviceType: reason,
+        appointmentDate: new Date(appointment.date),
       });
       Alert.alert('Agendado!', 'Sua consulta foi marcada com sucesso.', [
         { text: 'OK', onPress: () => navigation.goBack() },

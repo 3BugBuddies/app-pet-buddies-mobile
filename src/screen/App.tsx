@@ -6,7 +6,7 @@ import { AppNavigator } from './navigation/AppNavigator';
 import { AuthContext } from '../context/authContext';
 import type { AuthSession } from '../model/session';
 import { SessionExpiredModal } from '../component/auth/SessionExpiredModal';
-import { initNotifications } from '../repository/notificationService';
+import { cancelAllReminders, initNotifications } from '../repository/notificationService';
 import { clearSession as clearStoredSession } from '../repository/authRepository';
 import {
   useFonts,
@@ -50,6 +50,7 @@ export default function App() {
             // Troca de conta no mesmo aparelho: nada do cache da sessão anterior pode sobrar.
             clearSession: () => {
               queryClient.clear();
+              cancelAllReminders().catch(() => undefined);
               setSession(null);
               void clearStoredSession();
             },

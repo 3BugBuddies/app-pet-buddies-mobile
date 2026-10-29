@@ -14,6 +14,7 @@ import {
 } from '../repository/appointmentRepository';
 import { getVeterinarians } from '../repository/veterinarianRepository';
 import type { CreateAppointmentInput } from '../model/appointment';
+import { cancelAppointmentReminder } from '../repository/notificationService';
 
 const APPOINTMENTS_KEY = 'appointments';
 
@@ -81,8 +82,10 @@ export function useDeleteAppointment() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, motivo }: { id: string; motivo: string }) => deleteAppointment(id, motivo),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: [APPOINTMENTS_KEY] });
+      // A consulta cancelada não pode mais lembrar o tutor.
+      cancelAppointmentReminder(variables.id).catch(() => undefined);
       Alert.alert('Sucesso', 'A consulta foi cancelada com sucesso.');
     },
     onError: (error: any) => {

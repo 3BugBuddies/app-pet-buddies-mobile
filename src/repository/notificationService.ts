@@ -5,10 +5,16 @@ import {
   requestPermissionsAsync,
 } from 'expo-notifications/build/NotificationPermissions';
 import { scheduleNotificationAsync } from 'expo-notifications/build/scheduleNotificationAsync';
+import { cancelScheduledNotificationAsync } from 'expo-notifications/build/cancelScheduledNotificationAsync';
+import { cancelAllScheduledNotificationsAsync } from 'expo-notifications/build/cancelAllScheduledNotificationsAsync';
 import { setNotificationChannelAsync } from 'expo-notifications/build/setNotificationChannelAsync';
 import { AndroidImportance } from 'expo-notifications/build/NotificationChannelManager.types';
 import { SchedulableTriggerInputTypes } from 'expo-notifications/build/Notifications.types';
-import { AppointmentReminderOptions } from '../model/notification';
+import { formatAppointmentDate } from '../model/formatDate';
+import type { AppointmentReminderOptions, NotificationData } from '../model/notification';
+
+const CHANNEL_ID = 'default';
+const DEFAULT_REMINDER_MINUTES = 60;
 
 // Configura para exibir banner e som mesmo com o app em primeiro plano
 setNotificationHandler({
@@ -20,6 +26,17 @@ setNotificationHandler({
   }),
 });
 
+// Identificador fixo por consulta: permite cancelar o lembrete sem guardar o id gerado.
+const reminderId = (appointmentId: string) => `consulta-${appointmentId}-lembrete`;
+
+const toData = (appointmentId: string): NotificationData => ({
+  destino: 'AGENDA_TUTOR',
+  consultaId: appointmentId,
+});
+
+const leadLabel = (minutes: number): string =>
+  minutes % 60 === 0 ? `${minutes / 60} h` : `${minutes} min`;
+
 /**
  * Inicializa permissões e canal do Android para notificações locais
  */
@@ -27,7 +44,7 @@ export async function initNotifications(): Promise<boolean> {
   try {
     if (Platform.OS === 'android') {
       try {
-        await setNotificationChannelAsync('default', {
+        await setNotificationChannelAsync(CHANNEL_ID, {
           name: 'Geral',
           importance: AndroidImportance?.MAX ?? 5,
           vibrationPattern: [0, 250, 250, 250],
@@ -56,16 +73,17 @@ export async function initNotifications(): Promise<boolean> {
 }
 
 /**
- * TESTE 1: Dispara uma notificação local imediatamente
+ * Confirma na hora que a consulta foi agendada. Disparada pelo agendamento feito pelo tutor.
  */
-export async function sendImmediateNotification(
-  title = '🐾 Pet Buddies',
-  body = 'Esta é uma notificação de teste imediata!'
-): Promise<string> {
+export async function notifyAppointmentBooked(options: AppointmentReminderOptions): Promise<string> {
+  const { dayLabel, timeLabel } = formatAppointmentDate(options.appointmentDate.toISOString());
+  const minutes = options.reminderMinutesBefore ?? DEFAULT_REMINDER_MINUTES;
+
   return await scheduleNotificationAsync({
     content: {
-      title,
-      body,
+      title: `Consulta agendada · ${options.petName}`,
+      body: `${options.serviceType} · ${dayLabel} às ${timeLabel}. Vamos te lembrar ${leadLabel(minutes)} antes.`,
+      data: toData(options.appointmentId),
       sound: 'notification.wav',
     },
     trigger: null,
@@ -73,57 +91,45 @@ export async function sendImmediateNotification(
 }
 
 /**
- * TESTE 2: Dispara uma notificação local após X segundos
- */
-export async function scheduleNotification(
-  title = '🐾 Pet Buddies',
-  body = 'Notificação agendada recebida com sucesso!',
-  seconds = 5
-): Promise<string> {
-  return await scheduleNotificationAsync({
-    content: {
-      title,
-      body,
-      sound: 'notification.wav',
-    },
-    trigger: {
-      type: SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: Math.max(1, Math.round(seconds)),
-    },
-  });
-}
-
-/**
- * Agenda lembrete de consulta veterinária
+ * Agenda o lembrete da consulta. Devolve null quando o horário do lembrete já passou
+ * (consulta marcada para daqui a menos que a antecedência).
  */
 export async function scheduleAppointmentReminder(
   options: AppointmentReminderOptions
-): Promise<string> {
-  const minutesBefore = options.reminderMinutesBefore ?? 60;
-  const triggerDate = new Date(options.appointmentDate.getTime() - minutesBefore * 60 * 1000);
-  const diffInSeconds = (triggerDate.getTime() - Date.now()) / 1000;
+): Promise<string | null> {
+  const minutes = options.reminderMinutesBefore ?? DEFAULT_REMINDER_MINUTES;
+  const triggerDate = new Date(options.appointmentDate.getTime() - minutes * 60 * 1000);
+  if (triggerDate.getTime() <= Date.now()) return null;
 
-  const timeFormatted = options.appointmentDate.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  const title = `📅 Lembrete de Consulta: ${options.petName}`;
-  const body = `Faltam ${minutesBefore}min para a consulta de ${options.serviceType} de ${options.petName} (às ${timeFormatted}).`;
-
-  if (diffInSeconds <= 0) {
-    return await sendImmediateNotification(title, body);
-  }
+  const { timeLabel } = formatAppointmentDate(options.appointmentDate.toISOString());
 
   return await scheduleNotificationAsync({
+    identifier: reminderId(options.appointmentId),
     content: {
-      title,
-      body,
+      title: `Lembrete de consulta · ${options.petName}`,
+      body: `${options.serviceType} às ${timeLabel}. Faltam ${leadLabel(minutes)}.`,
+      data: toData(options.appointmentId),
       sound: 'notification.wav',
     },
     trigger: {
       type: SchedulableTriggerInputTypes.DATE,
       date: triggerDate,
+      channelId: CHANNEL_ID,
     },
   });
+}
+
+/**
+ * Cancela o lembrete de uma consulta (cancelamento ou conclusão).
+ */
+export async function cancelAppointmentReminder(appointmentId: string): Promise<void> {
+  await cancelScheduledNotificationAsync(reminderId(appointmentId));
+}
+
+/**
+ * Cancela todos os lembretes agendados. Usado ao sair da conta: no mesmo aparelho
+ * os lembretes de uma conta não podem chegar para a próxima.
+ */
+export async function cancelAllReminders(): Promise<void> {
+  await cancelAllScheduledNotificationsAsync();
 }
