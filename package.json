@@ -29,6 +29,7 @@
     "yup": "^1.7.1"
   },
   "devDependencies": {
+    "@types/node": "^22.20.5",
     "@types/react": "~19.3.0",
     "typescript": "~6.0.3"
   },

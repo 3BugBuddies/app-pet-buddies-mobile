@@ -22,6 +22,7 @@ export type HomeTabParamList = {
   PataSegura: undefined;
   MinhaConta: undefined;
   TrocarSenha: undefined;
+  SobreApp: undefined;
 };
 
 
@@ -58,6 +59,7 @@ export type TutorTabParamList = {
 export type HojeTabParamList = {
   AgendaClinica: undefined;
   AtenderAgora: undefined;
+  SobreApp: undefined;
 };
 
 
