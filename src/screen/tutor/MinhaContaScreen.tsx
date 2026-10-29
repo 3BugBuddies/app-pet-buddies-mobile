@@ -94,8 +94,6 @@ export function MinhaContaScreen() {
             <Card style={styles.list}>
               <ListRow label="Trocar senha" onPress={() => navigation.navigate('TrocarSenha')} />
               <View style={styles.divider} />
-              <ListRow label="Sobre o app" onPress={() => navigation.navigate('SobreApp')} />
-              <View style={styles.divider} />
               <ListRow label="Sair da conta" onPress={sair} />
             </Card>
           </ScrollView>

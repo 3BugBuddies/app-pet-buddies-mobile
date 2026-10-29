@@ -22,7 +22,6 @@ export type HomeTabParamList = {
   PataSegura: undefined;
   MinhaConta: undefined;
   TrocarSenha: undefined;
-  SobreApp: undefined;
 };
 
 
@@ -53,13 +52,13 @@ export type TutorTabParamList = {
   PlanoTab: NavigatorScreenParams<PlanoTabParamList>;
   AgendaTab: NavigatorScreenParams<AgendaTabParamList>;
   PetTab: NavigatorScreenParams<PetTabParamList>;
+  SobreTab: undefined;
 };
 
 
 export type HojeTabParamList = {
   AgendaClinica: undefined;
   AtenderAgora: undefined;
-  SobreApp: undefined;
 };
 
 
@@ -84,4 +83,5 @@ export type VetTabParamList = {
   HojeTab: NavigatorScreenParams<HojeTabParamList>;
   AgendaSemanaTab: NavigatorScreenParams<AgendaVetTabParamList>;
   PacientesTab: NavigatorScreenParams<PacientesTabParamList>;
+  SobreTab: undefined;
 };

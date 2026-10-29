@@ -8,6 +8,7 @@ import { AgendaTabStack } from './tutor-tabs/AgendaTabStack';
 import { HomeTabStack } from './tutor-tabs/HomeTabStack';
 import { PetTabStack } from './tutor-tabs/PetTabStack';
 import { PlanoTabStack } from './tutor-tabs/PlanoTabStack';
+import { SobreAppScreen } from '../shared/SobreAppScreen';
 import type { TutorTabParamList } from './types';
 import { TAB_BAR_HEIGHT, useTabBarBottom } from './useTabBarSpace';
 
@@ -79,6 +80,16 @@ export function TutorTabs() {
           tabBarLabel: petName,
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'paw' : 'paw-outline'} size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="SobreTab"
+        component={SobreAppScreen}
+        options={{
+          tabBarLabel: 'Sobre',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons name={focused ? 'information-circle' : 'information-circle-outline'} size={size} color={color} />
           ),
         }}
       />

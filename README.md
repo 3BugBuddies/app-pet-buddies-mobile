@@ -23,7 +23,7 @@ Aplicativo mobile desenvolvido em React Native / Expo para a plataforma **Clyvo 
 | App publicado (Firebase App Distribution) | <!-- inserir link do convite aqui --> |
 | Backend (API Java Spring) | `https://petbuddies-java-rm563925.azurewebsites.net/api` |
 
-A tela **Sobre o app** mostra o hash do commit da versão instalada. Veja [Rastreabilidade da versão publicada](#rastreabilidade-da-versão-publicada).
+A aba **Sobre** mostra o hash do commit da versão instalada. Veja [Rastreabilidade da versão publicada](#rastreabilidade-da-versão-publicada).
 
 ---
 
@@ -67,10 +67,10 @@ Tutores de pets com condições crônicas frequentemente não sabem quando e com
 | Requisito | Onde está no app |
 |-----------|------------------|
 | Telas funcionais | 28 telas (3 de autenticação, 15 do tutor, 9 do veterinário e 1 compartilhada); as que exibem ou gravam dados usam a API Java |
-| Publicação | Firebase App Distribution (link acima) e tela **Sobre o app** com o hash do commit |
+| Publicação | Firebase App Distribution (link acima) e aba **Sobre** com o hash do commit |
 | Notificações | Local: confirmação ao agendar e lembrete 1 h antes; o toque abre a aba Agenda |
 | Arquitetura | `model` / `repository` / `control` / `screen`, sem chamada HTTP nas telas |
-| Tema claro/escuro | Automático, Claro ou Escuro, escolhido em **Sobre o app** |
+| Tema claro/escuro | Automático, Claro ou Escuro, escolhido na aba **Sobre** |
 
 ---
 
@@ -107,7 +107,7 @@ src/
 │   ├── auth/           # Onboarding, Login, Cadastro
 │   ├── tutor/          # Telas do perfil Tutor
 │   ├── vet/            # Telas do perfil Veterinário
-│   ├── shared/         # Sobre o app (os dois perfis)
+│   ├── shared/         # Aba Sobre (os dois perfis)
 │   └── navigation/     # Rotas, abas e stacks
 └── styles/             # Tema (paletas clara e escura, espaçamentos, tipografia) e hooks de tema
 ```
@@ -138,13 +138,13 @@ As telas só renderizam e chamam hooks de `control/`. Os hooks de `control/` usa
 
 ## Tema claro e escuro
 
-O app tem duas paletas. Em **Sobre o app → Aparência** o usuário escolhe **Automático** (segue o tema do aparelho), **Claro** ou **Escuro**. A escolha fica salva no aparelho.
+O app tem duas paletas. Na aba **Sobre → Aparência** o usuário escolhe **Automático** (segue o tema do aparelho), **Claro** ou **Escuro**. A escolha fica salva no aparelho.
 
 ---
 
 ## Rastreabilidade da versão publicada
 
-A tela **Sobre o app** (Minha conta, para o tutor; ícone de informação na tela Hoje, para o veterinário) mostra a versão, o **hash do commit**, a branch e a data de geração do build. Esses dados são gravados na hora do build por `app.config.ts`.
+A aba **Sobre** (presente nos dois perfis) mostra a versão, o **hash do commit**, a branch e a data de geração do build. Esses dados são gravados na hora do build por `app.config.ts`.
 
 Para o app publicado corresponder exatamente ao código entregue: gerar o build a partir de uma árvore **sem alterações pendentes** (`git status` limpo). Se o build sair com alterações não commitadas, a tela avisa.
 
@@ -215,18 +215,18 @@ eas build --platform android --profile preview
 
 **Autenticação:** Onboarding · Login · Cadastro
 
-**Tutor (4 abas):**
+**Tutor (5 abas):**
 - **Início:** resumo do pet ativo, próxima consulta, tarefas do dia, Pata Segura, Minha conta
 - **Cuidados:** plano de cuidado, check-in por texto ou voz, resultado da dose
 - **Agenda:** próxima consulta e agendamento de nova consulta
 - **Pet:** lista de pets, perfil, cadastro, edição e exclusão
+- **Sobre:** para que serve o app, versão e hash do commit, equipe, aparência e créditos
 
-**Veterinário (3 abas):**
+**Veterinário (4 abas):**
 - **Hoje:** agenda do dia, atendimento imediato, prontuário e prescrição com regras de dose
 - **Agenda:** semana com horários livres e ocupados
 - **Pacientes:** lista de pacientes em acompanhamento e plano do paciente
-
-**Os dois perfis:** Sobre o app (versão, hash do commit e aparência)
+- **Sobre:** a mesma tela do tutor (versão e hash do commit, equipe, aparência e créditos)
 
 ---
 

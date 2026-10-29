@@ -100,18 +100,10 @@ export function AgendaClinicaScreen() {
               {crmv ? <Text style={styles.crmv}>CRMV {crmv}</Text> : null}
             </View>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{(session?.nome ?? 'V').charAt(0).toUpperCase()}</Text>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Sobre o app"
-              onPress={() => navigation.navigate('SobreApp')}
-              style={{ padding: 4 }}
-            >
-              <Ionicons name="information-circle-outline" size={28} color={colors.textSecondary} />
-            </Pressable>
             <Pressable accessibilityRole="button" onPress={sair} style={{ padding: 4 }}>
               <Ionicons name="log-out-outline" size={28} color={colors.textSecondary} />
             </Pressable>

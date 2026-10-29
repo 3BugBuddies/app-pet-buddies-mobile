@@ -15,7 +15,6 @@ const git = (args: string): string | null => {
 // Identifica o código que gerou este app, para a tela "Sobre o app" provar qual commit foi publicado.
 // No EAS Build o hash vem da variável do build; fora dele, do git local.
 const commitHash = process.env.EAS_BUILD_GIT_COMMIT_HASH ?? git('rev-parse HEAD') ?? 'desconhecido';
-const branch = git('rev-parse --abbrev-ref HEAD');
 // Arquivos alterados e ainda não commitados: o app não corresponderia exatamente ao commit.
 const dirty = (git('status --porcelain') ?? '') !== '';
 
@@ -28,7 +27,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ...config.extra,
     build: {
       commitHash,
-      branch,
       dirty,
       builtAt: new Date().toISOString(),
     },

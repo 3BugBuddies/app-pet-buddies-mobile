@@ -7,6 +7,7 @@ import { makeStyles, useTheme } from '../../styles/useTheme';
 import { AgendaTabStack } from './vet-tabs/AgendaTabStack';
 import { HojeTabStack } from './vet-tabs/HojeTabStack';
 import { PacientesTabStack } from './vet-tabs/PacientesTabStack';
+import { SobreAppScreen } from '../shared/SobreAppScreen';
 import type { VetTabParamList } from './types';
 import { TAB_BAR_HEIGHT, useTabBarBottom } from './useTabBarSpace';
 
@@ -74,6 +75,21 @@ export function VetTabs() {
           tabBarLabel: 'Pacientes',
           tabBarIcon: ({ color, size, focused }) => (
             <TabIcon name={focused ? 'people' : 'people-outline'} size={size} color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="SobreTab"
+        component={SobreAppScreen}
+        options={{
+          tabBarLabel: 'Sobre',
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon
+              name={focused ? 'information-circle' : 'information-circle-outline'}
+              size={size}
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />

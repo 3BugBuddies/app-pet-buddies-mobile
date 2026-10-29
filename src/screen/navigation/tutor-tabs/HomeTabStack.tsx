@@ -3,7 +3,6 @@ import { HomeTutorScreen } from '../../tutor/HomeTutorScreen';
 import { PataSeguraScreen } from '../../tutor/PataSeguraScreen';
 import { MinhaContaScreen } from '../../tutor/MinhaContaScreen';
 import { TrocarSenhaScreen } from '../../tutor/TrocarSenhaScreen';
-import { SobreAppScreen } from '../../shared/SobreAppScreen';
 import type { HomeTabParamList } from '../types';
 
 const Stack = createNativeStackNavigator<HomeTabParamList>();
@@ -15,7 +14,6 @@ export function HomeTabStack() {
       <Stack.Screen name="PataSegura" component={PataSeguraScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MinhaConta" component={MinhaContaScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TrocarSenha" component={TrocarSenhaScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="SobreApp" component={SobreAppScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
