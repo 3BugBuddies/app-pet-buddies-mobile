@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Pressable, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import type { FreeWeek, MedicationLine, TreatmentWeek, WeekDayCell } from '../../model/careHome';
 import { WeekStrip } from './WeekStrip';
 
@@ -12,6 +13,8 @@ interface TreatmentWeekCardProps {
 }
 
 function Legend({ week }: { week: TreatmentWeek }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const hasNoDose = week.days.some((day) => day.dot === 'NO_DOSE');
   return (
     <View style={styles.legend}>
@@ -38,6 +41,7 @@ function Legend({ week }: { week: TreatmentWeek }) {
 }
 
 function MedicationLines({ lines }: { lines: MedicationLine[] }) {
+  const styles = useStyles();
   return (
     <View style={styles.medications}>
       {lines.map((line) => (
@@ -55,6 +59,8 @@ function MedicationLines({ lines }: { lines: MedicationLine[] }) {
 }
 
 export function TreatmentWeekCard({ week, showLegend, medications, onSeeCare }: TreatmentWeekCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const multi = week.medications.length > 1;
   const doses = multi
     ? `${week.reportsDone} ${week.reportsDone === 1 ? 'relato feito' : 'relatos feitos'}`
@@ -97,6 +103,7 @@ interface FreeWeekCardProps {
 }
 
 export function FreeWeekCard({ week, onPressDay }: FreeWeekCardProps) {
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       <Text style={styles.title}>Sua semana</Text>
@@ -106,7 +113,7 @@ export function FreeWeekCard({ week, onPressDay }: FreeWeekCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
@@ -143,4 +150,4 @@ const styles = StyleSheet.create({
   footerText: { fontFamily: 'Inter', fontSize: 12, color: colors.textSecondary, flexShrink: 1 },
   link: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   linkText: { fontFamily: 'Inter', fontSize: 12, fontWeight: '700', color: colors.textPrimary },
-});
+}));

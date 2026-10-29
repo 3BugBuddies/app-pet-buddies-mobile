@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Pressable, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import type { CareItem, TreatmentInfo } from '../../model/care';
 import { BrandMark } from '../ui/BrandMark';
 import { clockLabel, doseRangeText, doseText, isItemPending, medicationKey, unitOf } from '../../model/careHome';
@@ -15,6 +16,8 @@ interface TodayAtHomeCardProps {
 }
 
 function DayReportRow({ items, treatments, onPress, petName, petSex }: TodayAtHomeCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const count = new Set(items.map(medicationKey)).size;
   const title = `Relato de hoje · ${count} remédios`;
   const pending = items.some((item) => isItemPending(item));
@@ -70,6 +73,8 @@ function DayReportRow({ items, treatments, onPress, petName, petSex }: TodayAtHo
 }
 
 function ClosedRow({ item, unit }: { item: CareItem; unit: string | null }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const time = clockLabel(item.executedAt);
   const counted = time ? `Contado às ${time} · ` : '';
   const dose =
@@ -117,6 +122,8 @@ function ClosedRow({ item, unit }: { item: CareItem; unit: string | null }) {
 }
 
 export function TodayAtHomeCard({ items, treatments, petName, petSex, onPress }: TodayAtHomeCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const combined = new Set(items.map(medicationKey)).size > 1;
   const done = items.filter((item) => !isItemPending(item)).length;
   const total = combined ? 1 : items.length;
@@ -149,8 +156,8 @@ export function TodayAtHomeCard({ items, treatments, petName, petSex, onPress }:
   );
 }
 
-const styles = StyleSheet.create({
-  doneDisc: { width: 36, height: 36, borderRadius: radii.pill, backgroundColor: '#FFF3D4', alignItems: 'center', justifyContent: 'center' },
+const useStyles = makeStyles((colors) => ({
+  doneDisc: { width: 36, height: 36, borderRadius: radii.pill, backgroundColor: colors.amberSoft, alignItems: 'center', justifyContent: 'center' },
   doneMark: { width: 30, height: 30 },
   card: {
     backgroundColor: colors.surface,
@@ -180,4 +187,4 @@ const styles = StyleSheet.create({
   texts: { flex: 1, gap: 2 },
   title: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: colors.textPrimary },
   sub: { fontFamily: 'Inter', fontSize: 12, color: colors.textSecondary },
-});
+}));

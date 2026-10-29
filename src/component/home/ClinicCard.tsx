@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 interface ClinicCardProps {
   title: string;
@@ -10,6 +11,7 @@ interface ClinicCardProps {
 }
 
 export function ClinicCard({ title, dayLabel, timeLabel, vetName, hint }: ClinicCardProps) {
+  const styles = useStyles();
   const hasDate = !!(dayLabel || timeLabel);
 
   return (
@@ -29,7 +31,7 @@ export function ClinicCard({ title, dayLabel, timeLabel, vetName, hint }: Clinic
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.cardChia,
     borderRadius: radii.lg,
@@ -65,4 +67,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
-});
+}));

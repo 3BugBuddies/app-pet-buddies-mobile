@@ -1,16 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { PetProfileScreen } from '../../tutor/PetProfileScreen';
 import { MeusPetsScreen } from '../../tutor/MeusPetsScreen';
 import { NovoPetScreen } from '../../tutor/NovoPetScreen';
 import { BrandMark } from '../../../component/ui/BrandMark';
-import { colors } from '../../../styles/theme';
+import { makeStyles, useTheme } from '../../../styles/useTheme';
 import type { PetTabParamList } from '../types';
 
 const Stack = createNativeStackNavigator<PetTabParamList>();
 
 export function PetTabStack() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <Stack.Navigator>
       <Stack.Screen
@@ -42,6 +44,6 @@ export function PetTabStack() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-});
+}));

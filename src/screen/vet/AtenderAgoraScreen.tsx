@@ -2,7 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useClinicPets } from '../../control/usePetsControl';
@@ -10,9 +10,12 @@ import { breedLabel } from '../../model/pet';
 import { normalizeSearch } from '../../model/text';
 import { openClosing } from '../navigation/openClosing';
 import type { HojeTabParamList, VetTabParamList } from '../navigation/types';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 export function AtenderAgoraScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<NativeStackNavigationProp<HojeTabParamList, 'AtenderAgora'>>();
   const { data: pets, isLoading } = useClinicPets();
   const [search, setSearch] = useState('');
@@ -77,7 +80,7 @@ export function AtenderAgoraScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: { flex: 1, backgroundColor: colors.background, padding: spacing.lg, gap: spacing.md },
   search: {
     flexDirection: 'row',
@@ -114,4 +117,4 @@ const styles = StyleSheet.create({
   detail: { fontSize: 14, color: colors.textSecondary },
   empty: { textAlign: 'center', color: colors.textSecondary, marginTop: spacing.xl },
   hint: { fontSize: 14, color: colors.textSecondary, marginTop: spacing.md },
-});
+}));

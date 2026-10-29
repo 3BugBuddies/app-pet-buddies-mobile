@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AccordionRow, type ClosingIconName } from '../../component/closing/AccordionRow';
 import { DoneGrid } from '../../component/closing/DoneGrid';
@@ -17,7 +17,8 @@ import { formatHourShort } from '../../model/closingSummary';
 import { formatDateBR, formatShortDate } from '../../model/formatDate';
 import { capitalize, daysText, doseBounds } from '../../model/careHome';
 import type { PacientesTabParamList } from '../navigation/types';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
 type OpenKey = 'consulta' | ProcedureSection | 'receita';
@@ -31,6 +32,8 @@ const SECTIONS: { section: ProcedureSection; tile: string; title: string; hint: 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'ProntuarioForm'>;
 
 export function ProntuarioFormScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { petId, consultaId, prescricao } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const tabBarSpace = useTabBarSpace();
@@ -259,7 +262,7 @@ function todayIso() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   flex1: { flex: 1 },
@@ -296,4 +299,4 @@ const styles = StyleSheet.create({
   },
   addText: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
   primary: { marginTop: spacing.md },
-});
+}));

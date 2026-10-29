@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTopBar } from '../../component/account/AccountTopBar';
 import { FieldError } from '../../component/forms/FieldError';
@@ -7,10 +7,13 @@ import { Button } from '../../component/ui/Button';
 import { Card } from '../../component/ui/Card';
 import { Input } from '../../component/ui/Input';
 import { usePasswordControl } from '../../control/useAccountControl';
-import { colors, spacing, typography } from '../../styles/theme';
+import { spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
 export function TrocarSenhaScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -81,11 +84,11 @@ export function TrocarSenhaScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   topBar: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   content: { paddingHorizontal: spacing.lg },
   apiError: { ...typography.caption, color: colors.error, marginBottom: spacing.sm },
   buttonSpacing: { marginTop: spacing.sm },
-});
+}));

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Pressable, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface PatientCardProps {
   petName: string;
@@ -11,6 +12,8 @@ interface PatientCardProps {
 }
 
 export function PatientCard({ petName, description, tutorName, pill, onPress }: PatientCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
       <View style={styles.avatar}>
@@ -31,7 +34,7 @@ export function PatientCard({ petName, description, tutorName, pill, onPress }: 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
@@ -62,4 +65,4 @@ const styles = StyleSheet.create({
   pillTreatment: { backgroundColor: colors.cardMax },
   pillPreventive: { backgroundColor: colors.cardChia },
   pillText: { fontSize: 12, fontWeight: '700', color: colors.textPrimary },
-});
+}));

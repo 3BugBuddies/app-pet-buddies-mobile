@@ -1,7 +1,7 @@
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -22,7 +22,8 @@ import { useExtractCheckIn } from '../../control/useCheckInControl';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { todayIso, todayMedications } from '../../model/careHome';
 import type { PlanoTabParamList } from '../navigation/types';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 const quickOptions = (plural: boolean) => [plural ? 'Deu os remédios' : 'Deu o remédio', 'Comeu bem', 'Comeu pouco', 'Evacuou', 'Fezes moles', 'Não evacuou'];
@@ -30,6 +31,8 @@ const quickOptions = (plural: boolean) => [plural ? 'Deu os remédios' : 'Deu o 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInEntry'>;
 
 export function CheckInEntryScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { petId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
@@ -201,7 +204,7 @@ export function CheckInEntryScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.background,
@@ -244,4 +247,4 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textDecorationLine: 'underline',
   },
-});
+}));

@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -35,14 +35,16 @@ import { usePet } from '../../control/usePetsControl';
 import { usePatients } from '../../control/usePatientsControl';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
-
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'Prescricao'>;
 
 export function PrescricaoScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { animalId, receita } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
@@ -723,7 +725,7 @@ export function PrescricaoScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -847,7 +849,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingVertical: 10,
     paddingHorizontal: spacing.md,
-    backgroundColor: '#E6F4FE',
+    backgroundColor: colors.infoSoft,
     borderRadius: radii.md,
     borderWidth: 1,
     borderColor: colors.primary,
@@ -863,10 +865,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     paddingHorizontal: spacing.md,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.dangerSoft,
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: colors.error,
   },
   recordingPulseRow: {
     flexDirection: 'row',
@@ -877,18 +879,18 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error,
   },
   recordingText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#991B1B',
+    color: colors.danger,
   },
   stopRecordingButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: radii.sm,
@@ -896,7 +898,7 @@ const styles = StyleSheet.create({
   stopRecordingButtonText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.textLight,
   },
   transcribingContainer: {
     flexDirection: 'row',
@@ -1064,4 +1066,4 @@ const styles = StyleSheet.create({
   chipTextActive: {
     color: colors.textLight,
   },
-});
+}));

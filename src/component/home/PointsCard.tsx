@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface PointsCardProps {
   points: number;
@@ -10,6 +11,8 @@ interface PointsCardProps {
 }
 
 export function PointsCard({ points, filledDots, totalDots }: PointsCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -47,7 +50,7 @@ export function PointsCard({ points, filledDots, totalDots }: PointsCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.cardMax,
     borderRadius: radii.lg,
@@ -103,4 +106,4 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     lineHeight: 16,
   },
-});
+}));

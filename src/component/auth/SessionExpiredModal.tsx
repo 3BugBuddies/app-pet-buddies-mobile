@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Modal, View, Text, StyleSheet } from 'react-native';
+import { Modal, View, Text } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { onSessionExpired } from '../../repository/apiClient';
 import { login, saveSession } from '../../repository/authRepository';
 import { AuthContext } from '../../context/authContext';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 export function SessionExpiredModal() {
+  const styles = useStyles();
   const { session, clearSession, setSession } = useContext(AuthContext);
   const queryClient = useQueryClient();
   const [visible, setVisible] = useState(false);
@@ -95,7 +97,7 @@ export function SessionExpiredModal() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -130,4 +132,4 @@ const styles = StyleSheet.create({
   flexHalf: {
     flex: 1,
   },
-});
+}));

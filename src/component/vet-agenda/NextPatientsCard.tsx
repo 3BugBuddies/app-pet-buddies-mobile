@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Pressable, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 export interface NextPatientItem {
   id: string;
@@ -19,6 +20,7 @@ interface NextPatientsCardProps {
 }
 
 export function NextPatientsCard({ items, onOpenPatient, onAttend }: NextPatientsCardProps) {
+  const styles = useStyles();
   return (
     <View style={styles.list}>
       <Text style={styles.title}>CONSULTAS DE HOJE</Text>
@@ -58,7 +60,7 @@ export function NextPatientsCard({ items, onOpenPatient, onAttend }: NextPatient
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   list: {
     gap: spacing.sm,
   },
@@ -130,4 +132,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textLight,
   },
-});
+}));

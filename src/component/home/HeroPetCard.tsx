@@ -1,5 +1,6 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Image, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 // Asset: add `amigos-tranparentes.png` to assets/images/ before shipping
 const heroImage = require('../../../assets/images/amigos-tranparentes.png');
@@ -11,6 +12,7 @@ interface HeroPetCardProps {
 }
 
 export function HeroPetCard({ petNames, stateLabel, details }: HeroPetCardProps) {
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       <View style={styles.textBlock}>
@@ -23,7 +25,7 @@ export function HeroPetCard({ petNames, stateLabel, details }: HeroPetCardProps)
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.cardMax,
     borderRadius: radii.lg,
@@ -64,4 +66,4 @@ const styles = StyleSheet.create({
     width: 150,
     height: 130,
   },
-});
+}));

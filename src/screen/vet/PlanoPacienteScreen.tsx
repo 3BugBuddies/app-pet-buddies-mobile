@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { CareItemsSection } from '../../component/care-plan/CareItemsSection';
 import { NoPlanState } from '../../component/care-plan/NoPlanState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
@@ -9,12 +9,14 @@ import { treatmentOverview } from '../../model/treatmentSummary';
 import { usePet } from '../../control/usePetsControl';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PacientesTabParamList, 'PlanoPaciente'>;
 
 export function PlanoPacienteScreen({ route }: Props) {
+  const styles = useStyles();
   const { petId } = route.params;
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -73,7 +75,7 @@ const todayIso = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -98,4 +100,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
-});
+}));

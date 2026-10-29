@@ -1,7 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { PatientCard } from '../../component/patients/PatientCard';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
@@ -12,7 +12,8 @@ import { speciesLabel, breedLabel } from '../../model/pet';
 import { normalizeSearch } from '../../model/text';
 import type { PacientesTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Filter = 'TODOS' | 'TRATAMENTO' | 'PREVENTIVO';
@@ -24,6 +25,8 @@ const FILTERS: { key: Filter; label: string }[] = [
 ];
 
 export function PacientesScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -117,7 +120,7 @@ export function PacientesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -174,4 +177,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: spacing.lg,
   },
-});
+}));

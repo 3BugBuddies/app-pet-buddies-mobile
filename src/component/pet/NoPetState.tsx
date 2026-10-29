@@ -1,12 +1,15 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Text, View } from 'react-native';
 import { Button } from '../ui/Button';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface NoPetStateProps {
   onRegister: () => void;
 }
 
 export function NoPetState({ onRegister }: NoPetStateProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -23,7 +26,7 @@ export function NoPetState({ onRegister }: NoPetStateProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { gap: spacing.md },
   card: {
     backgroundColor: `${colors.action}1A`,
@@ -41,4 +44,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   body: { fontFamily: 'Inter', fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

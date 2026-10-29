@@ -1,7 +1,8 @@
-import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../ui/Button';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { formatShortDate } from '../../model/formatDate';
 import { phoneDigits, type TreatmentWeek } from '../../model/careHome';
 import { medicationsTitle, type ClinicaContato } from '../../model/care';
@@ -15,6 +16,8 @@ interface SuspendedTreatmentCardProps {
 }
 
 export function SuspendedTreatmentCard({ medications, suspendedAt, week, clinic }: SuspendedTreatmentCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const call = async () => {
     if (!clinic) return;
     try {
@@ -54,7 +57,7 @@ export function SuspendedTreatmentCard({ medications, suspendedAt, week, clinic 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.peach,
     borderRadius: radii.lg,
@@ -75,4 +78,4 @@ const styles = StyleSheet.create({
   body: { fontFamily: 'Inter', fontSize: 12, lineHeight: 17, color: colors.textSecondary },
   clinic: { gap: spacing.sm },
   clinicText: { fontFamily: 'Inter', fontSize: 12, color: colors.textSecondary },
-});
+}));

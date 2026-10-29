@@ -1,7 +1,8 @@
 import type { ComponentProps, ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 export type ClosingIconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -17,6 +18,8 @@ interface AccordionRowProps {
 }
 
 export function AccordionRow({ icon, title, summary, done, open, forward, onPress, children }: AccordionRowProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const chevron = forward ? 'chevron-forward' : open ? 'chevron-up' : 'chevron-down';
   return (
     <View style={styles.card}>
@@ -45,7 +48,7 @@ export function AccordionRow({ icon, title, summary, done, open, forward, onPres
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
@@ -77,4 +80,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   body: { marginTop: spacing.md },
-});
+}));

@@ -1,6 +1,7 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface NarrativeInputProps {
   value: string;
@@ -23,6 +24,8 @@ export function NarrativeInput({
   onStartRecording,
   onStopRecording,
 }: NarrativeInputProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
     const s = (secs % 60).toString().padStart(2, '0');
@@ -89,7 +92,7 @@ export function NarrativeInput({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     minHeight: 180,
     backgroundColor: colors.surface,
@@ -112,10 +115,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.sm,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: colors.dangerSoft,
     borderRadius: radii.md,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: colors.error,
   },
   recordingStatus: {
     flexDirection: 'row',
@@ -126,18 +129,18 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error,
   },
   recordingText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#991B1B',
+    color: colors.danger,
   },
   stopBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: colors.error,
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: radii.sm,
@@ -145,7 +148,7 @@ const styles = StyleSheet.create({
   stopBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: colors.textLight,
   },
   transcribingBar: {
     flexDirection: 'row',
@@ -180,7 +183,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: radii.pill,
-    backgroundColor: '#FFF4E6',
+    backgroundColor: colors.amberSoft,
     borderWidth: 1,
     borderColor: `${colors.action}40`,
   },
@@ -189,4 +192,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.action,
   },
-});
+}));

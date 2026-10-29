@@ -1,7 +1,8 @@
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, Text, View } from 'react-native';
 import { Button } from '../ui/Button';
 import { petArticle } from '../../model/pet';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { useTabBarSpace } from '../../screen/navigation/useTabBarSpace';
 
 interface NoPlanStateProps {
@@ -11,6 +12,8 @@ interface NoPlanStateProps {
 }
 
 export function NoPlanState({ petName, petSex, onSchedule }: NoPlanStateProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const tabBarSpace = useTabBarSpace();
   const article = petArticle(petSex);
   return (
@@ -42,7 +45,7 @@ export function NoPlanState({ petName, petSex, onSchedule }: NoPlanStateProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: { padding: spacing.lg, gap: spacing.md },
   header: {
     fontFamily: 'Sora',
@@ -67,4 +70,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   body: { fontFamily: 'Inter', fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center' },
-});
+}));

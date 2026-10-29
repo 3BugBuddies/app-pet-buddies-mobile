@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -6,7 +6,8 @@ import { FieldError } from '../forms/FieldError';
 import type { ItemReceitaDraft } from '../../model/prescription';
 import { descreverCondicao, rotuloAcao } from '../../model/prescriptionRule';
 import { capitalize, daysText, doseBounds, doseText } from '../../model/careHome';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface MedicationCardProps {
   item: ItemReceitaDraft;
@@ -46,6 +47,8 @@ export const closedSummary = (item: ItemReceitaDraft) => {
 };
 
 export function MedicationCard({ item, single, open, errors, onToggle, onRemove, onChange, onAddRule }: MedicationCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const summary = closedSummary(item);
   const hasError = Object.keys(errors).length > 0;
 
@@ -198,7 +201,7 @@ export function MedicationCard({ item, single, open, errors, onToggle, onRemove,
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -243,4 +246,4 @@ const styles = StyleSheet.create({
   ruleText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.textPrimary },
   ruleBold: { fontWeight: '700', color: colors.textPrimary },
   ruleArrow: { color: colors.textPrimary, fontWeight: '700' },
-});
+}));

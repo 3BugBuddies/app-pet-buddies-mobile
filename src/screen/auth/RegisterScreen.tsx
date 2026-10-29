@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
@@ -9,7 +9,8 @@ import { Input } from '../../component/ui/Input';
 import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useRegisterControl } from '../../control/authControl';
 import type { AuthStackParamList } from '../navigation/types';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 const PERFIL_LABEL: Record<string, string> = {
   TUTOR: 'Responsável',
@@ -17,6 +18,8 @@ const PERFIL_LABEL: Record<string, string> = {
 };
 
 export function RegisterScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const insets = useSafeAreaInsets();
   const {
@@ -127,7 +130,7 @@ export function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   logoArea: { paddingHorizontal: spacing.lg },
@@ -145,4 +148,4 @@ const styles = StyleSheet.create({
   apiError: { ...typography.caption, color: colors.error, marginBottom: spacing.sm },
   loginLink: { marginTop: spacing.lg, alignItems: 'center' },
   loginText: { ...typography.body, color: colors.textPrimary, fontWeight: 'bold' },
-});
+}));

@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../component/ui/Button';
 import { Card } from '../../component/ui/Card';
@@ -10,10 +10,13 @@ import { usePets } from '../../control/usePetsControl';
 import { speciesLabel, breedLabel, sexLabel, type Pet } from '../../model/pet';
 import type { PetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 export function MeusPetsScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<NativeStackNavigationProp<PetTabParamList>>();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -68,7 +71,7 @@ export function MeusPetsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -130,4 +133,4 @@ const styles = StyleSheet.create({
     left: spacing.lg,
     right: spacing.lg,
   },
-});
+}));

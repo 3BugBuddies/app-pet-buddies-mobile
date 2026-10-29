@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useContext, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ActivePlansCard } from '../../component/vet-agenda/ActivePlansCard';
 import { AgendaHeroCard } from '../../component/vet-agenda/AgendaHeroCard';
@@ -18,7 +18,8 @@ import { useClinicPets } from '../../control/usePetsControl';
 import { openClosing } from '../navigation/openClosing';
 import type { HojeTabParamList, VetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { formatAppointmentDate } from '../../model/formatDate';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
@@ -28,6 +29,8 @@ type AgendaClinicaNavigationProp = CompositeNavigationProp<
 >;
 
 export function AgendaClinicaScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<AgendaClinicaNavigationProp>();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -143,7 +146,7 @@ export function AgendaClinicaScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -210,4 +213,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 17,
   }
-});
+}));

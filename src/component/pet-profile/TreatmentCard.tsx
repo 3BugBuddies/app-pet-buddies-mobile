@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 interface TreatmentCardProps {
   names: string[];
@@ -7,6 +8,7 @@ interface TreatmentCardProps {
 }
 
 export function TreatmentCard({ names, until }: TreatmentCardProps) {
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       <Text style={styles.label}>Tratamento em andamento</Text>
@@ -15,7 +17,7 @@ export function TreatmentCard({ names, until }: TreatmentCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.cardAlert,
     borderRadius: radii.lg,
@@ -34,4 +36,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
-});
+}));

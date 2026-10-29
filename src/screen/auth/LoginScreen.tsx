@@ -6,7 +6,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -18,9 +17,12 @@ import { Input } from '../../component/ui/Input';
 import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useLoginControl } from '../../control/authControl';
 import type { AuthStackParamList } from '../navigation/types';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 export function LoginScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { email, setEmail, senha, setSenha, erros, entrar, isEntrando } = useLoginControl();
   const insets = useSafeAreaInsets();
@@ -121,7 +123,7 @@ export function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.background,
@@ -197,4 +199,4 @@ const styles = StyleSheet.create({
     fontSize: 18,
     lineHeight: 22,
   },
-});
+}));

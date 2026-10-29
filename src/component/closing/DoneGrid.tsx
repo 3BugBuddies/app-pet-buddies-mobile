@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { ClosingIconName } from './AccordionRow';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface DoneGridOption {
   key: string;
@@ -16,6 +17,8 @@ interface DoneGridProps {
 }
 
 export function DoneGrid({ options, onToggle }: DoneGridProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.grid}>
       {options.map((o) => (
@@ -35,7 +38,7 @@ export function DoneGrid({ options, onToggle }: DoneGridProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   tile: {
     flexBasis: '48%',
@@ -53,4 +56,4 @@ const styles = StyleSheet.create({
   tileOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   label: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.textPrimary },
   labelOn: { color: colors.textLight },
-});
+}));

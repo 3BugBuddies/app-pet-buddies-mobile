@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Pressable, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 interface DoseStepperProps {
   label: string;
@@ -12,6 +13,7 @@ interface DoseStepperProps {
 }
 
 export function DoseStepper({ label, value, unit, step = 0.5, min = 0, max = 999, onChange }: DoseStepperProps) {
+  const styles = useStyles();
   const formatted = String(value).replace('.', ',');
 
   return (
@@ -38,7 +40,7 @@ export function DoseStepper({ label, value, unit, step = 0.5, min = 0, max = 999
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   wrap: {
     flex: 1,
     gap: spacing.xs,
@@ -75,4 +77,4 @@ const styles = StyleSheet.create({
     minWidth: 64,
     textAlign: 'center',
   },
-});
+}));

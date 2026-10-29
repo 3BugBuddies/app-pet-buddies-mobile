@@ -1,7 +1,8 @@
 import { useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type ScrollViewInstance } from 'react-native';
+import { Pressable, ScrollView, Text, View, type ScrollViewInstance } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import type { DayDot, WeekDayCell } from '../../model/careHome';
 
 interface WeekStripProps {
@@ -14,6 +15,8 @@ const CELL_WIDTH = 44;
 const MAX_FIXED_DAYS = 7;
 
 function Dot({ dot }: { dot: DayDot }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   switch (dot) {
     case 'DONE':
       return (
@@ -45,6 +48,8 @@ function Dot({ dot }: { dot: DayDot }) {
 }
 
 export function WeekStrip({ days, tone = 'default', onPressDay }: WeekStripProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const scrollRef = useRef<ScrollViewInstance>(null);
   const scrolls = days.length > MAX_FIXED_DAYS;
   const todayIndex = days.findIndex((day) => day.isToday);
@@ -99,7 +104,7 @@ export function WeekStrip({ days, tone = 'default', onPressDay }: WeekStripProps
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: { flexDirection: 'row', gap: 4 },
   cell: {
     alignItems: 'center',
@@ -119,4 +124,4 @@ const styles = StyleSheet.create({
   dotAppointment: { backgroundColor: colors.info },
   dotTodo: { borderWidth: 2, borderColor: colors.border },
   dotOff: { width: 16, height: 2, marginVertical: 7, borderRadius: 2, backgroundColor: colors.borderStrong },
-});
+}));

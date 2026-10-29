@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './navigation/AppNavigator';
 import { AuthContext } from '../context/authContext';
+import { ThemeContext } from '../context/themeContext';
+import { useThemeControl } from '../control/useThemeControl';
 import type { AuthSession } from '../model/session';
 import { SessionExpiredModal } from '../component/auth/SessionExpiredModal';
 import { cancelAllReminders, initNotifications } from '../repository/notificationService';
@@ -23,6 +25,7 @@ const queryClient = new QueryClient();
 
 export default function App() {
   const [session, setSession] = useState<AuthSession | null>(null);
+  const { theme, ready: themeReady } = useThemeControl();
 
   useEffect(() => {
     initNotifications();
@@ -33,7 +36,7 @@ export default function App() {
     Inter_400Regular,
     Inter_500Medium,
   });
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !themeReady) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#FF8400" />
@@ -42,6 +45,7 @@ export default function App() {
   }
   return (
     <SafeAreaProvider>
+      <ThemeContext.Provider value={theme}>
       <QueryClientProvider client={queryClient}>
         <AuthContext.Provider
           value={{
@@ -62,6 +66,7 @@ export default function App() {
 
         </AuthContext.Provider>
       </QueryClientProvider>
+      </ThemeContext.Provider>
     </SafeAreaProvider>
   );
 }

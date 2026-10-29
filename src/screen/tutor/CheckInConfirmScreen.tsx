@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
@@ -12,12 +12,15 @@ import { todayIso, todayMedications } from '../../model/careHome';
 import { medicationGivenLabel } from '../../model/careRules';
 import type { PlanoTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInConfirm'>;
 
 export function CheckInConfirmScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { petId, extracaoResponse } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
@@ -166,7 +169,7 @@ export function CheckInConfirmScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -271,4 +274,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.error,
   },
-});
+}));

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { Button } from '../../component/ui/Button';
 import { ErrorState } from '../../component/ui/ErrorState';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
@@ -12,7 +12,8 @@ import { formatAppointmentDate, formatDateBR, formatShortDate } from '../../mode
 import { breedLabel, sexLabel } from '../../model/pet';
 import { formatPhone } from '../../model/phone';
 import type { PacientesTabParamList } from '../navigation/types';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PacientesTabParamList, 'DetalhesPet'>;
@@ -29,6 +30,8 @@ function openLink(url: string) {
 }
 
 export function DetalhesPetScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { petId, consultaId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
   const tabBarSpace = useTabBarSpace();
@@ -177,7 +180,7 @@ export function DetalhesPetScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -201,7 +204,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: '#FFF0E0',
+    backgroundColor: colors.peach,
     borderRadius: radii.lg,
     padding: spacing.md,
   },
@@ -320,4 +323,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
-});
+}));

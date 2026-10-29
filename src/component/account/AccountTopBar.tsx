@@ -1,9 +1,12 @@
 import { useNavigation } from '@react-navigation/native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 export function AccountTopBar({ title }: { title: string }) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation();
   return (
     <View style={styles.row}>
@@ -20,7 +23,7 @@ export function AccountTopBar({ title }: { title: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   back: {
     width: 40,
@@ -36,4 +39,4 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   title: { ...typography.title, color: colors.textPrimary },
-});
+}));

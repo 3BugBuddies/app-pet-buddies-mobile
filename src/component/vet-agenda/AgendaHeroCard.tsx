@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { remainingAppointmentsLabel } from '../../model/pet';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 const RING_SIZE = 84;
 const RING_RADIUS = 36;
@@ -16,6 +17,8 @@ interface AgendaHeroCardProps {
 }
 
 export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: AgendaHeroCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const progress = totalCount > 0 ? seenCount / totalCount : 0;
   const filled = RING_CIRCUMFERENCE * Math.min(1, progress);
 
@@ -60,7 +63,7 @@ export function AgendaHeroCard({ remaining, seenCount, totalCount, nextTime }: A
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.cardChia,
     borderRadius: radii.lg,
@@ -93,4 +96,4 @@ const styles = StyleSheet.create({
     width: RING_SIZE,
     height: RING_SIZE,
   },
-});
+}));

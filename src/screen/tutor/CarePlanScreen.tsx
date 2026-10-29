@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NoPlanState } from '../../component/care-plan/NoPlanState';
 import { PreventiveCard } from '../../component/care-plan/PreventiveCard';
@@ -29,12 +29,14 @@ import {
 } from '../../model/careHome';
 import { petArticle, speciesLabel } from '../../model/pet';
 import type { PlanoTabParamList } from '../navigation/types';
-import { colors, spacing } from '../../styles/theme';
+import { spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CarePlan'>;
 
 export function CarePlanScreen({ route }: Props) {
+  const styles = useStyles();
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
   const { activePetId } = useActivePetId();
   const petId = route.params?.petId ?? activePetId ?? '';
@@ -166,7 +168,7 @@ export function CarePlanScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: { flex: 1, backgroundColor: colors.background },
   noPet: { padding: spacing.lg },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -175,4 +177,4 @@ const styles = StyleSheet.create({
   headerTitle: { fontFamily: 'Sora', fontSize: 24, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
   headerSubtitle: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: colors.textSecondary },
   content: { padding: spacing.lg, gap: spacing.md },
-});
+}));

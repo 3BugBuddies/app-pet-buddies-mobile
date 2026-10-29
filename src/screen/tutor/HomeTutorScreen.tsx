@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useContext, useMemo } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ClinicCard } from '../../component/home/ClinicCard';
 import { PataSeguraCard } from '../../component/home/PataSeguraCard';
@@ -22,7 +22,8 @@ import { useLogoutControl } from '../../control/authControl';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { formatAppointmentDate, greetingForNow } from '../../model/formatDate';
 import { treatmentsOf } from '../../model/care';
 import {
@@ -53,6 +54,8 @@ type HomeTutorNavigationProp = CompositeNavigationProp<
 >;
 
 export function HomeTutorScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<HomeTutorNavigationProp>();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -290,7 +293,7 @@ export function HomeTutorScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -388,4 +391,4 @@ const styles = StyleSheet.create({
   petSelectorNameActive: {
     color: colors.textLight,
   },
-});
+}));

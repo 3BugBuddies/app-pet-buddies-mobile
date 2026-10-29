@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { BrandMark } from '../ui/BrandMark';
 import { formatTodayLabel } from '../../model/formatDate';
 
@@ -13,6 +14,8 @@ interface GreetingHeaderProps {
 }
 
 export function GreetingHeader({ greeting, userName, onAvatarPress, onLogout }: GreetingHeaderProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.row}>
       <BrandMark style={styles.mark} />
@@ -37,7 +40,7 @@ export function GreetingHeader({ greeting, userName, onAvatarPress, onLogout }: 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -83,4 +86,4 @@ const styles = StyleSheet.create({
   logoutBtn: {
     padding: 4,
   },
-});
+}));

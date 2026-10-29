@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Pressable, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 interface QuickChipsProps {
   options: string[];
@@ -9,6 +10,7 @@ interface QuickChipsProps {
 }
 
 export function QuickChips({ options, onSelect, selected, hideLabel }: QuickChipsProps) {
+  const styles = useStyles();
   return (
     <View style={styles.wrap}>
       {hideLabel ? null : <Text style={styles.label}>Resposta rápida</Text>}
@@ -23,7 +25,7 @@ export function QuickChips({ options, onSelect, selected, hideLabel }: QuickChip
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   wrap: {
     gap: spacing.sm,
   },
@@ -61,4 +63,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: colors.textPrimary,
   },
-});
+}));

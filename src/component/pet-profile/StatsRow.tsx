@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 interface Stat {
   label: string;
@@ -11,6 +12,7 @@ interface StatsRowProps {
 }
 
 export function StatsRow({ stats }: StatsRowProps) {
+  const styles = useStyles();
   return (
     <View style={styles.row}>
       {stats.map((stat) => (
@@ -23,7 +25,7 @@ export function StatsRow({ stats }: StatsRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: {
     flexDirection: 'row',
     gap: spacing.md,
@@ -46,4 +48,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
-});
+}));

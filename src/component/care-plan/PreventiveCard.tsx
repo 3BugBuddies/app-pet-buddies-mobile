@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Pressable, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import type { CareItem } from '../../model/care';
 import { isItemOverdue } from '../../model/careHome';
 
@@ -23,6 +24,8 @@ export function PreventiveCard({
   footnote,
   onPressItem,
 }: PreventiveCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const overdue = items.filter(isItemOverdue).length;
   return (
     <View style={styles.card}>
@@ -69,7 +72,7 @@ export function PreventiveCard({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
@@ -107,4 +110,4 @@ const styles = StyleSheet.create({
   title: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: colors.textPrimary },
   sub: { fontFamily: 'Inter', fontSize: 12, color: colors.textSecondary },
   footnote: { fontFamily: 'Inter', fontSize: 12, color: colors.textSecondary },
-});
+}));

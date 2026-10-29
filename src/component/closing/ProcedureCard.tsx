@@ -1,10 +1,11 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { FieldError } from '../forms/FieldError';
 import { Input } from '../ui/Input';
 import type { OpenPlanItem, ProcedureDraft } from '../../model/closing';
 import { formatDateBR } from '../../model/formatDate';
 import { normalizeSearch } from '../../model/text';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 interface ProcedureCardProps {
   draft: ProcedureDraft;
@@ -21,6 +22,7 @@ const NAME_LABELS: Record<ProcedureDraft['section'], { label: string; placeholde
 };
 
 export function ProcedureCard({ draft, items, error, onChange, onRemove }: ProcedureCardProps) {
+  const styles = useStyles();
   const isVaccine = draft.section === 'VACINA_VERMIFUGO';
   const nameLabel = NAME_LABELS[draft.section];
   const nameFromItem = !draft.nome.trim() || items.some((i) => normalizeSearch(i.nome) === normalizeSearch(draft.nome));
@@ -101,6 +103,7 @@ function RadioOption({
   subtitle: string;
   onPress: () => void;
 }) {
+  const styles = useStyles();
   return (
     <Pressable
       accessibilityRole="radio"
@@ -117,7 +120,7 @@ function RadioOption({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: { gap: spacing.xs },
   removeRow: { alignSelf: 'flex-end' },
   remove: { fontSize: 13, fontWeight: '600', color: colors.error },
@@ -147,4 +150,4 @@ const styles = StyleSheet.create({
   radioOn: { borderColor: colors.primary },
   radioDot: { width: 10, height: 10, borderRadius: radii.pill, backgroundColor: colors.primary },
   notes: { minHeight: 64, textAlignVertical: 'top' },
-});
+}));

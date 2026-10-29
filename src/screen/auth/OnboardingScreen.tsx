@@ -2,7 +2,6 @@ import {
   Image,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -10,7 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Button } from '../../component/ui/Button';
-import { colors, spacing, typography } from '../../styles/theme';
+import { spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import type { AuthStackParamList } from '../navigation/types';
 
 // Asset: add `onboarding-transperent.png` to assets/images/ before shipping
@@ -19,6 +19,8 @@ const heroImage = require('../../../assets/images/onboarding-transperent.png');
 type NavProp = NativeStackNavigationProp<AuthStackParamList, 'Onboarding'>;
 
 export default function OnboardingScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavProp>();
 
@@ -86,7 +88,7 @@ export default function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.background,
@@ -160,4 +162,4 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     marginTop: 'auto',
   },
-});
+}));

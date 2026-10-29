@@ -6,7 +6,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -17,7 +16,8 @@ import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { usePetFormControl } from '../../control/usePetFormControl';
 import { petArticle, sizeLabel } from '../../model/pet';
 import type { PetTabParamList } from '../navigation/types';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 // botao-passaro-1.png não existe nos assets — usando botao-passaro.png
@@ -42,6 +42,8 @@ const SEXO_LABEL: Record<string, string> = {
 type Props = NativeStackScreenProps<PetTabParamList, 'NovoPet'>;
 
 export function NovoPetScreen({ route, navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const tabBarSpace = useTabBarSpace();
   const petId = route.params?.petId;
 
@@ -257,7 +259,7 @@ export function NovoPetScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.background,
@@ -443,4 +445,4 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     marginTop: spacing.md,
   },
-});
+}));

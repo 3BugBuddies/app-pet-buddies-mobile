@@ -1,11 +1,13 @@
-import { StyleSheet, Text } from 'react-native';
-import { colors, spacing, typography } from '../../styles/theme';
+import { Text } from 'react-native';
+import { spacing, typography } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 interface FieldErrorProps {
   message?: string;
 }
 
 export function FieldError({ message }: FieldErrorProps) {
+  const styles = useStyles();
   if (!message) {
     return null;
   }
@@ -16,10 +18,10 @@ export function FieldError({ message }: FieldErrorProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   text: {
     ...typography.caption,
     color: colors.error,
     marginTop: spacing.xs,
   },
-});
+}));

@@ -1,14 +1,14 @@
 import {
   ActivityIndicator,
   Pressable,
-  StyleSheet,
   Text,
   View,
   type PressableProps,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface ButtonProps extends Omit<PressableProps, 'style'> {
   label: string;
@@ -31,6 +31,8 @@ export function Button({
   icon,
   ...rest
 }: ButtonProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const isPrimary = variant === 'primary';
   const resolvedTextColor = textColor ?? (isPrimary ? colors.textLight : colors.primary);
   return (
@@ -60,7 +62,7 @@ export function Button({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   base: {
     minHeight: 48,
     borderRadius: radii.md,
@@ -90,4 +92,4 @@ const styles = StyleSheet.create({
   label: {
     ...typography.subtitle,
   },
-});
+}));

@@ -1,7 +1,9 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Image, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 export function PataSeguraCard() {
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       <View style={styles.labelRow}>
@@ -14,7 +16,7 @@ export function PataSeguraCard() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.cardMax,
     borderRadius: radii.lg,
@@ -47,4 +49,4 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: spacing.xs,
   },
-});
+}));

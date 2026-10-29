@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { useAppointments } from '../../control/useAppointmentsControl';
@@ -8,12 +8,15 @@ import { useActivePetId, usePets } from '../../control/usePetsControl';
 import { formatShortDate } from '../../model/formatDate';
 import { petArticle } from '../../model/pet';
 import { isoLocal } from '../../repository/appointmentRepository';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
 const STEPS = ['Consulta efetivada', 'Ponto', 'Selo', 'Benefício na clínica'];
 
 export function PataSeguraScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
   const { data: pets } = usePets();
@@ -92,7 +95,7 @@ export function PataSeguraScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.background },
   topBar: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
   content: { padding: spacing.lg, gap: spacing.md },
@@ -153,4 +156,4 @@ const styles = StyleSheet.create({
   },
   pillText: { fontFamily: 'Inter', fontSize: 14, fontWeight: '700', color: colors.textPrimary },
   howNote: { fontFamily: 'Inter', fontSize: 14, lineHeight: 20, color: colors.textSecondary },
-});
+}));

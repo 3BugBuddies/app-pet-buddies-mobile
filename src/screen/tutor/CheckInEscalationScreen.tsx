@@ -1,16 +1,18 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, Text, View } from 'react-native';
 import { Button } from '../../component/ui/Button';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { usePet } from '../../control/usePetsControl';
 import type { PlanoTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInEscalation'>;
 
 export function CheckInEscalationScreen({ route }: Props) {
+  const styles = useStyles();
   const { petId, result } = route.params;
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -65,7 +67,7 @@ export function CheckInEscalationScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -76,7 +78,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   alertBlock: {
-    backgroundColor: '#FFF0E0',
+    backgroundColor: colors.peach,
     borderRadius: radii.lg,
     padding: spacing.lg,
     gap: spacing.md,
@@ -132,4 +134,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textPrimary,
   },
-});
+}));

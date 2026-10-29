@@ -1,16 +1,19 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, Text, View } from 'react-native';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
 import type { PlanoTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInNoRule'>;
 
 export function CheckInNoRuleScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { petId, narrative } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
@@ -48,7 +51,7 @@ export function CheckInNoRuleScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -59,7 +62,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
   },
   waitBlock: {
-    backgroundColor: '#DCEFFD',
+    backgroundColor: colors.infoSoft,
     borderRadius: radii.lg,
     padding: 20,
     alignItems: 'center',
@@ -98,4 +101,4 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     color: colors.textPrimary,
   },
-});
+}));

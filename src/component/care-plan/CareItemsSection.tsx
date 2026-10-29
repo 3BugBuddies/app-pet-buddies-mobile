@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Text, View } from 'react-native';
+import { radii, spacing, type ThemeColors } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { capitalize, doseText } from '../../model/careHome';
 import { medicationEndLabel } from '../../model/treatmentSummary';
 import { dayAndWeekday, groupTreatments, statusDisplay, type CareItem, type StatusTone } from '../../model/care';
@@ -11,11 +12,12 @@ interface CareItemsSectionProps {
   grouped?: boolean;
 }
 
-const TONE_BG: Record<StatusTone, string> = {
-  success: colors.success,
-  warning: colors.cardMax,
-  alert: colors.cardAlert,
-  neutral: colors.border,
+// Nome do token, não o valor: a cor é resolvida na renderização, com o tema atual.
+const TONE_BG: Record<StatusTone, keyof ThemeColors> = {
+  success: 'success',
+  warning: 'cardMax',
+  alert: 'cardAlert',
+  neutral: 'border',
 };
 
 const todayIso = (): string => {
@@ -24,11 +26,13 @@ const todayIso = (): string => {
 };
 
 export function CareItemsSection({ title, items, emptyText, grouped }: CareItemsSectionProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const today = todayIso();
   const renderPill = (item: CareItem) => {
     const display = statusDisplay(item.status, item.type === 'MEDICACAO', item.overdue);
     return (
-      <View style={[styles.pill, { backgroundColor: TONE_BG[display.tone] }]}>
+      <View style={[styles.pill, { backgroundColor: colors[TONE_BG[display.tone]] }]}>
         <Text style={styles.pillText}>{display.label}</Text>
       </View>
     );
@@ -78,7 +82,7 @@ export function CareItemsSection({ title, items, emptyText, grouped }: CareItems
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -106,4 +110,4 @@ const styles = StyleSheet.create({
   itemTitle: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
   pill: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radii.pill },
   pillText: { fontSize: 12, fontWeight: '700', color: colors.textPrimary },
-});
+}));

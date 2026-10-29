@@ -1,13 +1,16 @@
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AccountTopBar } from '../../component/account/AccountTopBar';
 import { BrandMark } from '../../component/ui/BrandMark';
 import { Card } from '../../component/ui/Card';
+import { ThemeSelector } from '../../component/ui/ThemeSelector';
 import { useAppInfoControl } from '../../control/useAppInfoControl';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
 export function SobreAppScreen() {
+  const styles = useStyles();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
   const { version, commit, commitFull, branch, dirty, builtAtLabel } = useAppInfoControl();
@@ -29,6 +32,12 @@ export function SobreAppScreen() {
             Aplicativo da plataforma Clyvo Vet: conecta tutores e veterinários em uma jornada contínua de cuidado animal.
           </Text>
         </View>
+
+        <Card>
+          <Text style={styles.sectionTitle}>Aparência</Text>
+          <ThemeSelector />
+          <Text style={styles.sectionHint}>Automático segue o tema do seu aparelho.</Text>
+        </Card>
 
         <Card style={styles.card}>
           <InfoRow label="Versão" value={version || 'Não informada'} />
@@ -59,6 +68,7 @@ export function SobreAppScreen() {
 }
 
 function InfoRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  const styles = useStyles();
   return (
     <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
@@ -69,7 +79,7 @@ function InfoRow({ label, value, highlight }: { label: string; value: string; hi
 
 const MONOSPACE = Platform.select({ ios: 'Menlo', default: 'monospace' });
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: { flex: 1, backgroundColor: colors.background },
   topBar: { paddingHorizontal: spacing.lg, marginBottom: spacing.md },
   content: { paddingHorizontal: spacing.lg, gap: spacing.md },
@@ -95,6 +105,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
   },
+  sectionTitle: { ...typography.subtitle, color: colors.textPrimary, marginBottom: spacing.sm },
+  sectionHint: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm },
   hashLabel: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm },
   hash: {
     fontFamily: MONOSPACE,
@@ -104,4 +116,4 @@ const styles = StyleSheet.create({
   },
   note: { ...typography.caption, color: colors.textSecondary, textAlign: 'center' },
   warning: { ...typography.caption, color: colors.warning, textAlign: 'center' },
-});
+}));

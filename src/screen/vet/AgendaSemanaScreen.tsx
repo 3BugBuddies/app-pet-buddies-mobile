@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -8,7 +8,8 @@ import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useVetAgenda } from '../../control/useVetAgendaControl';
 import { isoLocal } from '../../repository/appointmentRepository';
 import type { Appointment } from '../../model/appointment';
-import { colors, primitiveColors, radii, spacing } from '../../styles/theme';
+import { primitiveColors, radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { openClosing } from '../navigation/openClosing';
 import type { VetTabParamList } from '../navigation/types';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
@@ -17,8 +18,6 @@ const WEEKDAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const WEEKDAYS_LONG = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const DEFAULT_SLOT_MIN = 30;
-const NO_SHOW_BG = '#FDE2E0';
-const NO_SHOW_TEXT = '#B42318';
 
 const STATUS_LABEL: Record<string, string> = {
   AGENDADA: 'agendada',
@@ -56,6 +55,8 @@ function statusOf(a: Appointment) {
 }
 
 export function AgendaSemanaScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<BottomTabNavigationProp<VetTabParamList>>();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -250,7 +251,7 @@ export function AgendaSemanaScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: spacing.lg, gap: spacing.md },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
@@ -311,9 +312,9 @@ const styles = StyleSheet.create({
   tag: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill, backgroundColor: colors.surface },
   tagScheduled: { backgroundColor: colors.cardChia },
   tagCanceled: { backgroundColor: colors.border },
-  tagNoShow: { backgroundColor: NO_SHOW_BG },
+  tagNoShow: { backgroundColor: colors.dangerSoft },
   tagText: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  tagNoShowText: { color: NO_SHOW_TEXT },
+  tagNoShowText: { color: colors.danger },
   attendButton: { paddingHorizontal: spacing.md, paddingVertical: 10, borderRadius: radii.pill, backgroundColor: colors.primary },
   attendText: { fontSize: 15, fontWeight: '700', color: colors.textLight },
   freeRow: {
@@ -329,4 +330,4 @@ const styles = StyleSheet.create({
   },
   freeTime: { width: 52, textAlign: 'center', fontSize: 16, fontWeight: '600', color: colors.textSecondary },
   freeText: { fontSize: 16, color: colors.textSecondary },
-});
+}));

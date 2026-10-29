@@ -1,6 +1,7 @@
 import { Feather } from '@expo/vector-icons';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import type { CareTask } from '../../model/care';
 
 interface TaskListCardProps {
@@ -10,6 +11,8 @@ interface TaskListCardProps {
 }
 
 export function TaskListCard({ tasks, onToggle, children }: TaskListCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       {tasks.map((task, index) => (
@@ -39,7 +42,7 @@ export function TaskListCard({ tasks, onToggle, children }: TaskListCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -86,4 +89,4 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
   },
-});
+}));

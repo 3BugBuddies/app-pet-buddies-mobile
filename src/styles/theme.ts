@@ -27,33 +27,10 @@ export const primitiveColors = {
   black: '#000000',
 };
 
-/*
- * Paleta Dark Mode (Preservada para implementação futura):
- * const darkPalette = {
- *   azulPrimario: '#253C96',
- *   laranjaDestaque: '#FF8A1E',
- *   azulClaroApoio: '#74B6FF',
- *   estrelaDourada: '#F7C85A',
- *   fundoApp: '#0F1424',
- *   fundoSecundario: '#151C31',
- *   cardSurface: '#1B2440',
- *   bordaSutil: '#2B3558',
- *   overlaySuave: '#0A0F1DCC',
- *   textoPrimario: '#F6F8FF',
- *   textoSecundario: '#B7C2E3',
- *   textoTerciario: '#8A95B8',
- *   textoDesabilitado: '#626D90',
- *   sucesso: '#38C793',
- *   aviso: '#F7C85A',
- *   erro: '#FF6B6B',
- *   informacao: '#5AA9FF',
- * };
- */
-
 /**
  * 2. PALETA SEMÂNTICA & TOKENS DE DESIGN (Modo Claro)
  */
-export const colors = {
+const lightColors = {
   // Fundo e Superfícies
   background: primitiveColors.pbCreme,
   surface: primitiveColors.white,
@@ -92,6 +69,8 @@ export const colors = {
 
   // Tarefas e semana do tratamento
   peach: '#FFF0E0',
+  amberSoft: '#FFF3D4',
+  infoSoft: '#DCEFFD',
   lime: '#C9F27A',
   limeSoft: '#F4FBE6',
   info: '#5AA9E6',
@@ -119,5 +98,62 @@ export const typography = {
   caption: { fontFamily: 'Inter_400Regular', fontSize: 12 },
 };
 
+/**
+ * 3. PALETA SEMÂNTICA (Modo Escuro)
+ * Mesmos tokens do modo claro. Cada fundo pastel ganha uma versão escura própria,
+ * porque o texto por cima passa a ser claro.
+ */
+type ThemeColors = { [K in keyof typeof lightColors]: string };
 
-export const theme = { colors, spacing, radii, typography };
+const darkColors: ThemeColors = {
+  // Fundo e Superfícies
+  background: '#0F1424',
+  surface: '#1B2440',
+  surfaceDark: '#05070F',
+
+  // Identidade Principal
+  primary: '#4A67E0',
+  secondary: '#8B97FF',
+  action: '#FF8A1E',
+  accent: '#F7C85A',
+
+  // Textos (Acessibilidade/Contraste)
+  textPrimary: '#F6F8FF',
+  textSecondary: '#B7C2E3',
+  textMuted: '#8A95B8',
+  textLight: '#FFFFFF',
+
+  // Estrutura
+  border: '#2B3558',
+  borderStrong: '#3B4770',
+
+  // Status e Feedbacks
+  success: primitiveColors.tsNeon,
+  error: '#FF6B6B',
+  warning: '#F8A94A',
+
+  // UI Específica
+  cardHome: primitiveColors.pbLaranja,
+  cardProgress: primitiveColors.pbAmarelo,
+  cardProtocol: primitiveColors.tsSky,
+
+  // Cartões Bento UI (~20% de opacidade, um pouco mais forte para aparecer no fundo escuro)
+  cardMax: `${primitiveColors.pbAmarelo}33`,
+  cardChia: `${primitiveColors.pbAzulCeu}33`,
+  cardAlert: `${primitiveColors.tsTangerine}33`,
+
+  // Tarefas e semana do tratamento
+  peach: '#3A2A1A',
+  amberSoft: '#3A301A',
+  infoSoft: '#1A2E48',
+  lime: '#C9F27A',
+  limeSoft: '#1F2E14',
+  info: '#74B6FF',
+  danger: '#F26B57',
+  dangerSoft: '#3A1D1A',
+  rowBackground: '#202A48',
+  dimmed: '#626D90',
+};
+
+export { lightColors, darkColors };
+export type { ThemeColors };

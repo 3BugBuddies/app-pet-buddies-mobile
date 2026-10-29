@@ -1,6 +1,7 @@
 import { useNavigation } from '@react-navigation/native';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Pressable, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface CheckInTopBarProps {
   title: string;
@@ -10,6 +11,8 @@ interface CheckInTopBarProps {
 }
 
 export function CheckInTopBar({ title, subtitle, stepLabel, dark }: CheckInTopBarProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation();
   const textColor = dark ? colors.textLight : colors.textPrimary;
   return (
@@ -35,7 +38,7 @@ export function CheckInTopBar({ title, subtitle, stepLabel, dark }: CheckInTopBa
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -79,4 +82,4 @@ const styles = StyleSheet.create({
     minWidth: 40,
     textAlign: 'right',
   },
-});
+}));

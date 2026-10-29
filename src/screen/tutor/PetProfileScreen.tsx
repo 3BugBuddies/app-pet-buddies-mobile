@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { HeroCard } from '../../component/pet-profile/HeroCard';
 import { StatsRow } from '../../component/pet-profile/StatsRow';
@@ -16,7 +16,8 @@ import { formatShortDate } from '../../model/formatDate';
 import { speciesLabel, breedLabel, sexLabel } from '../../model/pet';
 import type { PetTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<PetTabParamList, 'PetProfile'>;
@@ -43,6 +44,8 @@ function calcIdadeLabel(dataNascimento?: string | null): string {
 }
 
 export function PetProfileScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<NativeStackNavigationProp<PetTabParamList>>();
   const insets = useSafeAreaInsets();
   const tabBarSpace = useTabBarSpace();
@@ -176,7 +179,7 @@ export function PetProfileScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -228,4 +231,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-});
+}));

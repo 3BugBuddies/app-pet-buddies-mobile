@@ -1,8 +1,9 @@
 import type { ComponentProps } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radii } from '../../styles/theme';
+import { radii } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { AgendaTabStack } from './vet-tabs/AgendaTabStack';
 import { HojeTabStack } from './vet-tabs/HojeTabStack';
 import { PacientesTabStack } from './vet-tabs/PacientesTabStack';
@@ -20,6 +21,7 @@ interface TabIconProps {
 
 // A pílula do item ativo fica atrás do ícone, não no item inteiro.
 function TabIcon({ name, color, size, focused }: TabIconProps) {
+  const styles = useStyles();
   return (
     <View style={[styles.iconPill, focused && styles.iconPillActive]}>
       <Ionicons name={name} size={size} color={color} />
@@ -28,6 +30,8 @@ function TabIcon({ name, color, size, focused }: TabIconProps) {
 }
 
 export function VetTabs() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const tabBarBottom = useTabBarBottom();
 
   return (
@@ -77,7 +81,7 @@ export function VetTabs() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   tabBar: {
     position: 'absolute',
     left: 20,
@@ -113,4 +117,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 2,
   },
-});
+}));

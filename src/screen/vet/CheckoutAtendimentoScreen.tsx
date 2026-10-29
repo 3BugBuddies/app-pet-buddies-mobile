@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { BrandMark } from '../../component/ui/BrandMark';
 import { Button } from '../../component/ui/Button';
 import { formatHourShort } from '../../model/closingSummary';
@@ -10,7 +10,8 @@ import type { PacientesTabParamList, VetTabParamList } from '../navigation/types
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'CheckoutAtendimento'>;
@@ -20,6 +21,8 @@ type CheckoutNavigationProp = CompositeNavigationProp<
 >;
 
 export function CheckoutAtendimentoScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { summary } = route.params;
   const navigation = useNavigation<CheckoutNavigationProp>();
   const insets = useSafeAreaInsets();
@@ -86,6 +89,7 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
 }
 
 function Block({ label, title, sub }: { label: string; title: string; sub?: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.block}>
       <Text style={styles.label}>{label}</Text>
@@ -95,7 +99,7 @@ function Block({ label, title, sub }: { label: string; title: string; sub?: stri
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   screen: { flex: 1, backgroundColor: colors.background, justifyContent: 'space-between' },
   content: { paddingHorizontal: spacing.lg, alignItems: 'center', marginTop: spacing.xl },
   celebrationMark: { width: 104, height: 104 },
@@ -103,7 +107,7 @@ const styles = StyleSheet.create({
     width: 128,
     height: 128,
     borderRadius: radii.pill,
-    backgroundColor: '#FFF3D4',
+    backgroundColor: colors.amberSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
@@ -130,4 +134,4 @@ const styles = StyleSheet.create({
   blockTitle: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
   blockSub: { fontSize: 15, color: colors.textSecondary },
   footer: { paddingHorizontal: spacing.lg },
-});
+}));
