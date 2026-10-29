@@ -44,8 +44,8 @@ function MedicationLines({ lines }: { lines: MedicationLine[] }) {
   const styles = useStyles();
   return (
     <View style={styles.medications}>
-      {lines.map((line) => (
-        <View key={line.name} style={styles.medicationRow}>
+      {lines.map((line, index) => (
+        <View key={`${line.name}-${index}`} style={styles.medicationRow}>
           <Text style={styles.medicationName} numberOfLines={1}>
             {[line.name, line.dose].filter(Boolean).join(' · ')}
           </Text>

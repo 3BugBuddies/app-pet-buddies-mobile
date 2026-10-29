@@ -52,8 +52,8 @@ export function CheckInResultScreen({ route }: Props) {
       {lines ? (
         <View style={styles.doseCard}>
           <Text style={styles.doseLabel}>Doses de hoje</Text>
-          {lines.map((line) => (
-            <View key={line.medication} style={styles.doseLine}>
+          {lines.map((line, index) => (
+            <View key={`${line.medication}-${index}`} style={styles.doseLine}>
               <View style={styles.doseLineHead}>
                 <Text style={styles.doseLineName}>{line.medication}</Text>
                 <Text style={styles.doseLineValue}>{line.doseLabel}</Text>
