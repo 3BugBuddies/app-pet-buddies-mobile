@@ -3,10 +3,14 @@ import { useMemo } from 'react';
 import { Image, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
+import { ExtratoCard } from '../../component/pontuacao/ExtratoCard';
 import { useAppointments } from '../../control/useAppointmentsControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
+import { useSaldo } from '../../control/usePontuacaoControl';
 import { formatShortDate } from '../../model/formatDate';
 import { petArticle } from '../../model/pet';
+import { formatPontos } from '../../model/pontuacao';
+import { pontosAtivos } from '../../model/pontuacaoConfig';
 import { isoLocal } from '../../repository/appointmentRepository';
 import { radii, spacing } from '../../styles/theme';
 import { makeStyles, useTheme } from '../../styles/useTheme';
@@ -23,6 +27,7 @@ export function PataSeguraScreen() {
   const { activePetId } = useActivePetId();
   const pet = pets?.find((p) => String(p.id) === activePetId) ?? pets?.[0];
   const { data: appointments } = useAppointments(pet?.id ?? undefined);
+  const { data: saldo, isError: saldoIndisponivel } = useSaldo();
 
   const next = useMemo(() => {
     if (!appointments || !pet) return undefined;
@@ -45,6 +50,14 @@ export function PataSeguraScreen() {
     ? `A ${next.reason || 'consulta'} de ${formatShortDate(next.date)} vale pontos quando ${article === 'da' ? 'a' : 'o'} ${petName} for ${attended}.`
     : `Agende uma consulta: quando ${article === 'da' ? 'a' : 'o'} ${petName} for ${attended}, vale pontos.`;
 
+  // Com a chave ligada o saldo vem do extrato do tutor (soma de todos os pets); sem ela, segue o "Em breve".
+  const balanceText = !pontosAtivos ? '0 pontos' : saldo ? formatPontos(saldo.saldo) : saldoIndisponivel ? '—' : '…';
+  const balanceNoteText = !pontosAtivos
+    ? balanceNote
+    : saldoIndisponivel
+      ? 'O saldo não está disponível agora.'
+      : 'Soma das consultas de todos os seus pets.';
+
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
       <View style={styles.topBar}>
@@ -61,18 +74,22 @@ export function PataSeguraScreen() {
             resizeMode="contain"
           />
           <View style={styles.heroText}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Em breve</Text>
-            </View>
+            {pontosAtivos ? null : (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>Em breve</Text>
+              </View>
+            )}
             <Text style={styles.title}>Voltar à clínica vale ponto.</Text>
           </View>
         </View>
 
         <View style={styles.balanceCard}>
           <Text style={styles.eyebrow}>Seu saldo</Text>
-          <Text style={styles.balance}>0 pontos</Text>
-          <Text style={styles.balanceNote}>{balanceNote}</Text>
+          <Text style={styles.balance}>{balanceText}</Text>
+          <Text style={styles.balanceNote}>{balanceNoteText}</Text>
         </View>
+
+        {pontosAtivos ? <ExtratoCard /> : null}
 
         <View style={styles.howCard}>
           <Text style={styles.eyebrow}>Como funciona</Text>

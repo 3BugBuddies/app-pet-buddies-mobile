@@ -7,6 +7,7 @@ import { Image, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ClinicCard } from '../../component/home/ClinicCard';
 import { PataSeguraCard } from '../../component/home/PataSeguraCard';
+import { PointsCard } from '../../component/home/PointsCard';
 import { GreetingHeader } from '../../component/home/GreetingHeader';
 import { HeroPetCard } from '../../component/home/HeroPetCard';
 import { PreventiveCard } from '../../component/care-plan/PreventiveCard';
@@ -21,6 +22,8 @@ import { useAppointments, useWeekFreeDates } from '../../control/useAppointments
 import { useLogoutControl } from '../../control/authControl';
 import { useCarePlan } from '../../control/useCarePlanControl';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
+import { useSaldo } from '../../control/usePontuacaoControl';
+import { pontosAtivos } from '../../model/pontuacaoConfig';
 import type { HomeTabParamList, TutorTabParamList } from '../navigation/types';
 import { radii, spacing } from '../../styles/theme';
 import { makeStyles, useTheme } from '../../styles/useTheme';
@@ -62,6 +65,7 @@ export function HomeTutorScreen() {
   const { session } = useContext(AuthContext);
   const { sair } = useLogoutControl();
   const { data: pets, isLoading: isLoadingPets, isError: isPetsError } = usePets();
+  const { data: saldo } = useSaldo();
 
   // UX: Context Selector — pet ativo sincronizado globalmente entre as abas
   const { activePetId, setActivePetId } = useActivePetId();
@@ -283,7 +287,7 @@ export function HomeTutorScreen() {
                 accessibilityRole="button"
                 onPress={() => navigation.navigate('HomeTab', { screen: 'PataSegura' })}
               >
-                <PataSeguraCard />
+                {pontosAtivos ? <PointsCard points={saldo?.saldo ?? null} /> : <PataSeguraCard />}
               </Pressable>
             </View>
           </View>
