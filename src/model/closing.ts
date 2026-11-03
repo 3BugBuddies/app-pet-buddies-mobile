@@ -1,4 +1,4 @@
-import type { MedicalRecord } from './medicalRecord';
+import type { Evolucao, MedicalRecord } from './medicalRecord';
 import type { ReceitaDraft } from './prescription';
 import type { Operador, TipoAcao } from './prescriptionRule';
 import type { TipoProcedimento } from './procedure';
@@ -31,6 +31,7 @@ interface ClosingDraft {
   reason: string;
   notes: string;
   weight: string;
+  evolution: Evolucao | null;
   procedures: ProcedureDraft[];
   receita: ReceitaDraft | null;
 }

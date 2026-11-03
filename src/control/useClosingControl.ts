@@ -11,7 +11,7 @@ import type {
   ClosingProcedure,
   ProcedureSection,
 } from '../model/closing';
-import { medicalRecordSchema } from '../model/medicalRecord';
+import { medicalRecordSchema, type Evolucao } from '../model/medicalRecord';
 import { prescriptionSchema, type ReceitaDraft } from '../model/prescription';
 import type { TipoProcedimento } from '../model/procedure';
 import { normalizeSearch } from '../model/text';
@@ -73,6 +73,7 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
   const [weight, setWeight] = useState('');
+  const [evolution, setEvolution] = useState<Evolucao | null>(null);
   const [procedures, setProcedures] = useState<ProcedureDraft[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [receitaOn, setReceitaOn] = useState(!!receita);
@@ -119,6 +120,9 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
     if (parts.length > 2) formatted = `${parts[0]},${parts.slice(1).join('')}`;
     setWeight(formatted);
   };
+
+  // Tocar na opcao marcada limpa a escolha: a evolucao e opcional.
+  const toggleEvolution = (value: Evolucao) => setEvolution((current) => (current === value ? null : value));
 
   const takenByOthers = (list: ProcedureDraft[], key: string) =>
     new Set(list.filter((p) => p.key !== key && p.itemPlanoId != null).map((p) => p.itemPlanoId as number));
@@ -198,6 +202,7 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
     reason.trim() !== baseline.current.reason ||
     weight !== baseline.current.weight ||
     notes.trim() ||
+    evolution ||
     receita ||
     procedures.some((p) => p.nome.trim() || p.batch.trim() || p.notes.trim() || p.itemPlanoId != null || p.manualItem)
   );
@@ -213,6 +218,7 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
       reason,
       notes,
       weight,
+      evolution,
       procedures,
       receita,
     };
@@ -225,6 +231,7 @@ const useClosingForm = (petId: string, initialAppointmentId: string | undefined,
     reason, setReason,
     notes, setNotes,
     weight, handleWeightChange,
+    evolution, toggleEvolution,
     procedures,
     add, update, remove,
     hasSection, toggleSection,
@@ -319,6 +326,7 @@ const useCompleteAppointment = () => {
                 .join(' + ')}`
             : undefined,
           observacao: draft.notes.trim() || undefined,
+          evolucao: draft.evolution ?? undefined,
         },
         { abortEarly: false }
       );

@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { QuickChips } from '../../component/checkin/QuickChips';
 import { AccordionRow, type ClosingIconName } from '../../component/closing/AccordionRow';
 import { DoneGrid } from '../../component/closing/DoneGrid';
 import { ProcedureCard } from '../../component/closing/ProcedureCard';
@@ -12,12 +13,13 @@ import { Input } from '../../component/ui/Input';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
 import { useClosingForm } from '../../control/useClosingControl';
 import type { ProcedureSection } from '../../model/closing';
+import { EVOLUCOES } from '../../model/medicalRecord';
 import type { ItemReceitaDraft } from '../../model/prescription';
 import { formatHourShort } from '../../model/closingSummary';
 import { formatDateBR, formatShortDate } from '../../model/formatDate';
 import { capitalize, daysText, doseBounds } from '../../model/careHome';
 import type { PacientesTabParamList } from '../navigation/types';
-import { radii, spacing } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
 import { makeStyles, useTheme } from '../../styles/useTheme';
 import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
@@ -77,7 +79,14 @@ export function ProntuarioFormScreen({ route }: Props) {
     : 'Atendimento imediato';
 
   const weightText = form.weight ? `${form.weight} kg` : null;
-  const consultaSummary = [form.reason.trim() || 'sem motivo', weightText, form.notes.trim() || 'sem observação']
+  const evolution = EVOLUCOES.find((e) => e.value === form.evolution);
+  const evolutionText = evolution ? `evolução: ${evolution.label.toLowerCase()}` : null;
+  const consultaSummary = [
+    form.reason.trim() || 'sem motivo',
+    weightText,
+    evolutionText,
+    form.notes.trim() || 'sem observação',
+  ]
     .filter(Boolean)
     .join(' · ');
 
@@ -182,6 +191,21 @@ export function ProntuarioFormScreen({ route }: Props) {
               </View>
             </View>
             <FieldError message={form.errors.weight} />
+            <View style={styles.evolution}>
+              <Text style={styles.evolutionLabel}>Evolução (opcional)</Text>
+              <QuickChips
+                hideLabel
+                options={EVOLUCOES.map((e) => e.label)}
+                selected={evolution?.label}
+                onSelect={(label) => {
+                  const chosen = EVOLUCOES.find((e) => e.label === label);
+                  if (chosen) form.toggleEvolution(chosen.value);
+                }}
+              />
+              <Text style={styles.evolutionHint}>
+                Como o animal está em relação à consulta anterior. Na primeira consulta, deixe em branco.
+              </Text>
+            </View>
             <Input
               label="Observações (opcional)"
               placeholder="ex.: Retorno em 10 dias"
@@ -288,6 +312,9 @@ const useStyles = makeStyles((colors) => ({
   },
   pair: { flexDirection: 'row', gap: spacing.sm },
   notes: { minHeight: 64, textAlignVertical: 'top' },
+  evolution: { marginBottom: spacing.md },
+  evolutionLabel: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xs },
+  evolutionHint: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm },
   addButton: {
     borderWidth: 1,
     borderStyle: 'dashed',

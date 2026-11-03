@@ -4,6 +4,16 @@ import { InferType, object, string } from 'yup';
 
 const DATA_ISO_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+// Como o animal chegou nesta consulta em relacao a anterior. Os valores sao os do enum
+// EvolucaoClinica da API; so MELHOROU rende ponto ao tutor na pontuacao.
+const EVOLUCOES = [
+  { value: 'MELHOROU', label: 'Melhorou' },
+  { value: 'ESTAVEL', label: 'Estável' },
+  { value: 'PIOROU', label: 'Piorou' },
+] as const;
+
+type Evolucao = (typeof EVOLUCOES)[number]['value'];
+
 const medicalRecordSchema = object({
   // Diferente de pet/prescription: o control sempre gera o id antes de validar
   // (nao existe uma etapa "rascunho sem id" pra esse formulario), entao aqui e required.
@@ -19,8 +29,11 @@ const medicalRecordSchema = object({
   observacao: string().nullable(),
   proximoRetorno: string().matches(DATA_ISO_REGEX, 'Use o formato AAAA-MM-DD').nullable(),
   proximaVacina: string().matches(DATA_ISO_REGEX, 'Use o formato AAAA-MM-DD').nullable(),
+  evolucao: string()
+    .oneOf(EVOLUCOES.map((e) => e.value))
+    .nullable(),
 });
 
 type MedicalRecord = InferType<typeof medicalRecordSchema>;
 
-export { MedicalRecord, medicalRecordSchema };
+export { EVOLUCOES, Evolucao, MedicalRecord, medicalRecordSchema };

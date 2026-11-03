@@ -126,6 +126,7 @@ const toRegistroFechamento = (registro: MedicalRecord) => ({
   observacao: registro.observacao ?? undefined,
   proximoRetorno: registro.proximoRetorno ?? undefined,
   proximaVacina: registro.proximaVacina ?? undefined,
+  evolucao: registro.evolucao ?? undefined,
 });
 
 // Fecha o atendimento via POST /{id}/fechamento (atômico: registro + procedimentos + prescrições).
