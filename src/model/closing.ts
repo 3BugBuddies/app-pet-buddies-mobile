@@ -37,6 +37,7 @@ interface ClosingDraft {
 }
 
 interface ClosingDoneSummary {
+  consultaId: string;
   petName: string;
   reason: string;
   whenIso: string;

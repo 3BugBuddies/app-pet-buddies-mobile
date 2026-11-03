@@ -342,6 +342,8 @@ const useCompleteAppointment = () => {
       }));
 
       await fecharAtendimento(consultaId, { registroAtendimento: record, procedimentos, prescricoes });
+      // A consulta de encaixe só ganha id aqui; a tela de conclusão precisa dele para buscar os pontos.
+      return consultaId;
     },
     onSuccess: (_data, draft) => {
       ['appointments', 'prontuario', 'prescricao', 'carePlan', 'procedures', 'pets', 'patients', 'planSummary', 'agenda', 'petProfile'].forEach((key) =>

@@ -3,9 +3,12 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { Text, View } from 'react-native';
 import { BrandMark } from '../../component/ui/BrandMark';
 import { Button } from '../../component/ui/Button';
+import { usePontosDaConsulta } from '../../control/usePontuacaoControl';
 import { formatHourShort } from '../../model/closingSummary';
 import { formatShortDate } from '../../model/formatDate';
 import { daysText } from '../../model/careHome';
+import { descreverPontosConsulta } from '../../model/pontuacao';
+import { pontosAtivos } from '../../model/pontuacaoConfig';
 import type { PacientesTabParamList, VetTabParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -78,6 +81,7 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
               sub={seesInApp}
             />
           ) : null}
+          {pontosAtivos ? <PontosBlock consultaId={summary.consultaId} responsavel={summary.responsavel} /> : null}
         </View>
       </View>
 
@@ -86,6 +90,14 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
       </View>
     </View>
   );
+}
+
+// Pontos que o responsável ganhou com esta consulta. O envio ao .NET roda em segundo plano, então
+// o bloco começa em "calculando" e o app tenta de novo alguns segundos antes de desistir do detalhe.
+function PontosBlock({ consultaId, responsavel }: { consultaId: string; responsavel: string }) {
+  const { status, memoria } = usePontosDaConsulta(consultaId);
+  const { title, sub } = descreverPontosConsulta(status, memoria, responsavel);
+  return <Block label="Pontos do responsável" title={title} sub={sub} />;
 }
 
 function Block({ label, title, sub }: { label: string; title: string; sub?: string }) {

@@ -70,12 +70,14 @@ export function AssinarPrescricaoScreen({ route }: Props) {
   };
 
   const handleSign = async () => {
+    let consultaId: string;
     try {
-      await complete(closing);
+      consultaId = await complete(closing);
     } catch {
       return; // o erro já foi mostrado pelo onError da mutation
     }
     const summary: ClosingDoneSummary = {
+      consultaId,
       petName: closing.petName,
       reason: closing.reason.trim(),
       whenIso,
