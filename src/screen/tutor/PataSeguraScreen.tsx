@@ -87,7 +87,7 @@ export function PataSeguraScreen() {
             ))}
           </View>
           <Text style={styles.howNote}>
-            Só conta quando você comparece. Agendar e fazer check-in não pontuam.
+            Os pontos vêm da consulta efetivada. O cuidado em casa entre uma consulta e outra conta no resultado.
           </Text>
         </View>
       </ScrollView>
