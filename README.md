@@ -151,6 +151,8 @@ A aba **Sobre** (presente nos dois perfis) mostra a versão, o **hash do commit*
 
 Para o app publicado corresponder exatamente ao código entregue: gerar o build a partir de uma árvore **sem alterações pendentes** (`git status` limpo). Se o build sair com alterações não commitadas, a tela avisa.
 
+**APK entregue:** foi gerado a partir do commit `faa8e0f`, o mesmo hash que a aba **Sobre** mostra. Os commits seguintes na `main` alteram apenas o `README.md` (contas de teste, links da entrega e a lista de funcionalidades), sem mudar o código do app.
+
 ---
 
 ## Inteligência Artificial no app
