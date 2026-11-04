@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { statusHttp, useMemoriaConsulta } from '../../control/usePontuacaoControl';
 import { formatShortDate } from '../../model/formatDate';
 import { descreverFalhaMemoria, type LancamentoPontos } from '../../model/pontuacao';
+import { pontosDetalhe } from '../../model/pontuacaoConfig';
 import { spacing } from '../../styles/theme';
 import { makeStyles, useTheme } from '../../styles/useTheme';
 import { ParcelasList } from './ParcelasList';
@@ -13,7 +14,8 @@ interface ExtratoRowProps {
   petName: string;
 }
 
-// Uma consulta do extrato. A memória de cálculo só é buscada quando o tutor abre "O que contou".
+// Uma consulta do extrato. O "O que contou" só aparece com EXPO_PUBLIC_PONTOS_DETALHE=on, e a
+// memória de cálculo só é buscada quando o tutor o abre.
 export function ExtratoRow({ lancamento, petName }: ExtratoRowProps) {
   const { colors } = useTheme();
   const styles = useStyles();
@@ -33,31 +35,35 @@ export function ExtratoRow({ lancamento, petName }: ExtratoRowProps) {
         <Text style={styles.points}>{lancamento.pontos > 0 ? `+${lancamento.pontos}` : '0'}</Text>
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        onPress={() => setOpen((current) => !current)}
-        style={styles.toggle}
-      >
-        <Text style={styles.toggleText}>O que contou</Text>
-        <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color={colors.primary} />
-      </Pressable>
+      {pontosDetalhe ? (
+        <>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: open }}
+            onPress={() => setOpen((current) => !current)}
+            style={styles.toggle}
+          >
+            <Text style={styles.toggleText}>O que contou</Text>
+            <Ionicons name={open ? 'chevron-up' : 'chevron-down'} size={16} color={colors.primary} />
+          </Pressable>
 
-      {open ? (
-        memoria.data ? (
-          <ParcelasList memoria={memoria.data} />
-        ) : memoria.isFetching || !falha ? (
-          <ActivityIndicator size="small" color={colors.primary} style={styles.loading} />
-        ) : (
-          <View>
-            <Text style={styles.unavailable}>{falha.mensagem}</Text>
-            {falha.podeTentarDeNovo ? (
-              <Pressable accessibilityRole="button" onPress={() => memoria.refetch()} style={styles.retry}>
-                <Text style={styles.toggleText}>Tentar de novo</Text>
-              </Pressable>
-            ) : null}
-          </View>
-        )
+          {open ? (
+            memoria.data ? (
+              <ParcelasList memoria={memoria.data} />
+            ) : memoria.isFetching || !falha ? (
+              <ActivityIndicator size="small" color={colors.primary} style={styles.loading} />
+            ) : (
+              <View>
+                <Text style={styles.unavailable}>{falha.mensagem}</Text>
+                {falha.podeTentarDeNovo ? (
+                  <Pressable accessibilityRole="button" onPress={() => memoria.refetch()} style={styles.retry}>
+                    <Text style={styles.toggleText}>Tentar de novo</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            )
+          ) : null}
+        </>
       ) : null}
     </View>
   );
