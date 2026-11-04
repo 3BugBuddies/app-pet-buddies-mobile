@@ -68,7 +68,7 @@ Tutores de pets com condições crônicas frequentemente não sabem quando e com
 |-----------|------------------|
 | Telas funcionais | 28 telas (3 de autenticação, 15 do tutor, 9 do veterinário e 1 compartilhada); as que exibem ou gravam dados usam a API Java |
 | Publicação | Firebase App Distribution (link acima) e aba **Sobre** com o hash do commit |
-| Notificações | Local: confirmação ao agendar e lembrete 1 h antes; o toque abre a aba Agenda |
+| Notificações | Local: confirmação ao agendar e lembretes 2 h, 1 h e 30 min antes; o toque abre a aba Agenda |
 | Arquitetura | `model` / `repository` / `control` / `screen`, sem chamada HTTP nas telas |
 | Tema claro/escuro | Automático, Claro ou Escuro, escolhido na aba **Sobre** |
 
@@ -130,7 +130,7 @@ As telas só renderizam e chamam hooks de `control/`. Os hooks de `control/` usa
 
 - **Evento gerador:** o tutor confirma o agendamento de uma consulta
 - **Na hora:** "Consulta agendada · *pet*", com o motivo, o dia e o horário
-- **Lembrete:** 1 hora antes da consulta. Se a consulta é para daqui a menos de 1 hora, só a confirmação é enviada
+- **Lembretes:** 2 h, 1 h e 30 min antes da consulta, cada um com "Faltam …". Só são agendados os que ainda cabem: uma consulta daqui a 90 min ganha os de 1 h e 30 min, e uma daqui a menos de 30 min recebe só a confirmação. A frase da confirmação ("Vamos te lembrar …") lista apenas os lembretes que existem
 - **Toque na notificação:** abre a aba **Agenda** do tutor, com o app aberto, em segundo plano ou fechado
 - Ao sair da conta, os lembretes agendados são cancelados, para não chegarem à próxima conta usada no aparelho
 
