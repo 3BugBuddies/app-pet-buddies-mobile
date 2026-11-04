@@ -29,13 +29,8 @@ export async function transcribeAudio(
   const apiKey = config?.apiKey || SPEECH_API_KEY;
   const provider = config?.provider || DEFAULT_PROVIDER;
 
-  // simula um atraso de rede e retorna uma narrativa realista de prescrição para testes locais.
   if (!apiKey || apiKey.trim() === '') {
-    console.warn(
-      '[speechTranscriptionService] Nenhuma chave de API Whisper configurada. Usando transcrição simulada para teste de interface.'
-    );
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    return 'Prescrever Amoxicilina 250mg, 1 comprimido a cada 12 horas por 7 dias. Administrar junto com a refeição.';
+    throw new Error('A transcrição de voz não está configurada neste aplicativo. Digite o texto no campo.');
   }
 
   // Validação do arquivo gravado no disco

@@ -199,13 +199,13 @@ Para checar os tipos: `npx tsc --noEmit`.
 | Variável | Para que serve |
 |----------|----------------|
 | `EXPO_PUBLIC_API_BASE_URL` | URL da API. Sem ela, o app usa a API de produção (Azure) |
-| `EXPO_PUBLIC_GROQ_API_KEY` | Chave da Groq para a transcrição de voz. Sem ela, a transcrição devolve um texto de exemplo, só para testar a interface |
-| `EXPO_PUBLIC_PONTOS` | Liga as telas de pontos. `api` lê saldo, extrato e memória de cálculo do Java; `mock` usa dados de exemplo, sem chamar a API. Sem ela, a tela Pata Segura mostra "Em breve" |
+| `EXPO_PUBLIC_GROQ_API_KEY` | Chave da Groq para a transcrição de voz. Sem ela, o botão de voz avisa que a transcrição não está configurada e o texto pode ser digitado |
+| `EXPO_PUBLIC_PONTOS` | Liga as telas de pontos. `api` lê saldo, extrato e memória de cálculo do Java. Sem ela, a tela Pata Segura mostra "Em breve" |
 | `EXPO_PUBLIC_PONTOS_DETALHE` | `on` mostra o detalhe do cálculo: o "O que contou" em cada consulta do extrato do tutor e quanto o responsável ganhou no atendimento concluído do vet. Precisa do MongoDB do .NET configurado; sem a chave, o extrato mostra só o total de cada consulta e o vet vê só "Pontos enviados" |
 
 > As variáveis `EXPO_PUBLIC_*` são embutidas no app na hora do build. Use uma chave da Groq que possa ser revogada.
 >
-> O `.env` está no `.gitignore` e não vai para o build na nuvem. No `eas.json`, os perfis `preview` e `production` já definem `EXPO_PUBLIC_API_BASE_URL` e `EXPO_PUBLIC_PONTOS=api`. A chave da Groq **não** fica no `eas.json`, que vai para o git: cadastre-a como variável do EAS (`eas env:set --name EXPO_PUBLIC_GROQ_API_KEY --environment preview --visibility sensitive`, ou pelo site do Expo), no ambiente do perfil que for gerar o APK. Sem ela, o APK devolve a transcrição de exemplo.
+> O `.env` está no `.gitignore` e não vai para o build na nuvem. No `eas.json`, os perfis `preview` e `production` já definem `EXPO_PUBLIC_API_BASE_URL` e `EXPO_PUBLIC_PONTOS=api`. A chave da Groq **não** fica no `eas.json`, que vai para o git: cadastre-a como variável do EAS (`eas env:set --name EXPO_PUBLIC_GROQ_API_KEY --environment preview --visibility sensitive`, ou pelo site do Expo), no ambiente do perfil que for gerar o APK. Sem ela, a transcrição de voz fica indisponível no APK.
 
 ### Gerar o APK
 
@@ -236,7 +236,7 @@ eas build --platform android --profile preview
 
 ## Observações Técnicas
 
-- **Pata Segura (pontuação):** o tutor vê o saldo, que soma todos os pets dele, e o extrato, com os pontos de cada consulta. O "O que contou" (as parcelas do cálculo) fica escondido e só aparece com `EXPO_PUBLIC_PONTOS_DETALHE=on`, porque depende do MongoDB do .NET. O vet vê, ao concluir um atendimento, o aviso "Pontos enviados"; com a mesma chave, ele mostra quanto o responsável ganhou. Os dados vêm do Java (`/api/pontuacao/saldo`, `/extrato` e `/consulta/{id}/memoria`), que busca no PetBuddies-API (.NET) com o token de quem pediu. As telas só aparecem com `EXPO_PUBLIC_PONTOS=api` (ou `mock`, com dados de exemplo); sem a chave, a Pata Segura mostra "Em breve". Só há pontos, sem nível. Os pontos dependem do .NET no ar e das regras de pontuação cadastradas pela clínica: sem elas, toda consulta vale 0. Saldo e extrato buscam de novo quando a tela ganha foco
+- **Pata Segura (pontuação):** o tutor vê o saldo, que soma todos os pets dele, e o extrato, com os pontos de cada consulta. O "O que contou" (as parcelas do cálculo) fica escondido e só aparece com `EXPO_PUBLIC_PONTOS_DETALHE=on`, porque depende do MongoDB do .NET. O vet vê, ao concluir um atendimento, o aviso "Pontos enviados"; com a mesma chave, ele mostra quanto o responsável ganhou. Os dados vêm do Java (`/api/pontuacao/saldo`, `/extrato` e `/consulta/{id}/memoria`), que busca no PetBuddies-API (.NET) com o token de quem pediu. As telas só aparecem com `EXPO_PUBLIC_PONTOS=api`; sem a chave, a Pata Segura mostra "Em breve". Só há pontos, sem nível. Os pontos dependem do .NET no ar e das regras de pontuação cadastradas pela clínica: sem elas, toda consulta vale 0. Saldo e extrato buscam de novo quando a tela ganha foco
 - **Evolução no fechamento:** o vet marca Melhorou, Estável ou Piorou, de forma opcional, na linha Consulta. O valor vai em `registroAtendimento.evolucao`, e só Melhorou rende ponto ao tutor
 - **Protocolos veterinários** são dados do back-office .NET, não consumidos diretamente pelo app mobile (arquitetura definida em conjunto com a equipe de backend)
 - Toda chamada HTTP usa Bearer Token injetado automaticamente via interceptor do Axios
