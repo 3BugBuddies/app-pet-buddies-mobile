@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
-import { useMemoriaConsulta } from '../../control/usePontuacaoControl';
+import { statusHttp, useMemoriaConsulta } from '../../control/usePontuacaoControl';
 import { formatShortDate } from '../../model/formatDate';
-import type { LancamentoPontos } from '../../model/pontuacao';
+import { descreverFalhaMemoria, type LancamentoPontos } from '../../model/pontuacao';
 import { spacing } from '../../styles/theme';
 import { makeStyles, useTheme } from '../../styles/useTheme';
 import { ParcelasList } from './ParcelasList';
@@ -19,6 +19,7 @@ export function ExtratoRow({ lancamento, petName }: ExtratoRowProps) {
   const styles = useStyles();
   const [open, setOpen] = useState(false);
   const memoria = useMemoriaConsulta(lancamento.consultaId, { enabled: open });
+  const falha = memoria.isError ? descreverFalhaMemoria(statusHttp(memoria.error)) : null;
 
   return (
     <View style={styles.row}>
@@ -45,10 +46,17 @@ export function ExtratoRow({ lancamento, petName }: ExtratoRowProps) {
       {open ? (
         memoria.data ? (
           <ParcelasList memoria={memoria.data} />
-        ) : memoria.isError ? (
-          <Text style={styles.unavailable}>O detalhe não está disponível agora.</Text>
-        ) : (
+        ) : memoria.isFetching || !falha ? (
           <ActivityIndicator size="small" color={colors.primary} style={styles.loading} />
+        ) : (
+          <View>
+            <Text style={styles.unavailable}>{falha.mensagem}</Text>
+            {falha.podeTentarDeNovo ? (
+              <Pressable accessibilityRole="button" onPress={() => memoria.refetch()} style={styles.retry}>
+                <Text style={styles.toggleText}>Tentar de novo</Text>
+              </Pressable>
+            ) : null}
+          </View>
         )
       ) : null}
     </View>
@@ -66,4 +74,5 @@ const useStyles = makeStyles((colors) => ({
   toggleText: { fontFamily: 'Inter', fontSize: 13, fontWeight: '600', color: colors.primary },
   loading: { alignSelf: 'flex-start', marginTop: spacing.sm },
   unavailable: { fontFamily: 'Inter', fontSize: 13, color: colors.textSecondary, marginTop: spacing.sm },
+  retry: { alignSelf: 'flex-start', marginTop: spacing.xs },
 }));

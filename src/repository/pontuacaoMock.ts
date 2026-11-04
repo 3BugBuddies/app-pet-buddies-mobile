@@ -4,8 +4,12 @@ import type { GestoPontuacao, LancamentoPontos, MemoriaPontos, ParcelaPontos, Sa
 // =api, o pontuacaoRepository chama o Java e este arquivo não entra.
 //
 // Regras fingidas: consulta 20, dose com check-in 3, adesão completa 10, evolução positiva 3.
-// Na memória, um consultaId terminado em 0 simula a memória indisponível e um terminado em 5
-// simula uma consulta que não rendeu pontos (clínica sem regras).
+// Na memória, pelo último dígito do consultaId: 0 simula o 404 (memória não guardada), 7 simula o
+// 503 (serviço de pontos fora do ar) e 5 uma consulta que não rendeu pontos (clínica sem regras).
+
+// Erro no formato do axios (isAxiosError + response.status), como o Java devolveria.
+const erroHttp = (status: number, mensagem: string) =>
+  Object.assign(new Error(mensagem), { isAxiosError: true, response: { status } });
 
 const RESPONSAVEL_ID = 1;
 const CLINICA_ID = 1;
@@ -77,7 +81,8 @@ const getExtrato = async (animalIds: number[]): Promise<LancamentoPontos[]> => {
 
 const getMemoria = async (consultaId: number): Promise<MemoriaPontos> => {
   await wait(1200);
-  if (consultaId % 10 === 0) throw new Error('Memória de cálculo indisponível.');
+  if (consultaId % 10 === 0) throw erroHttp(404, 'Memória de cálculo não encontrada.');
+  if (consultaId % 10 === 7) throw erroHttp(503, 'Pontuação indisponível.');
   const exemplo = EXEMPLOS.find((e) => e.consultaId === consultaId) ?? EXEMPLOS[0];
   const parcelas =
     consultaId % 10 === 5 ? exemplo.parcelas.map((p) => ({ ...p, quantidade: 0, pontos: 0 })) : exemplo.parcelas;

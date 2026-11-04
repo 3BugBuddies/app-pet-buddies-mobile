@@ -98,5 +98,18 @@ const descreverPontosConsulta = (
   return { title: 'Pontos enviados', sub: `O detalhe do cálculo aparece no app ${de} quando estiver disponível.` };
 };
 
+// Por que a memória de cálculo não veio e se vale tentar de novo. `status` é o código HTTP do Java;
+// sem resposta (undefined) é falha de rede. Na linha do extrato os pontos já existem, então 404
+// quer dizer que o .NET lançou o total mas não guardou o detalhe (o Mongo falhou na hora).
+const descreverFalhaMemoria = (status: number | undefined): { mensagem: string; podeTentarDeNovo: boolean } => {
+  if (status === 404) return { mensagem: 'O detalhe deste cálculo não foi guardado.', podeTentarDeNovo: false };
+  if (status === 503) return { mensagem: 'Tente de novo em instantes.', podeTentarDeNovo: true };
+  if (status === 403) return { mensagem: 'Você não tem acesso ao detalhe desta consulta.', podeTentarDeNovo: false };
+  if (status === undefined) {
+    return { mensagem: 'Sem conexão com o servidor. Confira a internet e tente de novo.', podeTentarDeNovo: true };
+  }
+  return { mensagem: 'O detalhe não está disponível agora.', podeTentarDeNovo: true };
+};
+
 export type { GestoPontuacao, LancamentoPontos, MemoriaPontos, ParcelaPontos, SaldoPontos, StatusPontosConsulta };
-export { descreverPontosConsulta, formatPontos, GESTOS, gestoInfo, parcelasQuePontuaram };
+export { descreverFalhaMemoria, descreverPontosConsulta, formatPontos, GESTOS, gestoInfo, parcelasQuePontuaram };

@@ -9,8 +9,12 @@ import { usePets } from './usePetsControl';
 
 const PONTUACAO_KEY = 'pontuacao';
 
+// Código HTTP da falha; sem resposta (rede caída, timeout) fica undefined.
+export const statusHttp = (error: unknown): number | undefined =>
+  isAxiosError(error) ? error.response?.status : undefined;
+
 // Memória ainda não existe: o Java responde 404 enquanto o envio ao .NET roda em segundo plano.
-const naoEncontrada = (error: unknown) => isAxiosError(error) && error.response?.status === 404;
+const naoEncontrada = (error: unknown) => statusHttp(error) === 404;
 
 // O saldo muda quando o vet fecha uma consulta, e as abas do tutor ficam montadas: sem isso, ele só
 // veria o saldo novo reabrindo o app. Busca de novo quando a tela ganha foco; cancelRefetch: false
