@@ -28,8 +28,9 @@ interface LancamentoPontos {
 }
 
 // O que cada critério rendeu: quantidade × pontos por unidade (a regra vigente da clínica).
+// O gesto chega como texto do Java, então pode ser um que o app ainda não conhece (ver gestoInfo).
 interface ParcelaPontos {
-  gesto: GestoPontuacao;
+  gesto: string;
   quantidade: number;
   pontosPorUnidade: number;
   pontos: number;
@@ -57,6 +58,14 @@ const GESTOS: Record<GestoPontuacao, { label: string; curto: string }> = {
   PROCEDIMENTO_EXECUTADO: { label: 'Procedimento executado', curto: 'Procedimento' },
 };
 
+// Nome de um gesto. Um gesto novo do .NET não derruba a tela: aparece com o próprio código legível.
+const gestoInfo = (gesto: string): { label: string; curto: string } => {
+  if (Object.prototype.hasOwnProperty.call(GESTOS, gesto)) return GESTOS[gesto as GestoPontuacao];
+  const legivel = gesto.toLowerCase().replace(/_/g, ' ');
+  const nome = legivel.charAt(0).toUpperCase() + legivel.slice(1);
+  return { label: nome, curto: nome };
+};
+
 const formatPontos = (n: number): string => `${n.toLocaleString('pt-BR')} ${n === 1 ? 'ponto' : 'pontos'}`;
 
 const parcelasQuePontuaram = (memoria: MemoriaPontos): ParcelaPontos[] => memoria.parcelas.filter((p) => p.pontos > 0);
@@ -82,7 +91,7 @@ const descreverPontosConsulta = (
     return {
       title: `${responsavel || 'O responsável'} ganhou ${formatPontos(memoria.total)}`,
       sub: parcelasQuePontuaram(memoria)
-        .map((p) => `${GESTOS[p.gesto].curto} +${p.pontos}`)
+        .map((p) => `${gestoInfo(p.gesto).curto} +${p.pontos}`)
         .join(' · '),
     };
   }
@@ -90,4 +99,4 @@ const descreverPontosConsulta = (
 };
 
 export type { GestoPontuacao, LancamentoPontos, MemoriaPontos, ParcelaPontos, SaldoPontos, StatusPontosConsulta };
-export { descreverPontosConsulta, formatPontos, GESTOS, parcelasQuePontuaram };
+export { descreverPontosConsulta, formatPontos, GESTOS, gestoInfo, parcelasQuePontuaram };

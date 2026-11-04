@@ -1,5 +1,5 @@
 import { Text, View } from 'react-native';
-import { GESTOS, parcelasQuePontuaram, type MemoriaPontos } from '../../model/pontuacao';
+import { gestoInfo, parcelasQuePontuaram, type MemoriaPontos } from '../../model/pontuacao';
 import { spacing } from '../../styles/theme';
 import { makeStyles } from '../../styles/useTheme';
 
@@ -21,7 +21,7 @@ export function ParcelasList({ memoria }: ParcelasListProps) {
       {parcelas.map((p) => (
         <View key={p.gesto} style={styles.row}>
           <View style={styles.text}>
-            <Text style={styles.label}>{GESTOS[p.gesto].label}</Text>
+            <Text style={styles.label}>{gestoInfo(p.gesto).label}</Text>
             <Text style={styles.sub}>
               {p.quantidade} × {p.pontosPorUnidade}
             </Text>

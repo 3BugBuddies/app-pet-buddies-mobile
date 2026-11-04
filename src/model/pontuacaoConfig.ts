@@ -1,8 +1,14 @@
-// Chave das telas de pontos. EXPO_PUBLIC_PONTOS=mock liga com dados de exemplo; sem ela (ou com
-// outro valor) o app segue com o "Em breve" de sempre. Quando o Java expuser as rotas de
-// pontuação, entra um modo 'api' aqui.
-const PONTOS_MODE = process.env.EXPO_PUBLIC_PONTOS;
+// Chave das telas de pontos, lida do .env:
+//   EXPO_PUBLIC_PONTOS=mock  dados de exemplo, sem chamar nenhuma API
+//   EXPO_PUBLIC_PONTOS=api   saldo, extrato e memória lidos do Java (/api/pontuacao/...)
+// Sem a chave (ou com outro valor) o app segue com o "Em breve" de sempre.
+type ModoPontos = 'mock' | 'api';
 
-const pontosAtivos = PONTOS_MODE === 'mock';
+const valor = process.env.EXPO_PUBLIC_PONTOS;
 
-export { pontosAtivos };
+const pontosModo: ModoPontos | null = valor === 'mock' || valor === 'api' ? valor : null;
+
+const pontosAtivos = pontosModo !== null;
+
+export type { ModoPontos };
+export { pontosAtivos, pontosModo };
