@@ -78,16 +78,16 @@ Tutores de pets com condições crônicas frequentemente não sabem quando e com
 
 | Tecnologia | Versão | Uso |
 |-----------|--------|-----|
-| React Native | 0.88.0 | Framework mobile |
-| Expo | ~58.0.21 | Toolchain e build |
+| React Native | 0.88.1 | Framework mobile |
+| Expo | ~58.0.23 | Toolchain e build |
 | TypeScript | ~6.0.3 | Tipagem estática |
 | TanStack Query | ^5.102.8 | Estado e cache de API (`useQuery` / `useMutation`) |
 | React Navigation | ^7 | Navegação (Bottom Tabs + Native Stack) |
 | Axios | ^1.20.0 | Cliente HTTP, com interceptors |
 | Yup | ^1.7.1 | Validação de formulários |
 | expo-secure-store | ~58.0.2 | Sessão do usuário (token) |
-| expo-notifications | ~58.1.7 | Notificações locais |
-| expo-audio | ~58.0.10 | Gravação de voz (check-in e receita) |
+| expo-notifications | ~58.1.8 | Notificações locais |
+| expo-audio | ~58.0.11 | Gravação de voz (check-in e receita) |
 | AsyncStorage | 2.2.0 | Preferência de tema |
 
 **Backend:** API Java Spring (HATEOAS) em `https://petbuddies-java-rm563925.azurewebsites.net/api`
