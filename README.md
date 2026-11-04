@@ -249,10 +249,10 @@ eas build --platform android --profile preview
 
 Contas de teste para avaliar o app instalado, uma de cada perfil:
 
-| Nome | Senha |
-|------|-----|
-| vet_teste@email.com | 123456 |
-| tutor_teste@email.com | 123456 |
+| Perfil | E-mail | Senha |
+|--------|--------|-------|
+| Tutor | maria@email.com | petbuddies123 |
+| Veterinário | ana@email.com | petbuddies123 |
 
 ---
 
