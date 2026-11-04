@@ -49,7 +49,8 @@ Tutores de pets com condições crônicas frequentemente não sabem quando e com
 | Agendar consulta (dias e horários livres do veterinário) | API Java (`/consulta/agendamento`, `/janela-atendimento`) |
 | Plano de cuidado (aba Cuidados): tratamento, semana e histórico | API Java (`/motor/plano`) |
 | Check-in diário por texto ou voz, com a dose calculada pelas regras da receita | API Java (`/checkin/extracao`, `/checkin`) |
-| Notificação ao agendar e lembrete antes da consulta | Local (`expo-notifications`) |
+| Pata Segura: saldo de pontos (soma dos pets) e extrato com os pontos de cada consulta | API Java (`/pontuacao/saldo`, `/pontuacao/extrato`) |
+| Notificação ao agendar e lembretes 2 h, 1 h e 30 min antes da consulta | Local (`expo-notifications`) |
 | Tema claro, escuro ou automático | Local |
 
 ### Perfil Veterinário
@@ -59,7 +60,8 @@ Tutores de pets com condições crônicas frequentemente não sabem quando e com
 | Hoje: agenda do dia e atendimento imediato (sem agenda) | API Java (`/consulta`) |
 | Agenda da semana com horários livres e ocupados | API Java (`/janela-atendimento`) |
 | Lista de pacientes e plano de cuidado de cada paciente | API Java (`/animal`, `/motor/plano`) |
-| Prontuário, receita (por texto, voz ou receita-modelo), regras de dose, assinatura e fechamento do atendimento | API Java (`/registro-atendimento`, `/prescricao`, `/receita-modelo`, `/condicao-clinica`, `/consulta/{id}/fechamento`) |
+| Prontuário, com a evolução do animal (Melhorou, Estável ou Piorou), receita (por texto, voz ou receita-modelo), regras de dose, assinatura e fechamento do atendimento | API Java (`/registro-atendimento`, `/prescricao`, `/receita-modelo`, `/condicao-clinica`, `/consulta/{id}/fechamento`) |
+| Pontos do atendimento concluído (aviso de envio e, com a chave de detalhe, quanto o responsável ganhou) | API Java (`/pontuacao/consulta/{id}/memoria`) |
 
 ---
 
@@ -175,7 +177,7 @@ Não foi adicionada nenhuma biblioteca de IA ao app: a transcrição é uma cham
 
 ```bash
 # 1. Clone o repositório
-git clone <URL_DO_REPOSITÓRIO>
+git clone https://github.com/3BugBuddies/app-pet-buddies-mobile.git
 cd app-pet-buddies-mobile
 
 # 2. Instale as dependências
@@ -244,6 +246,8 @@ eas build --platform android --profile preview
 ---
 
 ## Perfil teste
+
+Contas de teste para avaliar o app instalado, uma de cada perfil:
 
 | Nome | Senha |
 |------|-----|
