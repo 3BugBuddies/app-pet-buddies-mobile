@@ -2,10 +2,6 @@ export function buildApiErrorMessage(
   error: any,
   fallback = 'Não foi possível concluir a operação. Tente novamente.',
 ): string {
-  if (error?.response?.data) {
-    console.log('[API Error Data]:', JSON.stringify(error.response.data, null, 2));
-  }
-
   const status: number | undefined = error?.response?.status;
   
   // Extrai mensagens ou array de erros de validação (ex: Spring Validation errors / erros)
