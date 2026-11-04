@@ -1,15 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface PointsCardProps {
-  points: number;
-  tierLabel: string;
-  filledDots: number;
-  totalDots: number;
+  // Nulo enquanto o saldo carrega ou quando ele não veio. O programa só tem pontos, sem nível.
+  points: number | null;
 }
 
-export function PointsCard({ points, filledDots, totalDots }: PointsCardProps) {
+export function PointsCard({ points }: PointsCardProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       <View style={styles.header}>
@@ -27,27 +28,16 @@ export function PointsCard({ points, filledDots, totalDots }: PointsCardProps) {
       </View>
 
       <Text style={styles.value}>
-        {points.toLocaleString('pt-BR')}{' '}
-        <Text style={styles.valueUnit}>pontos</Text>
+        {points == null ? '—' : points.toLocaleString('pt-BR')}{' '}
+        <Text style={styles.valueUnit}>{points === 1 ? 'ponto' : 'pontos'}</Text>
       </Text>
-
-      <View style={styles.dots}>
-        {Array.from({ length: totalDots }).map((_, index) => (
-          <Ionicons
-            key={index}
-            name="paw"
-            size={22}
-            color={index < filledDots ? colors.action : colors.border}
-          />
-        ))}
-      </View>
 
       <Text style={styles.caption}>Mais carinho{'\n'}em cada cuidado.</Text>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.cardMax,
     borderRadius: radii.lg,
@@ -91,11 +81,6 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: colors.textSecondary,
   },
-  dots: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
   caption: {
     fontFamily: 'Inter',
     fontSize: 11,
@@ -103,4 +88,4 @@ const styles = StyleSheet.create({
     marginTop: 'auto',
     lineHeight: 16,
   },
-});
+}));

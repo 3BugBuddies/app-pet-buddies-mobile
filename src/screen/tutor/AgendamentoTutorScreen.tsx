@@ -1,23 +1,40 @@
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
 import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
+import { BrandMark } from '../../component/ui/BrandMark';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { useAllPetsAppointments, useCreateAppointment } from '../../control/useAppointmentsControl';
+import { useAllPetsAppointments, useCreateAppointment, useFreeDates, useFreeWindows, useVeterinarians } from '../../control/useAppointmentsControl';
+import { useNotificationsControl } from '../../control/useNotificationsControl';
+import { formatAppointmentDate } from '../../model/formatDate';
 import { useActivePetId, usePets } from '../../control/usePetsControl';
 import type { AgendaTabParamList } from '../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 type Props = NativeStackScreenProps<AgendaTabParamList, 'AgendamentoTutor'>;
 
-const MOTIVOS = ['Consulta de Rotina', 'Vacinação', 'Exames', 'Pet Doente', 'Retorno'];
+const MOTIVOS = ['Consulta de rotina', 'Vacinação', 'Exames', 'Pet doente', 'Retorno'];
 
-const HORARIOS = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
+// Data local AAAA-MM-DD (toISOString usaria UTC e adiantaria o dia à noite no Brasil).
+function isoLocal(d: Date): string {
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mes}-${dia}`;
+}
+
+function shortDayLabel(iso: string): string {
+  const [ano, mes, dia] = iso.split('-').map(Number);
+  const nomes = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const d = new Date(ano, mes - 1, dia);
+  return `${nomes[d.getDay()]} ${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}`;
+}
 
 function gerarProximosDias(quantidade: number) {
   const dias: { iso: string; diaSemana: string; numeroDia: string }[] = [];
@@ -27,7 +44,7 @@ function gerarProximosDias(quantidade: number) {
     const d = new Date(hoje);
     d.setDate(hoje.getDate() + i);
     dias.push({
-      iso: d.toISOString().slice(0, 10),
+      iso: isoLocal(d),
       diaSemana: nomes[d.getDay()],
       numeroDia: String(d.getDate()).padStart(2, '0'),
     });
@@ -35,45 +52,72 @@ function gerarProximosDias(quantidade: number) {
   return dias;
 }
 
-const DIAS = gerarProximosDias(14);
-
 export function AgendamentoTutorScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<NativeStackNavigationProp<AgendaTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pets, isLoading } = usePets();
   const createAppointment = useCreateAppointment();
+  const { notifyBooked } = useNotificationsControl();
   const { activePetId, setActivePetId } = useActivePetId();
   const petIdAtivo = activePetId ?? '';
 
-  // Busca agendamentos de todos os pets do tutor para bloquear slots já ocupados
-  // por qualquer animal da família, não apenas pelo pet ativo.
-  const petIds = pets?.map((p) => String(p.id!)) ?? [];
-  const consultas = useAllPetsAppointments(petIds);
-
+  const DIAS = useMemo(() => gerarProximosDias(14), []);
   const [reason, setReason] = useState('');
-  const [selectedDate, setSelectedDate] = useState(DIAS[0].iso);
-  const [selectedTime, setSelectedTime] = useState('');
+  const routePetId = route.params?.petId;
+  const routeReason = route.params?.reason;
+  const routeDate = route.params?.date;
+  const [escolhida, setEscolhida] = useState<string | null>(null);
 
   useEffect(() => {
-    setSelectedTime('');
-  }, [selectedDate]);
+    if (!routePetId && !routeReason && !routeDate) return;
+    if (routePetId) setActivePetId(routePetId);
+    if (routeReason) setReason(routeReason);
+    if (routeDate) setEscolhida(routeDate);
+    navigation.setParams({ petId: undefined, reason: undefined, date: undefined });
+  }, [routePetId, routeReason, routeDate, navigation, setActivePetId]);
+  const todas = useAllPetsAppointments((pets ?? []).map((p) => String(p.id)));
+  const proxima = useMemo(() => {
+    const agora = Date.now();
+    return todas
+      .filter((a) => (a.status === 'SCHEDULED' || a.status === 'CONFIRMED') && new Date(a.date).getTime() >= agora)
+      .sort((a, b) => a.date.localeCompare(b.date))[0];
+  }, [todas]);
+  const [selectedJanelaId, setSelectedJanelaId] = useState<number | null>(null);
+
+  // A API só lista janelas de um veterinário específico: usa-se o primeiro da clínica.
+  const { data: veterinarios, isLoading: isLoadingVets } = useVeterinarians();
+  const veterinarioId = veterinarios?.[0]?.id;
+  const { data: diasLivres } = useFreeDates(veterinarioId, DIAS[0].iso, DIAS[DIAS.length - 1].iso);
+  const livres = useMemo(() => new Set(diasLivres ?? []), [diasLivres]);
+  const selectedDate = escolhida && livres.has(escolhida) ? escolhida : (diasLivres?.[0] ?? '');
+  const { data: janelasLivres, isLoading: isLoadingJanelas } = useFreeWindows(veterinarioId, selectedDate);
+
+  useEffect(() => {
+    setSelectedJanelaId(null);
+  }, [selectedDate, veterinarioId]);
+
+  const selectedJanela = janelasLivres?.find((j) => j.id === selectedJanelaId);
+  const confirmLabel = selectedJanela
+    ? `Confirmar · ${shortDayLabel(selectedDate)} às ${selectedJanela.horaInicio.substring(0, 5)}`
+    : 'Escolha dia e horário';
 
   const handleSave = async () => {
-    if (!petIdAtivo || !reason || !selectedDate || !selectedTime) return;
+    if (!petIdAtivo || !reason || !selectedDate || !selectedJanelaId) return;
     try {
-      // Janelas 41-207 criadas para os 14 dias exibidos na UI (2026-09-13 a 2026-09-26).
-      // Sept 20 às 08:00 usa a janela original #1 (ocupada — UI já filtra esse slot).
-      // Dias 0-6: base 41 sem offset; dias 7-13: -1 pelo gap do #1.
-      const dayIndex = DIAS.findIndex((d) => d.iso === selectedDate);
-      const timeIndex = HORARIOS.indexOf(selectedTime);
-      const slotOffset = dayIndex >= 7 ? dayIndex * 12 + timeIndex - 1 : dayIndex * 12 + timeIndex;
-      const fakeJanelaId = 41 + slotOffset;
-
-      await createAppointment.mutateAsync({
+      const appointment = await createAppointment.mutateAsync({
         petId: petIdAtivo,
-        date: `${selectedDate}T${selectedTime}:00`,
+        date: selectedDate,
         reason,
-        janelaId: fakeJanelaId,
+        janelaId: selectedJanelaId,
+      });
+      void notifyBooked({
+        appointmentId: appointment.id,
+        petName: pets?.find((p) => String(p.id) === petIdAtivo)?.nome ?? 'seu pet',
+        serviceType: reason,
+        appointmentDate: new Date(appointment.date),
       });
       Alert.alert('Agendado!', 'Sua consulta foi marcada com sucesso.', [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -90,10 +134,22 @@ export function AgendamentoTutorScreen({ route }: Props) {
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
       <View style={styles.topBar}>
-        <CheckInTopBar title="Nova Consulta" />
+        <BrandMark />
+        <View style={styles.topBarMain}>
+          <CheckInTopBar title="Agendar consulta" />
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]} showsVerticalScrollIndicator={false}>
+
+        {proxima ? (
+          <View style={styles.proximaCard}>
+            <Text style={styles.proximaLabel}>Sua próxima consulta</Text>
+            <Text style={styles.proximaText}>
+              {`${proxima.reason || 'Consulta'} · ${formatAppointmentDate(proxima.date).dayLabel} · ${formatAppointmentDate(proxima.date).timeLabel} · ${pets.find((p) => p.id === proxima.petId)?.nome ?? ''}`}
+            </Text>
+          </View>
+        ) : null}
 
         {/* Seção 1: Qual pet? */}
         <View style={styles.section}>
@@ -124,92 +180,72 @@ export function AgendamentoTutorScreen({ route }: Props) {
         {/* Seção 2: Motivo */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Motivo</Text>
-          <QuickChips options={MOTIVOS} onSelect={setReason} />
-          {reason ? (
-            <View style={styles.motivoTag}>
-              <Text style={styles.motivoTagText}>{reason}</Text>
-            </View>
-          ) : null}
+          <QuickChips options={MOTIVOS} onSelect={setReason} selected={reason} hideLabel />
         </View>
 
         {/* Seção 3: Dia */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Dia</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.diasRow}>
+          <View style={styles.diasGrid}>
+            {DIAS.slice(0, 7).map((dia) => (
+              <Text key={dia.iso} style={styles.diaCabecalho}>{dia.diaSemana}</Text>
+            ))}
             {DIAS.map((dia) => {
               const active = dia.iso === selectedDate;
+              const livre = livres.has(dia.iso);
               return (
                 <Pressable
                   key={dia.iso}
-                  onPress={() => setSelectedDate(dia.iso)}
-                  style={[styles.diaBlock, active && styles.diaBlockActive]}
+                  disabled={!livre}
+                  onPress={() => setEscolhida(dia.iso)}
+                  style={[styles.diaBlock, active && styles.diaBlockActive, !livre && styles.horarioBlockDisabled]}
                 >
-                  <Text style={[styles.diaSemana, active && styles.diaTextActive]}>{dia.diaSemana}</Text>
                   <Text style={[styles.diaNúmero, active && styles.diaTextActive]}>{dia.numeroDia}</Text>
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
         </View>
 
         {/* Seção 4: Horário */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Horário</Text>
-          {(() => {
-            const agora = new Date();
-            const hojeISO = agora.toISOString().slice(0, 10);
-
-            const horariosVisiveis = HORARIOS.filter((h) => {
-              // Remove slots ocupados por qualquer consulta ativa
-              const dataHora = `${selectedDate}T${h}:00`;
-              const ocupado = consultas?.some(
-                (c) => c.date.slice(0, 16) === dataHora.slice(0, 16) && c.status !== 'CANCELED'
-              );
-              if (ocupado) return false;
-
-              // Para o dia de hoje, remove slots que já passaram
-              if (selectedDate === hojeISO) {
-                const [hora, min] = h.split(':').map(Number);
-                const slotDate = new Date(selectedDate);
-                slotDate.setHours(hora, min, 0, 0);
-                // Exige ao menos 30 min de antecedência
-                if (slotDate.getTime() <= agora.getTime() + 30 * 60 * 1000) return false;
-              }
-
-              return true;
-            });
-
-            if (horariosVisiveis.length === 0) {
-              return (
-                <Text style={styles.emptyText}>
-                  Nenhum horário disponível para esta data. Selecione outro dia.
-                </Text>
-              );
-            }
-
-            return (
-              <View style={styles.horariosGrid}>
-                {horariosVisiveis.map((h) => {
-                  const active = h === selectedTime;
-                  return (
-                    <Pressable
-                      key={h}
-                      onPress={() => setSelectedTime(h)}
-                      style={[styles.horarioBlock, active && styles.horarioBlockActive]}
-                    >
-                      <Text style={[styles.horarioText, active && styles.horarioTextActive]}>{h}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            );
-          })()}
+          <Text style={styles.sectionLabel}>
+            {selectedDate ? `Horários de ${formatAppointmentDate(`${selectedDate}T12:00:00`).dayLabel}` : 'Horário'}
+          </Text>
+          {isLoadingVets || isLoadingJanelas ? (
+            <LoadingIndicator label="Buscando horários..." />
+          ) : !veterinarioId ? (
+            <Text style={styles.emptyText}>
+              Nenhum veterinário disponível na clínica no momento.
+            </Text>
+          ) : !selectedDate || !janelasLivres || janelasLivres.length === 0 ? (
+            <Text style={styles.emptyText}>
+              Nenhum horário disponível nos próximos dias.
+            </Text>
+          ) : (
+            <View style={styles.horariosGrid}>
+              {janelasLivres.map((janela) => {
+                const active = janela.id === selectedJanelaId;
+                const horaFormatada = janela.horaInicio.substring(0, 5); // ex: "08:00"
+                return (
+                  <Pressable
+                    key={janela.id}
+                    onPress={() => setSelectedJanelaId(janela.id)}
+                    style={[styles.horarioBlock, active && styles.horarioBlockActive]}
+                  >
+                    <Text style={[styles.horarioText, active && styles.horarioTextActive]}>{horaFormatada}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
         </View>
 
         <Button
-          label="Confirmar Agendamento"
+          label={confirmLabel}
           onPress={handleSave}
-          disabled={!petIdAtivo || !reason || !selectedDate || !selectedTime}
+          backgroundColor={selectedJanela ? colors.action : undefined}
+          disabled={!petIdAtivo || !reason || !selectedDate || !selectedJanelaId}
           loading={createAppointment.isPending}
         />
 
@@ -218,15 +254,21 @@ export function AgendamentoTutorScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.background,
   },
   topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.sm,
+  },
+  topBarMain: {
+    flex: 1,
   },
   content: {
     padding: spacing.lg,
@@ -277,7 +319,7 @@ const styles = StyleSheet.create({
   petAvatarText: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   petAvatarTextActive: {
     color: colors.textLight,
@@ -290,25 +332,39 @@ const styles = StyleSheet.create({
   petNameActive: {
     color: colors.textLight,
   },
-  motivoTag: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-    backgroundColor: `${colors.primary}1A`,
+  diasGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    rowGap: spacing.sm,
   },
-  motivoTagText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.primary,
+  diaCabecalho: {
+    width: `${100 / 7}%`,
+    textAlign: 'center',
+    fontSize: 12,
+    color: colors.textSecondary,
+    textTransform: 'lowercase',
   },
-  diasRow: {
-    gap: spacing.sm,
-    paddingBottom: spacing.xs,
+  proximaCard: {
+    backgroundColor: colors.cardChia,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    gap: spacing.xs,
+  },
+  proximaLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  proximaText: {
+    ...typography.subtitle,
+    color: colors.textPrimary,
   },
   diaBlock: {
-    width: 56,
-    height: 64,
+    width: `${100 / 7 - 1}%`,
+    marginHorizontal: `${0.5}%`,
+    height: 48,
     borderRadius: radii.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -318,8 +374,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   diaBlockActive: {
-    backgroundColor: colors.textPrimary,
-    borderColor: colors.textPrimary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   diaSemana: {
     fontSize: 11,
@@ -377,4 +433,4 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     paddingVertical: spacing.sm,
   },
-});
+}));

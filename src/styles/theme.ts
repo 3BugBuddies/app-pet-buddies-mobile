@@ -28,43 +28,56 @@ export const primitiveColors = {
 };
 
 /**
- * 2. PALETA SEMÂNTICA & TOKENS DE DESIGN
+ * 2. PALETA SEMÂNTICA & TOKENS DE DESIGN (Modo Claro)
  */
-export const colors = {
+const lightColors = {
   // Fundo e Superfícies
-  background: primitiveColors.pbCreme, 
-  surface: primitiveColors.white,            
-  surfaceDark: primitiveColors.pbAzulMarinho,     
+  background: primitiveColors.pbCreme,
+  surface: primitiveColors.white,
+  surfaceDark: primitiveColors.pbAzulMarinho,
 
   // Identidade Principal
-  primary: primitiveColors.pbAzulMarinho,     // Elementos âncora, TopBar, Textos fortes
-  secondary: primitiveColors.tsElectric,      // Acentos profundos Tarsila
-  action: primitiveColors.pbLaranja,          // Call to Action (Botões primários)
-  accent: primitiveColors.pbAmarelo,          // Recompensas, Estrelas, Badges
+  primary: primitiveColors.pbAzulMarinho,
+  secondary: primitiveColors.tsElectric,
+  action: primitiveColors.pbLaranja,
+  accent: primitiveColors.pbAmarelo,
 
   // Textos (Acessibilidade/Contraste)
-  textPrimary: primitiveColors.pbAzulMarinho,   
-  textSecondary: primitiveColors.gray500,    
-  textMuted: primitiveColors.gray400,        
-  textLight: primitiveColors.white,          
+  textPrimary: primitiveColors.pbAzulMarinho,
+  textSecondary: primitiveColors.gray500,
+  textMuted: primitiveColors.gray400,
+  textLight: primitiveColors.white,
 
   // Estrutura
-  border: primitiveColors.gray200,           
-  borderStrong: primitiveColors.gray300,   
+  border: primitiveColors.gray200,
+  borderStrong: primitiveColors.gray300,
 
-  // Status e Feedbacks (Usando a vibração da Tarsila)
-  success: primitiveColors.tsNeon, // O Neon da Tarsila é perfeito para sucesso/check
+  // Status e Feedbacks
+  success: primitiveColors.tsNeon,
   error: '#EF4444',
   warning: primitiveColors.tsTangerine,
 
-  cardHome: primitiveColors.pbLaranja, // Cartões Home (Plano, Agenda, Pet)
-  cardProgress: primitiveColors.pbAmarelo, // Cartão Progresso (Plano Vivo)
-  cardProtocol: primitiveColors.tsSky, // Cartão Protocolos (Agenda)
+  // UI Específica
+  cardHome: primitiveColors.pbLaranja,
+  cardProgress: primitiveColors.pbAmarelo,
+  cardProtocol: primitiveColors.tsSky,
 
-  // Cartões Bento UI (Aplicando transparência de ~15% = '26' no HEX para UX suave)
-  cardMax: `${primitiveColors.pbAmarelo}26`,       
-  cardChia: `${primitiveColors.pbAzulCeu}26`,      
-  cardAlert: `${primitiveColors.tsTangerine}26`,   
+  // Cartões Bento UI (~15% de opacidade)
+  cardMax: `${primitiveColors.pbAmarelo}26`,
+  cardChia: `${primitiveColors.pbAzulCeu}26`,
+  cardAlert: `${primitiveColors.tsTangerine}26`,
+
+  // Tarefas e semana do tratamento
+  peach: '#FFF0E0',
+  amberSoft: '#FFF3D4',
+  infoSoft: '#DCEFFD',
+  lime: '#C9F27A',
+  limeSoft: '#F4FBE6',
+  info: '#5AA9E6',
+  danger: '#A3321F',
+  dangerSoft: '#FDE3DF',
+  rowBackground: '#F6F7F9',
+  dimmed: '#B4B9C4',
 };
 
 export const spacing = {
@@ -76,12 +89,71 @@ export const radii = {
 };
 
 export const typography = {
-  // Sora para Títulos (Branding Forte)
-  title: { fontFamily: 'Sora', fontSize: 24, fontWeight: '700' as const },
-  subtitle: { fontFamily: 'Sora', fontSize: 16, fontWeight: '600' as const },
-  // Inter para Corpo (Leitura Perfeita)
-  body: { fontFamily: 'Inter', fontSize: 14, fontWeight: '400' as const },
-  caption: { fontFamily: 'Inter', fontSize: 12, fontWeight: '400' as const },
+  // Sora para Títulos
+  title: { fontFamily: 'Sora_700Bold', fontSize: 24 },
+  subtitle: { fontFamily: 'Sora_600SemiBold', fontSize: 16 },
+
+  // Inter para Corpo
+  body: { fontFamily: 'Inter_400Regular', fontSize: 14 },
+  caption: { fontFamily: 'Inter_400Regular', fontSize: 12 },
 };
 
-export const theme = { colors, spacing, radii, typography };
+/**
+ * 3. PALETA SEMÂNTICA (Modo Escuro)
+ * Mesmos tokens do modo claro. Cada fundo pastel ganha uma versão escura própria,
+ * porque o texto por cima passa a ser claro.
+ */
+type ThemeColors = { [K in keyof typeof lightColors]: string };
+
+const darkColors: ThemeColors = {
+  // Fundo e Superfícies
+  background: '#0F1424',
+  surface: '#1B2440',
+  surfaceDark: '#05070F',
+
+  // Identidade Principal
+  primary: '#4A67E0',
+  secondary: '#8B97FF',
+  action: '#FF8A1E',
+  accent: '#F7C85A',
+
+  // Textos (Acessibilidade/Contraste)
+  textPrimary: '#F6F8FF',
+  textSecondary: '#B7C2E3',
+  textMuted: '#8A95B8',
+  textLight: '#FFFFFF',
+
+  // Estrutura
+  border: '#2B3558',
+  borderStrong: '#3B4770',
+
+  // Status e Feedbacks
+  success: primitiveColors.tsNeon,
+  error: '#FF6B6B',
+  warning: '#F8A94A',
+
+  // UI Específica
+  cardHome: primitiveColors.pbLaranja,
+  cardProgress: primitiveColors.pbAmarelo,
+  cardProtocol: primitiveColors.tsSky,
+
+  // Cartões Bento UI (~20% de opacidade, um pouco mais forte para aparecer no fundo escuro)
+  cardMax: `${primitiveColors.pbAmarelo}33`,
+  cardChia: `${primitiveColors.pbAzulCeu}33`,
+  cardAlert: `${primitiveColors.tsTangerine}33`,
+
+  // Tarefas e semana do tratamento
+  peach: '#3A2A1A',
+  amberSoft: '#3A301A',
+  infoSoft: '#1A2E48',
+  lime: '#C9F27A',
+  limeSoft: '#1F2E14',
+  info: '#74B6FF',
+  danger: '#F26B57',
+  dangerSoft: '#3A1D1A',
+  rowBackground: '#202A48',
+  dimmed: '#626D90',
+};
+
+export { lightColors, darkColors };
+export type { ThemeColors };

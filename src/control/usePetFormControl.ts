@@ -53,7 +53,7 @@ export function usePetFormControl(onSuccess: (petId: string) => void, petId?: st
   };
   const [castrado, setCastrado] = useState(false);
   const [condicaoCronica, setCondicaoCronica] = useState(false);
-  const [alergia, setAlergia] = useState('');
+  const [alergias, setAlergias] = useState('');
   const [erros, setErros] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -66,7 +66,7 @@ export function usePetFormControl(onSuccess: (petId: string) => void, petId?: st
       setPeso(petToEdit.peso ? String(petToEdit.peso).replace('.', ',') : '');
       setCastrado(petToEdit.castrado ?? false);
       setCondicaoCronica(petToEdit.condicaoCronica ?? false);
-      setAlergia(petToEdit.alergia ?? '');
+      setAlergias(petToEdit.alergias ?? '');
       if (petToEdit.dataNascimento) {
         setDataNascimento(isoParaMascara(petToEdit.dataNascimento));
       }
@@ -83,9 +83,9 @@ export function usePetFormControl(onSuccess: (petId: string) => void, petId?: st
     const pesoRaw = peso.trim().replace(',', '.');
     const pesoNum = pesoRaw ? parseFloat(pesoRaw) : null;
 
-    const dataNascimentoIso: string | null = dataNascimento.trim()
+    const dataNascimentoIso: string | undefined = dataNascimento.trim()
       ? mascaraParaIso(dataNascimento)
-      : null;
+      : undefined;
 
     try {
       const dadosValidados = await petSchema.validate(
@@ -94,13 +94,13 @@ export function usePetFormControl(onSuccess: (petId: string) => void, petId?: st
           nome,
           especie,
           raca: raca.trim() || null,
-          porte: porte || null,
+          porte: porte || undefined,
           sexo,
           peso: pesoNum !== null && !isNaN(pesoNum) ? pesoNum : null,
           dataNascimento: dataNascimentoIso,
           castrado,
           condicaoCronica,
-          alergia: alergia.trim() || null,
+          alergias: alergias.trim() || null,
           foto: null,
           observacoes: null,
           responsavelId: String(session?.responsavelId ?? ''),
@@ -143,7 +143,7 @@ export function usePetFormControl(onSuccess: (petId: string) => void, petId?: st
     handleDataChange,
     castrado, setCastrado,
     condicaoCronica, setCondicaoCronica,
-    alergia, setAlergia,
+    alergias, setAlergias,
     erros,
     salvar,
     isFetchingPet,

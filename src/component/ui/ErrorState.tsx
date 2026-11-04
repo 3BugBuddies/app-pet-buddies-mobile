@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { Button } from './Button';
-import { colors, spacing, typography } from '../../styles/theme';
+import { spacing, typography, type ThemeColors } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 type ErrorType = '404' | '500' | '400' | 'timeout' | 'generic';
 
@@ -15,7 +16,7 @@ interface ErrorStateProps {
 
 interface ErrorConfig {
   icon: keyof typeof Ionicons.glyphMap;
-  iconBg: string;
+  iconBg: keyof ThemeColors; // nome do token; a cor sai do tema atual
   title: string;
   message: string;
 }
@@ -23,31 +24,31 @@ interface ErrorConfig {
 const CONFIG: Record<ErrorType, ErrorConfig> = {
   '404': {
     icon: 'search-outline',
-    iconBg: colors.cardChia,
+    iconBg: 'cardChia',
     title: 'Caminho perdido',
     message: 'Parece que o que você procurava foi dar um passeio longo.',
   },
   '500': {
     icon: 'cloud-offline-outline',
-    iconBg: colors.cardAlert,
+    iconBg: 'cardAlert',
     title: 'Tropeçamos na coleira',
     message: 'Nossos servidores demoraram a responder. Que tal tentar de novo?',
   },
   timeout: {
     icon: 'warning-outline',
-    iconBg: colors.cardAlert,
+    iconBg: 'cardAlert',
     title: 'Tropeçamos na coleira',
     message: 'Nossos servidores demoraram a responder. Que tal tentar de novo?',
   },
   '400': {
     icon: 'alert-circle-outline',
-    iconBg: colors.cardAlert,
+    iconBg: 'cardAlert',
     title: 'Ops, algo não encaixou',
     message: 'Alguma informação parece incorreta. Revise e tente novamente.',
   },
   generic: {
     icon: 'paw-outline',
-    iconBg: colors.cardChia,
+    iconBg: 'cardChia',
     title: 'Algo deu errado',
     message: 'Não conseguimos carregar essas informações agora.',
   },
@@ -60,11 +61,13 @@ export function ErrorState({
   onRetry,
   retryLabel,
 }: ErrorStateProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const config = CONFIG[type];
 
   return (
     <View style={styles.container}>
-      <View style={[styles.iconCircle, { backgroundColor: config.iconBg }]}>
+      <View style={[styles.iconCircle, { backgroundColor: colors[config.iconBg] }]}>
         <Ionicons name={config.icon} size={40} color={colors.primary} />
       </View>
       <Text style={styles.title}>{title ?? config.title}</Text>
@@ -78,7 +81,7 @@ export function ErrorState({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: {
     flex: 1,
     justifyContent: 'center',
@@ -109,4 +112,4 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     width: '100%',
   },
-});
+}));

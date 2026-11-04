@@ -14,7 +14,7 @@ export function AuthStack() {
       <Stack.Screen
         name="Register"
         component={RegisterScreen}
-        options={{ headerShown: true, title: 'Criar conta' }}
+        options={{ headerShown: true, title: 'Criar conta', headerBackButtonDisplayMode: 'minimal' }}
       />
     </Stack.Navigator>
   );

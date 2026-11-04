@@ -7,23 +7,20 @@ import {
   deletePet,
   getAllPets,
   getPetById,
-  getPetProfileDetails,
   getPetsByResponsavelId,
   updatePet,
 } from '../repository/petRepository';
 
 const PETS_KEY = ['pets'];
 
-// "Meus pets" do tutor logado — usa responsavelId (vínculo da tabela T_PB_RESPONSAVEL),
-// não usuarioId, pois a API Java filtra por /animal?responsavelId=.
+// "Meus pets" do tutor logado.
 export function usePets() {
   const { session } = useContext(AuthContext);
-  // Fallback: se a API não retornar responsavelId, usamos o usuarioId genérico
-  const responsavelId = session?.responsavelId || session?.usuarioId;
   return useQuery({
-    queryKey: [...PETS_KEY, responsavelId],
-    queryFn: () => getPetsByResponsavelId(String(responsavelId ?? '')),
-    enabled: !!responsavelId,
+    queryKey: [...PETS_KEY, 'my-pets', session?.responsavelId],
+    // Sem responsavelId (ex.: veterinário) não há "meus pets": nunca cai no usuarioId, que é outro id.
+    queryFn: () => getPetsByResponsavelId(String(session?.responsavelId)),
+    enabled: !!session?.responsavelId,
     retry: false,
   });
 }
@@ -42,15 +39,6 @@ export function usePet(id: string) {
     queryKey: [...PETS_KEY, id],
     queryFn: () => getPetById(id),
     enabled: !!id,
-  });
-}
-
-export function usePetProfileDetails(petId: string) {
-  return useQuery({
-    queryKey: ['petProfile', petId],
-    queryFn: () => getPetProfileDetails(petId),
-    enabled: !!petId,
-    retry: false,
   });
 }
 

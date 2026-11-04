@@ -1,31 +1,120 @@
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { buildApiErrorMessage } from '../../control/apiErrorHelper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  useAudioRecorder,
+  useAudioRecorderState,
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+} from 'expo-audio';
+import { transcribeAudio } from '../../repository/speechTranscriptionService';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { NarrativeInput } from '../../component/checkin/NarrativeInput';
 import { QuickChips } from '../../component/checkin/QuickChips';
 import { Button } from '../../component/ui/Button';
 import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
-import { LogoHeader } from '../../component/ui/LogoHeader';
 import { usePet } from '../../control/usePetsControl';
 import { useExtractCheckIn } from '../../control/useCheckInControl';
+import { useCarePlan } from '../../control/useCarePlanControl';
+import { todayIso, todayMedications } from '../../model/careHome';
 import type { PlanoTabParamList } from '../navigation/types';
-import { colors, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
-const QUICK_OPTIONS = ['Deu o remédio', 'Comeu bem', 'Comeu pouco', 'Evacuou', 'Fezes moles', 'Não evacuou'];
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
+const quickOptions = (plural: boolean) => [plural ? 'Deu os remédios' : 'Deu o remédio', 'Comeu bem', 'Comeu pouco', 'Evacuou', 'Fezes moles', 'Não evacuou'];
 
 type Props = NativeStackScreenProps<PlanoTabParamList, 'CheckInEntry'>;
 
 export function CheckInEntryScreen({ route }: Props) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { petId } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PlanoTabParamList>>();
   const insets = useSafeAreaInsets();
+  const tabBarSpace = useTabBarSpace();
   const { data: pet, isLoading: isLoadingPet } = usePet(petId);
+  const { data: plan } = useCarePlan(petId);
+  const plural = todayMedications(plan, todayIso()).length > 1;
   const [narrative, setNarrative] = useState('');
   const extractCheckIn = useExtractCheckIn();
+
+  // Estados de áudio e gravação
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+
+  // Cronômetro da gravação
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (recorderState.isRecording) {
+      setRecordingSeconds(0);
+      interval = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [recorderState.isRecording]);
+
+  const handleStartRecording = async () => {
+    try {
+      const status = await AudioModule.requestRecordingPermissionsAsync();
+      if (!status.granted) {
+        Alert.alert(
+          'Permissão necessária',
+          'O Pet Buddies precisa de permissão de acesso ao microfone para você ditar os cuidados do pet.'
+        );
+        return;
+      }
+
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+      });
+
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+    } catch (error: any) {
+      Alert.alert('Erro ao gravar', error?.message ?? 'Não foi possível acessar o microfone.');
+    }
+  };
+
+  const handleStopRecording = async () => {
+    try {
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
+      if (!uri) {
+        Alert.alert('Aviso', 'Nenhum áudio foi capturado.');
+        return;
+      }
+
+      setIsTranscribing(true);
+      const textoTranscrito = await transcribeAudio(uri, {
+        prompt: 'Relato do tutor sobre cuidados com o pet: remédio, alimentação, fezes, vômito, comportamento e sintomas.',
+      });
+
+      if (textoTranscrito.trim()) {
+        setNarrative((current) => {
+          const trimmed = current.trim();
+          if (!trimmed) return textoTranscrito;
+          return `${trimmed}. ${textoTranscrito}`;
+        });
+      }
+    } catch (error: any) {
+      Alert.alert('Erro na transcrição', error?.message ?? 'Falha ao processar o áudio.');
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
 
   if (isLoadingPet) {
     return <LoadingIndicator label="Carregando check-in..." />;
@@ -43,7 +132,10 @@ export function CheckInEntryScreen({ route }: Props) {
         dataReferencia: today,
         narrativa: narrative,
       });
-      navigation.navigate('CheckInConfirm', { petId, extracaoResponse });
+      navigation.navigate('CheckInConfirm', {
+        petId,
+        extracaoResponse,
+      });
     } catch (error: any) {
       const msg = error?.response?.status === 409
         ? 'Você já registrou os cuidados deste pet hoje!'
@@ -56,35 +148,51 @@ export function CheckInEntryScreen({ route }: Props) {
     setNarrative((current) => (current.trim() ? `${current.trim()}. ${text}` : text));
   };
 
+  const handleExpressCheckIn = () => {
+    setNarrative(`Tudo ótimo com o ${pet.nome} hoje! Se alimentou bem, está ativo e ${plural ? 'tomou os remédios' : 'tomou a medicação'} normalmente.`);
+  };
+
   return (
     <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
-      <CheckInTopBar title="Check-in" subtitle="Cuidados de hoje" stepLabel="1 / 3" />
+      <View style={styles.topBar}>
+        <CheckInTopBar title="Check-in" stepLabel="1 de 3" />
+      </View>
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 80 }]}
+        <ScrollView keyboardDismissMode="on-drag"
+          contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
           showsVerticalScrollIndicator={false}
         >
-          <LogoHeader size="large" />
-
           <View style={styles.headline}>
             <Text style={styles.h1}>Como {pet.nome} passou hoje?</Text>
             <Text style={styles.p}>
-              Conte do seu jeito. A dose de hoje sai da regra que a vet escreveu.
+              {plural
+                ? 'Conte do seu jeito. A dose de cada remédio sai da regra que a veterinária escreveu.'
+                : 'Conte do seu jeito. A dose de hoje sai da regra que a veterinária escreveu.'}
             </Text>
           </View>
 
+          <Text style={styles.fieldLabel}>Seu relato</Text>
           <NarrativeInput
             value={narrative}
             onChangeText={setNarrative}
-            placeholder="ex.: dei o remédio, mas ela comeu pouco e as fezes tavam moles"
+            placeholder={`Conte como o ${pet.nome} passou hoje (ex.: comeu bem, mas vomitou um pouco de manhã...)`}
+            isRecording={recorderState.isRecording}
+            isTranscribing={isTranscribing}
+            recordingSeconds={recordingSeconds}
+            onStartRecording={handleStartRecording}
+            onStopRecording={handleStopRecording}
           />
 
-          <QuickChips options={QUICK_OPTIONS} onSelect={appendChip} />
+          <QuickChips options={quickOptions(plural)} onSelect={appendChip} />
+
+          <Pressable accessibilityRole="button" onPress={handleExpressCheckIn}>
+            <Text style={styles.expressLink}>Tudo bem hoje · sem sintomas</Text>
+          </Pressable>
 
           <Button
-            label="Continuar"
-            backgroundColor={colors.textPrimary}
+            label="Continuar · conferir relato"
+            backgroundColor={colors.action}
             textColor={colors.textLight}
             disabled={!narrative.trim()}
             loading={extractCheckIn.isPending}
@@ -96,10 +204,13 @@ export function CheckInEntryScreen({ route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  topBar: {
+    paddingHorizontal: spacing.lg,
   },
   flex: {
     flex: 1,
@@ -124,4 +235,16 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     color: colors.textSecondary,
   },
-});
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  expressLink: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
+    textDecorationLine: 'underline',
+  },
+}));

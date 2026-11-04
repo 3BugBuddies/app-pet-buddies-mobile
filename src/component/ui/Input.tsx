@@ -1,7 +1,8 @@
 import { forwardRef } from 'react';
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Text, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
 import type { ReactNode } from 'react';
-import { colors, radii, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface InputProps extends TextInputProps {
   label: string;
@@ -9,10 +10,12 @@ interface InputProps extends TextInputProps {
   rightElement?: ReactNode;
 }
 
-export const Input = forwardRef<TextInput, InputProps>(function Input(
+export const Input = forwardRef<TextInputInstance, InputProps>(function Input(
   { label, hasError, style, rightElement, ...rest },
   ref
 ) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
@@ -29,7 +32,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
   );
 });
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: {
     marginBottom: spacing.md,
   },
@@ -62,4 +65,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-});
+}));

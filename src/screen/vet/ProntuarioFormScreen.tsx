@@ -1,230 +1,329 @@
+import { useEffect, useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { QuickChips } from '../../component/checkin/QuickChips';
+import { AccordionRow, type ClosingIconName } from '../../component/closing/AccordionRow';
+import { DoneGrid } from '../../component/closing/DoneGrid';
+import { ProcedureCard } from '../../component/closing/ProcedureCard';
 import { FieldError } from '../../component/forms/FieldError';
 import { Button } from '../../component/ui/Button';
 import { Input } from '../../component/ui/Input';
-import useMedicalRecordControl from '../../control/useMedicalRecordControl';
+import { LoadingIndicator } from '../../component/ui/LoadingIndicator';
+import { useClosingForm } from '../../control/useClosingControl';
+import type { ProcedureSection } from '../../model/closing';
+import { EVOLUCOES } from '../../model/medicalRecord';
+import type { ItemReceitaDraft } from '../../model/prescription';
+import { formatHourShort } from '../../model/closingSummary';
+import { formatDateBR, formatShortDate } from '../../model/formatDate';
+import { capitalize, daysText, doseBounds } from '../../model/careHome';
 import type { PacientesTabParamList } from '../navigation/types';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
-type RecordType = 'VACINA' | 'CONSULTA' | 'EXAME' | 'PROCEDIMENTO';
+type OpenKey = 'consulta' | ProcedureSection | 'receita';
 
-const RECORD_TYPES: { key: RecordType; label: string }[] = [
-  { key: 'VACINA', label: 'Vacina' },
-  { key: 'CONSULTA', label: 'Consulta' },
-  { key: 'EXAME', label: 'Exame' },
-  { key: 'PROCEDIMENTO', label: 'Procedimento' },
+const SECTIONS: { section: ProcedureSection; tile: string; title: string; hint: string; icon: ClosingIconName; addLabel: string }[] = [
+  { section: 'VACINA_VERMIFUGO', tile: 'Vacina ou vermífugo', title: 'Vacina e vermífugo', hint: 'Item do plano, nome e lote', icon: 'needle', addLabel: 'Adicionar outra vacina ou vermífugo' },
+  { section: 'EXAME', tile: 'Exame', title: 'Exames', hint: 'Nome e observações', icon: 'flask-outline', addLabel: 'Adicionar outro exame' },
+  { section: 'PROCEDIMENTO', tile: 'Procedimento', title: 'Procedimentos', hint: 'Nome e observações', icon: 'bandage', addLabel: 'Adicionar outro procedimento' },
 ];
-
-const ANAMNESE_CHIPS = [
-  'Sem alterações',
-  'Consulta de rotina',
-  'Tutor relata melhora',
-  'Retorno de acompanhamento',
-];
-
-const DIAGNOSTICO_CHIPS = ['Saudável', 'Otite', 'Dermatite', 'Gastroenterite'];
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'ProntuarioForm'>;
 
 export function ProntuarioFormScreen({ route }: Props) {
-  const { petId } = route.params;
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const { petId, consultaId, prescricao } = route.params;
   const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList>>();
-  const insets = useSafeAreaInsets();
-  const [recordType, setRecordType] = useState<RecordType>('CONSULTA');
+  const tabBarSpace = useTabBarSpace();
+  const [openKey, setOpenKey] = useState<OpenKey | null>(null);
 
-  const {
-    anamnese, setAnamnese,
-    diagnostico, setDiagnostico,
-    observacao, setObservacao,
-    weight, handleWeightChange,
-    diagnosticoErro,
-    isSaving,
-    salvar,
-  } = useMedicalRecordControl(
-    petId,
-    (registro) => navigation.navigate('Prescricao', { animalId: petId, registroAtendimentoId: registro.id! }),
-    () => navigation.goBack(),
+  const form = useClosingForm(petId, consultaId, prescricao ?? null);
+  const receitaMarked = form.receitaOn || !!prescricao;
+
+  // Tocar a aba ativa volta a pilha ao topo e descartava o atendimento preenchido sem aviso.
+  // Só pergunta com a tela em foco: o reset depois de assinar acontece com a assinatura na frente.
+  useEffect(
+    () =>
+      navigation.addListener('beforeRemove', (e) => {
+        if (!form.dirty || !navigation.isFocused()) return;
+        e.preventDefault();
+        Alert.alert('Descartar o atendimento?', 'O que você preencheu será perdido.', [
+          { text: 'Continuar atendimento', style: 'cancel' },
+          { text: 'Descartar', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+        ]);
+      }),
+    [navigation, form.dirty]
   );
 
+  if (form.loadingAppointment) {
+    return <LoadingIndicator label="Carregando o atendimento..." />;
+  }
+
+  const toggle = (key: OpenKey) => setOpenKey((current) => (current === key ? null : key));
+  const responsavel = form.pet?.responsavelNome?.trim();
+  const petLine = [form.pet?.nome ?? 'Atendimento', responsavel].filter(Boolean).join(' · ');
+  const appointment = form.appointment;
+  const isToday = appointment ? appointment.date.slice(0, 10) === todayIso() : false;
+  const bannerTitle = appointment
+    ? [
+        isToday ? 'Consulta de hoje' : `Consulta de ${formatShortDate(appointment.date)}`,
+        formatHourShort(appointment.date),
+        appointment.reason.trim(),
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : 'Atendimento imediato';
+
+  const weightText = form.weight ? `${form.weight} kg` : null;
+  const evolution = EVOLUCOES.find((e) => e.value === form.evolution);
+  const evolutionText = evolution ? `evolução: ${evolution.label.toLowerCase()}` : null;
+  const consultaSummary = [
+    form.reason.trim() || 'sem motivo',
+    weightText,
+    evolutionText,
+    form.notes.trim() || 'sem observação',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const onTile = (key: string) => {
+    if (key === 'receita') {
+      if (receitaMarked) {
+        form.setReceitaOn(false);
+        navigation.setParams({ prescricao: undefined });
+        if (openKey === 'receita') setOpenKey(null);
+      } else {
+        form.setReceitaOn(true);
+      }
+      return;
+    }
+    const section = key as ProcedureSection;
+    const wasOn = form.hasSection(section);
+    form.toggleSection(section);
+    if (wasOn) {
+      if (openKey === section) setOpenKey(null);
+    } else {
+      setOpenKey(section);
+    }
+  };
+
+  const review = () => {
+    if (receitaMarked && !prescricao) {
+      setOpenKey(null);
+      Alert.alert('Receita sem preenchimento', 'Preencha a receita ou desmarque «Receita» para concluir.');
+      return;
+    }
+    const closing = form.build();
+    if (closing) {
+      navigation.navigate('AssinarPrescricao', { closing });
+      return;
+    }
+    const invalid = form.firstInvalid();
+    if (invalid) setOpenKey(invalid as OpenKey);
+  };
+
+  const sectionSummary = (section: ProcedureSection) => {
+    const drafts = form.procedures.filter((p) => p.section === section);
+    const names = drafts.map((p) => p.nome.trim()).filter(Boolean);
+    if (names.length === 0) return SECTIONS.find((s) => s.section === section)?.hint ?? '';
+    const linked = drafts.find((p) => p.section === 'VACINA_VERMIFUGO' && p.itemPlanoId != null);
+    const alvo = linked ? form.availableItems(linked).find((i) => i.id === linked.itemPlanoId)?.dataAlvo : null;
+    const tail = section === 'VACINA_VERMIFUGO' ? (alvo ? ` · baixa o item de ${formatDateBR(alvo)}` : ' · avulsa') : '';
+    return `${names.join(', ')}${tail}`;
+  };
+
+  const prescricaoSummary = prescricao
+    ? prescricao.itens.length === 1
+      ? medicationLine(prescricao.itens[0])
+      : prescricao.itens.map((i) => medicationLine(i)).join('\n')
+    : 'Toque para preencher a receita';
+
   return (
-    <View style={[styles.root, { paddingTop: Math.max(insets.top, 16) }]}>
-      <Text style={styles.title}>O que aconteceu?</Text>
-
+    <View style={[styles.root, { paddingTop: spacing.md }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: tabBarSpace }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.banner}>
+            <Ionicons name="time-outline" size={22} color={colors.primary} />
+            <View style={styles.flex}>
+              <Text style={styles.bannerTitle}>{bannerTitle}</Text>
+              <Text style={styles.bannerSub}>{petLine}</Text>
+            </View>
+          </View>
 
-          <View style={styles.typeGrid}>
-            {RECORD_TYPES.map((type) => {
-              const active = type.key === recordType;
-              return (
-                <Pressable
-                  key={type.key}
-                  onPress={() => setRecordType(type.key)}
-                  style={[styles.typeButton, active && styles.typeButtonActive]}
-                >
-                  <Text style={[styles.typeButtonText, active && styles.typeButtonTextActive]}>
-                    {type.label}
-                  </Text>
+          <Text style={styles.section}>O que trouxe o pet</Text>
+          <AccordionRow
+            icon="stethoscope"
+            title="Consulta"
+            summary={consultaSummary}
+            done={!!form.reason.trim() && !form.errors.weight}
+            open={openKey === 'consulta'}
+            onPress={() => toggle('consulta')}
+          >
+            <View style={styles.pair}>
+              <View style={styles.flex2}>
+                <Input
+                  label="Motivo"
+                  placeholder="ex.: coceira no ouvido há 3 dias"
+                  value={form.reason}
+                  onChangeText={form.setReason}
+                  multiline
+                  style={styles.notes}
+                />
+              </View>
+              <View style={styles.flex1}>
+                <Input
+                  label="Peso (kg)"
+                  placeholder="ex.: 17,2"
+                  value={form.weight}
+                  onChangeText={form.handleWeightChange}
+                  keyboardType="decimal-pad"
+                  hasError={!!form.errors.weight}
+                />
+              </View>
+            </View>
+            <FieldError message={form.errors.weight} />
+            <View style={styles.evolution}>
+              <Text style={styles.evolutionLabel}>Evolução (opcional)</Text>
+              <QuickChips
+                hideLabel
+                options={EVOLUCOES.map((e) => e.label)}
+                selected={evolution?.label}
+                onSelect={(label) => {
+                  const chosen = EVOLUCOES.find((e) => e.label === label);
+                  if (chosen) form.toggleEvolution(chosen.value);
+                }}
+              />
+              <Text style={styles.evolutionHint}>
+                Como o animal está em relação à consulta anterior. Na primeira consulta, deixe em branco.
+              </Text>
+            </View>
+            <Input
+              label="Observações (opcional)"
+              placeholder="ex.: Retorno em 10 dias"
+              value={form.notes}
+              onChangeText={form.setNotes}
+              multiline
+              style={styles.notes}
+            />
+          </AccordionRow>
+
+          <Text style={styles.section}>O que foi feito</Text>
+          <DoneGrid
+            onToggle={onTile}
+            options={[
+              ...SECTIONS.map((s) => ({ key: s.section, label: s.tile, icon: s.icon, selected: form.hasSection(s.section) })),
+              { key: 'receita', label: 'Receita', icon: 'file-document-outline' as ClosingIconName, selected: receitaMarked },
+            ]}
+          />
+
+          {SECTIONS.filter((s) => form.hasSection(s.section)).map(({ section, title, icon, addLabel }) => {
+            const drafts = form.procedures.filter((p) => p.section === section);
+            const done = drafts.length > 0 && drafts.every((p) => p.nome.trim());
+            return (
+              <AccordionRow
+                key={section}
+                icon={icon}
+                title={title}
+                summary={sectionSummary(section)}
+                done={done}
+                open={openKey === section}
+                onPress={() => toggle(section)}
+              >
+                {drafts.map((p) => (
+                  <ProcedureCard
+                    key={p.key}
+                    draft={p}
+                    items={form.availableItems(p)}
+                    error={form.errors[p.key]}
+                    onChange={(patch) => form.update(p.key, patch)}
+                    onRemove={drafts.length > 1 ? () => form.remove(p.key) : undefined}
+                  />
+                ))}
+                <Pressable accessibilityRole="button" onPress={() => form.add(section)} style={styles.addButton}>
+                  <Text style={styles.addText}>+ {addLabel}</Text>
                 </Pressable>
-              );
-            })}
-          </View>
+              </AccordionRow>
+            );
+          })}
 
-          <Input
-            label="Anamnese (opcional)"
-            placeholder="ex.: Tutora relata coceira no ouvido há 3 dias"
-            value={anamnese}
-            onChangeText={setAnamnese}
-            multiline
-            numberOfLines={3}
-            style={styles.notesInput}
+          {receitaMarked ? (
+            <AccordionRow
+              icon="file-document-outline"
+              title={prescricao && prescricao.itens.length > 1 ? `Receita · ${prescricao.itens.length} medicamentos` : 'Receita'}
+              summary={prescricaoSummary}
+              done={!!prescricao}
+              forward
+              onPress={() => navigation.navigate('Prescricao', { animalId: petId, receita: prescricao })}
+            />
+          ) : null}
+
+          <Button
+            label={prescricao ? 'Assinar e concluir' : 'Concluir atendimento'}
+            backgroundColor={colors.action}
+            onPress={review}
+            style={styles.primary}
           />
-          <View style={styles.chipsRow}>
-            {ANAMNESE_CHIPS.map((chip) => (
-              <Pressable key={chip} onPress={() => setAnamnese(chip)} style={styles.chip}>
-                <Text style={styles.chipText}>{chip}</Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <Input
-            label="Diagnóstico"
-            placeholder="ex.: Otite leve no ouvido direito"
-            value={diagnostico}
-            onChangeText={setDiagnostico}
-            hasError={!!diagnosticoErro}
-          />
-          <View style={styles.chipsRow}>
-            {DIAGNOSTICO_CHIPS.map((chip) => (
-              <Pressable key={chip} onPress={() => setDiagnostico(chip)} style={styles.chip}>
-                <Text style={styles.chipText}>{chip}</Text>
-              </Pressable>
-            ))}
-          </View>
-          <FieldError message={diagnosticoErro ?? undefined} />
-
-          <Input
-            label="Peso (kg)"
-            placeholder="ex.: 17,2"
-            value={weight}
-            onChangeText={handleWeightChange}
-            keyboardType="decimal-pad"
-          />
-
-          <Input
-            label="Observações (opcional)"
-            placeholder="ex.: Retorno em 10 dias"
-            value={observacao}
-            onChangeText={setObservacao}
-            multiline
-            numberOfLines={3}
-            style={styles.notesInput}
-          />
-
-          <View style={styles.actionRow}>
-            <View style={styles.actionHalf}>
-              <Button
-                variant="secondary"
-                label="Apenas Salvar"
-                loading={isSaving}
-                onPress={() => salvar(false)}
-              />
-            </View>
-            <View style={styles.actionHalf}>
-              <Button
-                label="Salvar e Prescrever"
-                loading={isSaving}
-                onPress={() => salvar(true)}
-              />
-            </View>
-          </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    color: colors.textPrimary,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.xs,
-  },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.sm,
-    paddingBottom: spacing.xl,
-  },
-  typeGrid: {
+const medicationLine = (i: ItemReceitaDraft) =>
+  `${capitalize(i.medicamento)} · ${doseBounds(i.doseMin, i.doseMax)} ${i.unidade} · ${i.frequenciaDia}×/dia · ${daysText(i.duracaoDias)}`;
+
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+const useStyles = makeStyles((colors) => ({
+  root: { flex: 1, backgroundColor: colors.background },
+  flex: { flex: 1 },
+  flex1: { flex: 1 },
+  flex2: { flex: 2 },
+  content: { padding: spacing.lg, gap: spacing.sm },
+  banner: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  typeButton: {
-    flexBasis: '47%',
-    height: 52,
-    borderRadius: radii.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  typeButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  typeButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  typeButtonTextActive: {
-    color: colors.textLight,
-  },
-  notesInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: -spacing.xs,
-  },
-  chip: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
+    gap: spacing.md,
     backgroundColor: colors.cardChia,
+    borderRadius: radii.lg,
+    padding: spacing.md,
   },
-  chipText: {
+  bannerTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
+  bannerSub: { fontSize: 14, color: colors.textSecondary, marginTop: 2 },
+  section: {
     fontSize: 12,
-    fontWeight: '600',
-    color: colors.primary,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.textSecondary,
+    marginTop: spacing.md,
   },
-  actionRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
+  pair: { flexDirection: 'row', gap: spacing.sm },
+  notes: { minHeight: 64, textAlignVertical: 'top' },
+  evolution: { marginBottom: spacing.md },
+  evolutionLabel: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xs },
+  evolutionHint: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.sm },
+  addButton: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: colors.borderStrong,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
     marginTop: spacing.sm,
   },
-  actionHalf: {
-    flex: 1,
-  },
-});
+  addText: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  primary: { marginTop: spacing.md },
+}));

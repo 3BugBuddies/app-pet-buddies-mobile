@@ -1,5 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 interface ActivePlansCardProps {
   count: number;
@@ -7,6 +8,7 @@ interface ActivePlansCardProps {
 }
 
 export function ActivePlansCard({ count, adherencePct }: ActivePlansCardProps) {
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       <Text style={styles.label}>Planos ativos</Text>
@@ -19,7 +21,7 @@ export function ActivePlansCard({ count, adherencePct }: ActivePlansCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -57,4 +59,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
   },
-});
+}));

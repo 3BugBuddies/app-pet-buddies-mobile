@@ -1,11 +1,14 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { colors, spacing, typography } from '../../styles/theme';
+import { ActivityIndicator, Text, View } from 'react-native';
+import { spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 interface LoadingIndicatorProps {
   label?: string;
 }
 
 export function LoadingIndicator({ label }: LoadingIndicatorProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color={colors.primary} />
@@ -14,7 +17,7 @@ export function LoadingIndicator({ label }: LoadingIndicatorProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   container: {
     flex: 1,
     alignItems: 'center',
@@ -25,4 +28,4 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
   },
-});
+}));

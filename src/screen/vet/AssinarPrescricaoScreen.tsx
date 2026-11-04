@@ -1,273 +1,201 @@
-import { useNavigation } from '@react-navigation/native';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useContext } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { ScrollView, Text, View } from 'react-native';
+import type { ComponentProps } from 'react';
 import { CheckInTopBar } from '../../component/checkin/CheckInTopBar';
 import { Button } from '../../component/ui/Button';
-import { AuthContext } from '../../context/authContext';
-import { useAssinarPrescricaoControl } from '../../control/usePrescriptionControl';
+import { useAppointment, useVetCrmv } from '../../control/useAppointmentsControl';
+import { useCompleteAppointment, composeNotes, useOpenPlanItems } from '../../control/useClosingControl';
 import { usePet } from '../../control/usePetsControl';
+import type { ClosingDoneSummary, ProcedureDraft } from '../../model/closing';
+import { firstName, formatHourShort, localIsoNow } from '../../model/closingSummary';
+import { formatDateBR, formatShortDate } from '../../model/formatDate';
+import { capitalize, daysText, doseBounds } from '../../model/careHome';
+import type { ItemReceitaDraft } from '../../model/prescription';
+import { descreverCondicao, rotuloAcao } from '../../model/prescriptionRule';
 import type { PacientesTabParamList } from '../navigation/types';
-import type { VetTabParamList } from '../navigation/types';
-import type { CompositeNavigationProp } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
+import { useTabBarSpace } from '../navigation/useTabBarSpace';
 
 type Props = NativeStackScreenProps<PacientesTabParamList, 'AssinarPrescricao'>;
-type AssinarNavigationProp = CompositeNavigationProp<
-  NativeStackNavigationProp<PacientesTabParamList, 'AssinarPrescricao'>,
-  BottomTabNavigationProp<VetTabParamList>
->;
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
+const procedureLabel = (p: ProcedureDraft) =>
+  p.section === 'EXAME' ? 'Exame' : p.section === 'PROCEDIMENTO' ? 'Procedimento' : p.tipo === 'VERMIFUGACAO' ? 'Vermífugo' : 'Vacina';
 
 export function AssinarPrescricaoScreen({ route }: Props) {
-  const { draft } = route.params;
-  const navigation = useNavigation<AssinarNavigationProp>();
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const { closing } = route.params;
+  const draft = closing.receita;
+  const itens = draft?.itens ?? [];
+  const multi = itens.length > 1;
+  const navigation = useNavigation<NativeStackNavigationProp<PacientesTabParamList, 'AssinarPrescricao'>>();
   const insets = useSafeAreaInsets();
-  const { session } = useContext(AuthContext);
-  const { data: pet } = usePet(draft.animalId);
-  const { assinar, isAssinando, erro } = useAssinarPrescricaoControl(draft);
+  const tabBarSpace = useTabBarSpace();
+  const { complete, completing } = useCompleteAppointment();
+  const crmv = useVetCrmv();
+  const { data: pet } = usePet(closing.petId);
+  const { data: appointment } = useAppointment(closing.appointmentId ?? '');
+  const { data: planItems = [] } = useOpenPlanItems(closing.petId);
 
-  const executarAssinatura = async () => {
-    try {
-      await assinar();
-      Alert.alert(
-        'Sucesso!',
-        'Prescrição assinada e salva no prontuário do paciente.',
-        [
-          {
-            text: 'Compartilhar via WhatsApp',
-            onPress: () => navigation.navigate('HojeTab', { screen: 'AgendaClinica' }),
-          },
-          {
-            text: 'Voltar para Agenda',
-            style: 'cancel',
-            onPress: () => navigation.navigate('HojeTab', { screen: 'AgendaClinica' }),
-          },
-        ]
-      );
-    } catch {
-      // erro ja fica visivel via `erro` (estado da mutation).
-    }
+  const whenIso = appointment?.date ?? localIsoNow();
+  const header = [
+    closing.petName,
+    appointment ? `consulta de ${formatShortDate(appointment.date)}, ${formatHourShort(appointment.date)}` : 'atendimento imediato',
+  ].join(' · ');
+  const responsavel = firstName(pet?.responsavelNome);
+  const seesInApp = responsavel ? `A ${responsavel} vê no app` : 'O responsável vê no app';
+  const targetDate = (itemId: number | null) => {
+    const alvo = itemId == null ? null : planItems.find((i) => i.id === itemId)?.dataAlvo;
+    return alvo ? formatDateBR(alvo) : null;
+  };
+
+  const registroSub = [closing.weight ? `${closing.weight} kg` : null, closing.notes.trim() || 'sem observação']
+    .filter(Boolean)
+    .join(' · ');
+  const receitaSub = (item: ItemReceitaDraft) => {
+    const rules = item.regras.map((r) => `${descreverCondicao(r).toLowerCase()} → ${rotuloAcao(r.acao).toLowerCase()}`);
+    return [
+      `${doseBounds(item.doseMin, item.doseMax)} ${item.unidade}`,
+      `${item.frequenciaDia}×/dia`,
+      daysText(item.duracaoDias),
+      rules.length > 0 ? `${rules.length === 1 ? 'regra' : 'regras'}: ${rules.join('; ')}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
   };
 
   const handleSign = async () => {
+    let consultaId: string;
     try {
-      await assinar();
-      Alert.alert(
-        'Sucesso!',
-        'Prescrição assinada e salva no prontuário do paciente.',
-        [
-          {
-            text: 'Compartilhar via WhatsApp',
-            onPress: () => navigation.navigate('HojeTab', { screen: 'AgendaClinica' }),
-          },
-          {
-            text: 'Voltar para Agenda',
-            style: 'cancel',
-            onPress: () => navigation.navigate('HojeTab', { screen: 'AgendaClinica' }),
-          },
-        ]
-      );
+      consultaId = await complete(closing);
     } catch {
-      // erro já fica visível via `erro` (estado da mutation).
+      return; // o erro já foi mostrado pelo onError da mutation
     }
+    const summary: ClosingDoneSummary = {
+      consultaId,
+      petName: closing.petName,
+      reason: closing.reason.trim(),
+      whenIso,
+      responsavel,
+      vaccines: closing.procedures
+        .filter((p) => p.section === 'VACINA_VERMIFUGO')
+        .map((p) => ({ nome: p.nome.trim(), alvo: p.itemPlanoId != null ? targetDate(p.itemPlanoId) : null })),
+      others: closing.procedures
+        .filter((p) => p.section !== 'VACINA_VERMIFUGO')
+        .map((p) => ({ label: procedureLabel(p), nome: p.nome.trim() })),
+      medicamentos: itens.map((i) => ({ nome: capitalize(i.medicamento), duracaoDias: i.duracaoDias })),
+    };
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 1,
+        routes: [{ name: 'Pacientes' }, { name: 'CheckoutAtendimento', params: { summary } }],
+      })
+    );
   };
 
+  const signItems: { icon: IconName; title: string; sub?: string }[] = draft
+    ? [
+        {
+          icon: 'document-text-outline',
+          title: multi ? `A receita fica assinada, com os ${itens.length} medicamentos` : 'A receita fica assinada',
+          sub: `com seu nome e CRMV${crmv ? ` ${crmv}` : ''}`,
+        },
+        { icon: 'lock-closed-outline', title: 'Ela não muda mais' },
+        { icon: 'phone-portrait-outline', title: seesInApp },
+      ]
+    : [
+        { icon: 'document-text-outline', title: 'O atendimento fica registrado', sub: 'no histórico do pet' },
+        { icon: 'phone-portrait-outline', title: seesInApp },
+      ];
+
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: insets.bottom + 80 }]}>
-      <CheckInTopBar title="Assinar prescrição" subtitle={pet?.nome} />
+    <ScrollView style={styles.screen} contentContainerStyle={[styles.content, { paddingTop: Math.max(insets.top, 16), paddingBottom: tabBarSpace }]}>
+      <CheckInTopBar title={draft ? 'Assinar e concluir' : 'Concluir atendimento'} />
 
-      <View style={styles.headline}>
-        <Text style={styles.title}>
-          {draft.medicamento} · {draft.doseMin}–{draft.doseMax} {draft.unidade}
-        </Text>
-        <Text style={styles.subtitle}>
-          {draft.frequenciaDia}×/dia · {draft.duracaoDias} dias · {draft.regras.length} regra(s) condicional(is)
-        </Text>
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>{header}</Text>
+
+        <Block label="Registro" title={closing.reason.trim() || 'Atendimento'} sub={registroSub} />
+        {closing.procedures.map((p) => {
+          const alvo = p.itemPlanoId != null ? targetDate(p.itemPlanoId) : null;
+          const sub =
+            p.section === 'VACINA_VERMIFUGO'
+              ? p.itemPlanoId == null
+                ? 'avulsa, não baixa item do plano'
+                : alvo
+                  ? `baixa o item previsto para ${alvo}`
+                  : 'baixa o item previsto do plano'
+              : undefined;
+          return <Block key={p.key} label={procedureLabel(p)} title={p.nome.trim()} sub={sub} extra={composeNotes(p)} />;
+        })}
+        {multi ? <Text style={styles.blockLabel}>Receita · {itens.length} medicamentos</Text> : null}
+        {itens.map((item) => (
+          <Block key={item.key} label={multi ? 'Medicamento' : 'Receita'} title={capitalize(item.medicamento)} sub={receitaSub(item)} />
+        ))}
       </View>
 
-      {draft.orientacao ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Orientação</Text>
-          <Text style={styles.orientacaoText}>{draft.orientacao}</Text>
-        </View>
-      ) : null}
-
-      {draft.regras.length > 0 ? (
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Regras condicionais</Text>
-          {draft.regras.map((regra, index) => (
-            <View key={`${regra.condicaoClinicaId}-${index}`}>
-              <View style={styles.ruleRow}>
-                <View style={styles.ruleDot} />
-                <Text style={styles.ruleText}>
-                  {regra.rotuloCongelado.toLowerCase()} → {regra.acao.replace(/_/g, ' ').toLowerCase()}
-                </Text>
-              </View>
-              {index < draft.regras.length - 1 ? <View style={styles.divider} /> : null}
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>Ao assinar</Text>
+        {signItems.map((item) => (
+          <View key={item.title} style={styles.signRow}>
+            <View style={styles.signIcon}>
+              <Ionicons name={item.icon} size={20} color={colors.primary} />
             </View>
-          ))}
-        </View>
-      ) : null}
-
-      <View style={styles.footNote}>
-        <View style={styles.footNoteDot} />
-        <Text style={styles.footNoteText}>
-          Relato sem regra correspondente cai em <Text style={styles.bold}>«confirmar com a clínica»</Text>, nunca em dose.
-        </Text>
+            <View style={styles.flex}>
+              <Text style={styles.signTitle}>{item.title}</Text>
+              {item.sub ? <Text style={styles.sub}>{item.sub}</Text> : null}
+            </View>
+          </View>
+        ))}
       </View>
 
-      <View style={styles.signCard}>
-        <View style={styles.signRow}>
-          <View style={styles.signAvatar}>
-            <Text style={styles.signAvatarText}>{(session?.nome ?? 'V').charAt(0).toUpperCase()}</Text>
-          </View>
-          <View style={styles.signInfo}>
-            <Text style={styles.signName}>{session?.nome ? `Dra. ${session.nome}` : 'Veterinário(a)'}</Text>
-          </View>
-        </View>
-        <Text style={styles.signBody}>
-          Ao assinar, a faixa e as regras passam a valer no app da tutora. Cada dose do dia carrega
-          esta assinatura.
-        </Text>
-        {erro ? <Text style={styles.errorText}>{erro}</Text> : null}
-        <Button label="Assinar e publicar" loading={isAssinando} onPress={handleSign} />
-      </View>
+      <Button
+        label={!draft ? 'Concluir atendimento' : crmv ? `Assinar e concluir · CRMV ${crmv}` : 'Assinar e concluir'}
+        backgroundColor={colors.action}
+        loading={completing}
+        onPress={handleSign}
+        style={styles.sign}
+      />
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  headline: {
-    gap: 2,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: colors.textSecondary,
-  },
-  sectionLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  orientacaoText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.textPrimary,
-  },
-  ruleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    minHeight: 40,
-  },
-  ruleDot: {
-    width: 8,
-    height: 8,
+function Block({ label, title, sub, extra }: { label: string; title: string; sub?: string; extra?: string }) {
+  const styles = useStyles();
+  return (
+    <View style={styles.block}>
+      <Text style={styles.blockLabel}>{label}</Text>
+      <Text style={styles.blockTitle}>{title}</Text>
+      {sub ? <Text style={styles.sub}>{sub}</Text> : null}
+      {extra ? <Text style={styles.sub}>{extra}</Text> : null}
+    </View>
+  );
+}
+
+const useStyles = makeStyles((colors) => ({
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, gap: spacing.md },
+  flex: { flex: 1 },
+  card: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.md },
+  cardLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: colors.textSecondary },
+  block: { gap: 2 },
+  blockLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: colors.textSecondary },
+  blockTitle: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
+  sub: { fontSize: 15, lineHeight: 21, color: colors.textSecondary },
+  signRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  signIcon: {
+    width: 40,
+    height: 40,
     borderRadius: radii.pill,
-    backgroundColor: colors.primary,
-  },
-  ruleText: {
-    flex: 1,
-    fontFamily: 'monospace',
-    fontSize: 12.5,
-    lineHeight: 17,
-    color: colors.textPrimary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  footNote: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    backgroundColor: colors.background,
-    borderRadius: radii.sm,
-    padding: spacing.md,
-  },
-  footNoteDot: {
-    width: 8,
-    height: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.warning,
-    marginTop: 6,
-  },
-  footNoteText: {
-    flex: 1,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
-  },
-  bold: {
-    color: colors.textPrimary,
-    fontWeight: '700',
-  },
-  signCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  signRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  signAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: radii.sm,
     backgroundColor: colors.cardChia,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  signAvatarText: {
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  signInfo: {
-    flex: 1,
-  },
-  signName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  signBody: {
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.textSecondary,
-  },
-  errorText: {
-    fontSize: 13,
-    color: colors.error,
-  },
-});
+  signTitle: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
+  sign: { marginTop: spacing.sm },
+}));

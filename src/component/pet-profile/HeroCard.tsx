@@ -1,5 +1,6 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Image, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 interface HeroCardProps {
   petName: string;
@@ -9,6 +10,7 @@ interface HeroCardProps {
 }
 
 export function HeroCard({ petName, breedLabel, planStatusLabel, imageUrl }: HeroCardProps) {
+  const styles = useStyles();
   return (
     <View style={styles.hero}>
       {imageUrl ? (
@@ -29,7 +31,7 @@ export function HeroCard({ petName, breedLabel, planStatusLabel, imageUrl }: Her
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   hero: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
@@ -45,16 +47,16 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   avatarImage: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
     borderWidth: 3,
     borderColor: colors.cardChia,
   },
   avatarFallback: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
     backgroundColor: colors.cardChia,
     alignItems: 'center',
     justifyContent: 'center',
@@ -65,7 +67,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora',
     fontSize: 40,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   infoBlock: {
     alignItems: 'center',
@@ -95,4 +97,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.success,
   },
-});
+}));

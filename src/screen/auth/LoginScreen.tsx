@@ -6,7 +6,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   View,
 } from 'react-native';
@@ -18,9 +17,12 @@ import { Input } from '../../component/ui/Input';
 import { LogoHeader } from '../../component/ui/LogoHeader';
 import { useLoginControl } from '../../control/authControl';
 import type { AuthStackParamList } from '../navigation/types';
-import { colors, spacing, typography } from '../../styles/theme';
+import { radii, spacing, typography } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
 
 export function LoginScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
   const { email, setEmail, senha, setSenha, erros, entrar, isEntrando } = useLoginControl();
   const insets = useSafeAreaInsets();
@@ -40,7 +42,7 @@ export function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
       >
-        <ScrollView
+        <ScrollView keyboardDismissMode="on-drag"
           contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 80 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -83,7 +85,32 @@ export function LoginScreen() {
             {erros.geral ? <Text style={styles.apiError}>{erros.geral}</Text> : null}
 
             <View style={styles.buttonSpacing}>
-              <Button label="Entrar" loading={isEntrando} onPress={entrar} />
+              <Button label="Entrar" backgroundColor={colors.action} loading={isEntrando} onPress={entrar} />
+            </View>
+
+            {/* Atalhos para preenchimento rápido em testes/apresentação */}
+            <View style={styles.demoSection}>
+              <Text style={styles.demoLabel}>Acesso rápido para demonstração:</Text>
+              <View style={styles.demoRow}>
+                <Pressable
+                  onPress={() => {
+                    setEmail('maria@email.com');
+                    setSenha('petbuddies123');
+                  }}
+                  style={styles.demoChip}
+                >
+                  <Text style={styles.demoChipText}>🐾 Tutor (Maria)</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setEmail('ana@clinica.com');
+                    setSenha('petbuddies123');
+                  }}
+                  style={styles.demoChip}
+                >
+                  <Text style={styles.demoChipText}>🩺 Vet (Dra. Ana)</Text>
+                </Pressable>
+              </View>
             </View>
           </Card>
 
@@ -96,7 +123,7 @@ export function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   root: {
     flex: 1,
     backgroundColor: colors.background,
@@ -132,16 +159,44 @@ const styles = StyleSheet.create({
     color: colors.error,
     marginBottom: spacing.sm,
   },
+  demoSection: {
+    marginTop: spacing.md,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  demoLabel: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  demoRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    justifyContent: 'center',
+  },
+  demoChip: {
+    backgroundColor: colors.cardChia,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+  },
+  demoChipText: {
+    ...typography.caption,
+    fontWeight: '600',
+    color: colors.textPrimary,
+  },
   registerLink: {
     marginTop: spacing.lg,
     alignItems: 'center',
   },
   registerText: {
     ...typography.body,
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   eyeIcon: {
     fontSize: 18,
     lineHeight: 22,
   },
-});
+}));

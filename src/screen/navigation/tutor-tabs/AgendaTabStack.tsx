@@ -10,7 +10,7 @@ export function AgendaTabStack() {
       <Stack.Screen
         name="AgendamentoTutor"
         component={AgendamentoTutorScreen}
-        options={{ title: 'Agenda' }}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

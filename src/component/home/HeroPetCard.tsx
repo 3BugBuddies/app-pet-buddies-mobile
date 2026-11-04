@@ -1,28 +1,31 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing } from '../../styles/theme';
+import { Image, Text, View } from 'react-native';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles } from '../../styles/useTheme';
 
 // Asset: add `amigos-tranparentes.png` to assets/images/ before shipping
 const heroImage = require('../../../assets/images/amigos-tranparentes.png');
 
 interface HeroPetCardProps {
   petNames: string;
+  stateLabel?: string;
+  details?: string;
 }
 
-export function HeroPetCard({ petNames }: HeroPetCardProps) {
+export function HeroPetCard({ petNames, stateLabel, details }: HeroPetCardProps) {
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       <View style={styles.textBlock}>
+        {stateLabel ? <Text style={styles.subtitle}>{stateLabel}</Text> : null}
         <Text style={styles.names}>{petNames}</Text>
-        <Text style={styles.subtitle}>
-          SEMPRE JUNTOS{'\n'}EM NOVAS AVENTURAS ♥
-        </Text>
+        {details ? <Text style={styles.details}>{details}</Text> : null}
       </View>
       <Image source={heroImage} style={styles.image} resizeMode="contain" />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.cardMax,
     borderRadius: radii.lg,
@@ -54,8 +57,13 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     lineHeight: 14,
   },
+  details: {
+    fontFamily: 'Inter',
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
   image: {
     width: 150,
     height: 130,
   },
-});
+}));

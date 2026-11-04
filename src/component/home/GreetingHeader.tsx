@@ -1,6 +1,9 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, radii, spacing } from '../../styles/theme';
+import { radii, spacing } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
+import { BrandMark } from '../ui/BrandMark';
+import { formatTodayLabel } from '../../model/formatDate';
 
 interface GreetingHeaderProps {
   greeting: string;
@@ -11,26 +14,18 @@ interface GreetingHeaderProps {
 }
 
 export function GreetingHeader({ greeting, userName, onAvatarPress, onLogout }: GreetingHeaderProps) {
+  const { colors } = useTheme();
+  const styles = useStyles();
   return (
-    <View style={styles.card}>
-      {/* Esquerda — Logo da marca */}
-      <Image
-        source={require('../../../assets/images/logo-header-principal-trasparente.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-
-      {/* Centro — Saudação */}
+    <View style={styles.row}>
+      <BrandMark style={styles.mark} />
       <View style={styles.textContainer}>
-        <Text style={styles.greeting}>{greeting}</Text>
-        <View style={styles.nameRow}>
-          <Text style={styles.name} numberOfLines={1}>{userName}</Text>
-          <Text style={styles.sunIcon}>☀️</Text>
-        </View>
-        <Text style={styles.subtitle}>QUE BOM TE VER POR AQUI!</Text>
+        <Text style={styles.date}>{formatTodayLabel()}</Text>
+        <Text style={styles.name} numberOfLines={1}>
+          {greeting}, {userName} ✨
+        </Text>
       </View>
 
-      {/* Direita — Avatar + Logout */}
       <View style={styles.actions}>
         <Pressable accessibilityRole="button" onPress={onAvatarPress} style={styles.avatar}>
           <Text style={styles.avatarLetter}>{userName.charAt(0).toUpperCase()}</Text>
@@ -45,58 +40,29 @@ export function GreetingHeader({ greeting, userName, onAvatarPress, onLogout }: 
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
+const useStyles = makeStyles((colors) => ({
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.md,
     marginBottom: spacing.lg,
-    shadowColor: colors.surfaceDark,
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
   },
-  logo: {
-    width: 80,
-    height: 40,
+  mark: {
+    marginRight: 12,
   },
   textContainer: {
     flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: spacing.xs,
   },
-  greeting: {
+  date: {
     fontFamily: 'Inter',
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
   },
   name: {
     fontFamily: 'Sora',
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: '700',
     color: colors.textPrimary,
-    letterSpacing: -0.3,
-  },
-  sunIcon: {
-    fontSize: 16,
-  },
-  subtitle: {
-    fontFamily: 'Inter',
-    fontSize: 9,
-    fontWeight: '600',
-    letterSpacing: 1.5,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginTop: 2,
+    letterSpacing: -0.5,
   },
   actions: {
     flexDirection: 'row',
@@ -104,20 +70,20 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   avatar: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: radii.pill,
-    backgroundColor: colors.cardChia,
+    backgroundColor: colors.cardAlert,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarLetter: {
     fontFamily: 'Sora',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   logoutBtn: {
     padding: 4,
   },
-});
+}));

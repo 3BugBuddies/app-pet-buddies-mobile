@@ -4,29 +4,30 @@ import { DetalhesPetScreen } from '../../tutor/DetalhesPetScreen';
 import { ProntuarioFormScreen } from '../../vet/ProntuarioFormScreen';
 import { PlanoPacienteScreen } from '../../vet/PlanoPacienteScreen';
 import { PrescricaoScreen } from '../../vet/PrescricaoScreen';
-import { NovaRegraScreen } from '../../vet/NovaRegraScreen';
 import { AssinarPrescricaoScreen } from '../../vet/AssinarPrescricaoScreen';
+import { CheckoutAtendimentoScreen } from '../../vet/CheckoutAtendimentoScreen';
+import { BrandMark } from '../../../component/ui/BrandMark';
 import type { PacientesTabParamList } from '../types';
 
 const Stack = createNativeStackNavigator<PacientesTabParamList>();
 
 export function PacientesTabStack() {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerBackTitle: 'Voltar' }}>
       <Stack.Screen
         name="Pacientes"
         component={PacientesScreen}
-        options={{ title: 'Pacientes' }}
+        options={{ title: 'Pacientes', headerLeft: () => <BrandMark /> }}
       />
       <Stack.Screen
         name="DetalhesPet"
         component={DetalhesPetScreen}
-        options={{ title: 'Prontuário' }}
+        options={{ title: 'Ficha' }}
       />
       <Stack.Screen
         name="ProntuarioForm"
         component={ProntuarioFormScreen}
-        options={{ title: 'Registrar atendimento' }}
+        options={{ title: 'Fechar atendimento' }}
       />
       <Stack.Screen
         name="PlanoPaciente"
@@ -38,12 +39,17 @@ export function PacientesTabStack() {
         component={PrescricaoScreen}
         options={{ headerShown: false }}
       />
-      <Stack.Screen name="NovaRegra" component={NovaRegraScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="AssinarPrescricao"
         component={AssinarPrescricaoScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="CheckoutAtendimento"
+        component={CheckoutAtendimentoScreen}
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
     </Stack.Navigator>
   );
 }
+

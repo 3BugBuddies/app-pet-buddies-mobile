@@ -1,24 +1,49 @@
+import type { ComponentProps } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radii } from '../../styles/theme';
+import { radii } from '../../styles/theme';
+import { makeStyles, useTheme } from '../../styles/useTheme';
+import { AgendaTabStack } from './vet-tabs/AgendaTabStack';
 import { HojeTabStack } from './vet-tabs/HojeTabStack';
 import { PacientesTabStack } from './vet-tabs/PacientesTabStack';
+import { SobreAppScreen } from '../shared/SobreAppScreen';
 import type { VetTabParamList } from './types';
+import { TAB_BAR_HEIGHT, useTabBarBottom } from './useTabBarSpace';
 
 const Tab = createBottomTabNavigator<VetTabParamList>();
 
+interface TabIconProps {
+  name: ComponentProps<typeof Ionicons>['name'];
+  color: string;
+  size: number;
+  focused: boolean;
+}
+
+// A pílula do item ativo fica atrás do ícone, não no item inteiro.
+function TabIcon({ name, color, size, focused }: TabIconProps) {
+  const styles = useStyles();
+  return (
+    <View style={[styles.iconPill, focused && styles.iconPillActive]}>
+      <Ionicons name={name} size={size} color={color} />
+    </View>
+  );
+}
+
 export function VetTabs() {
-  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useStyles();
+  const tabBarBottom = useTabBarBottom();
 
   return (
     <Tab.Navigator
+      // A barra flutua: o recuo do safe-area dentro dela empurrava os rótulos para fora.
+      safeAreaInsets={{ bottom: 0 }}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: [styles.tabBar, { bottom: Math.max(insets.bottom, 16) }],
+        tabBarStyle: [styles.tabBar, { bottom: tabBarBottom }],
         tabBarItemStyle: styles.tabItem,
         tabBarLabelStyle: styles.tabLabel,
       }}
@@ -29,7 +54,17 @@ export function VetTabs() {
         options={{
           tabBarLabel: 'Hoje',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'today' : 'today-outline'} size={size} color={color} />
+            <TabIcon name={focused ? 'today' : 'today-outline'} size={size} color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="AgendaSemanaTab"
+        component={AgendaTabStack}
+        options={{
+          tabBarLabel: 'Agenda',
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon name={focused ? 'calendar' : 'calendar-outline'} size={size} color={color} focused={focused} />
           ),
         }}
       />
@@ -39,7 +74,22 @@ export function VetTabs() {
         options={{
           tabBarLabel: 'Pacientes',
           tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'people' : 'people-outline'} size={size} color={color} />
+            <TabIcon name={focused ? 'people' : 'people-outline'} size={size} color={color} focused={focused} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="SobreTab"
+        component={SobreAppScreen}
+        options={{
+          tabBarLabel: 'Sobre',
+          tabBarIcon: ({ color, size, focused }) => (
+            <TabIcon
+              name={focused ? 'information-circle' : 'information-circle-outline'}
+              size={size}
+              color={color}
+              focused={focused}
+            />
           ),
         }}
       />
@@ -47,13 +97,12 @@ export function VetTabs() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((colors) => ({
   tabBar: {
     position: 'absolute',
     left: 20,
     right: 20,
-    bottom: 24,
-    height: 64,
+    height: TAB_BAR_HEIGHT,
     borderRadius: radii.pill,
     borderTopWidth: 0,
     backgroundColor: colors.surface,
@@ -67,10 +116,21 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
   },
+  // O contêiner do ícone tem largura fixa; padding aqui zerava a largura do ícone.
+  iconPill: {
+    width: 56,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radii.pill,
+  },
+  iconPillActive: {
+    backgroundColor: colors.cardChia,
+  },
   tabLabel: {
     fontFamily: 'Inter',
     fontSize: 10,
     fontWeight: '600',
     marginTop: 2,
   },
-});
+}));

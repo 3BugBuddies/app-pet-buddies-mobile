@@ -1,28 +1,53 @@
 {
   "expo": {
-    "name": "app-pet-buddies-sprint3",
+    "name": "Pet Buddies",
     "slug": "app-pet-buddies-sprint3",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/icons/icon-pet-buddies-app.png",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.petbuddies.app",
+      "usesCleartextTraffic": false,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/icons/icon-pet-buddies-app.png",
+        "backgroundColor": "#FFFFFF"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icons/icon-pet-buddies-app.png"
     },
     "plugins": [
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "O Pet Buddies precisa acessar o microfone para ditar condutas e prescrições veterinárias.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icons/bell.png",
+          "color": "#078FE8",
+          "sound": [
+            "./assets/notification.wav"
+          ]
+        }
+      ],
+      "expo-font",
+      "expo-status-bar",
+      "expo-asset"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "86a919c2-7fe5-4a57-82a3-16cb60580140"
+      }
+    }
   }
 }
