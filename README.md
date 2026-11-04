@@ -205,7 +205,7 @@ Para checar os tipos: `npx tsc --noEmit`.
 
 > As variáveis `EXPO_PUBLIC_*` são embutidas no app na hora do build. Use uma chave da Groq que possa ser revogada.
 >
-> O `.env` está no `.gitignore` e não vai para o build na nuvem. Para um APK do EAS mostrar os pontos, coloque `EXPO_PUBLIC_PONTOS` no `env` do perfil em `eas.json`.
+> O `.env` está no `.gitignore` e não vai para o build na nuvem. No `eas.json`, os perfis `preview` e `production` já definem `EXPO_PUBLIC_API_BASE_URL` e `EXPO_PUBLIC_PONTOS=api`. A chave da Groq **não** fica no `eas.json`, que vai para o git: cadastre-a como variável do EAS (`eas env:set --name EXPO_PUBLIC_GROQ_API_KEY --environment preview --visibility sensitive`, ou pelo site do Expo), no ambiente do perfil que for gerar o APK. Sem ela, o APK devolve a transcrição de exemplo.
 
 ### Gerar o APK
 
