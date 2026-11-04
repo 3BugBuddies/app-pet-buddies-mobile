@@ -232,6 +232,14 @@ eas build --platform android --profile preview
 - **Pacientes:** lista de pacientes em acompanhamento e plano do paciente
 - **Sobre:** a mesma tela do tutor (versão e hash do commit, equipe, aparência e créditos)
 
+### Telas da Sprint 3 que mudaram na Sprint 4
+
+| Tela da Sprint 3 | O que aconteceu | Onde está agora |
+|---|---|---|
+| `ScoreScreen` (pontos e selos) | Era uma tela sem backend. Foi trocada pela versão ligada à API de pontuação | `PataSeguraScreen` (saldo e extrato) |
+| `NovaRegraScreen` (nova regra de dose) | Foi incorporada à prescrição, para o vet cadastrar a regra sem sair do fluxo | `PrescricaoScreen` (`useNovaRegraControl`) |
+| `AssistantNoticeScreen` (aviso antes do check-in) | Foi retirada: levava a uma conversa com o assistente que não existe e seus botões eram só avisos de "em breve". O encaminhamento para a clínica continua no app, com ligação de verdade | `CheckInEscalationScreen` (botão "Ligar para a clínica") |
+
 ---
 
 ## Observações Técnicas
