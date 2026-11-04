@@ -200,8 +200,11 @@ Para checar os tipos: `npx tsc --noEmit`.
 |----------|----------------|
 | `EXPO_PUBLIC_API_BASE_URL` | URL da API. Sem ela, o app usa a API de produção (Azure) |
 | `EXPO_PUBLIC_GROQ_API_KEY` | Chave da Groq para a transcrição de voz. Sem ela, a transcrição devolve um texto de exemplo, só para testar a interface |
+| `EXPO_PUBLIC_PONTOS` | Liga as telas de pontos. `api` lê saldo, extrato e memória de cálculo do Java; `mock` usa dados de exemplo, sem chamar a API. Sem ela, a tela Pata Segura mostra "Em breve" |
 
 > As variáveis `EXPO_PUBLIC_*` são embutidas no app na hora do build. Use uma chave da Groq que possa ser revogada.
+>
+> O `.env` está no `.gitignore` e não vai para o build na nuvem. Para um APK do EAS mostrar os pontos, coloque `EXPO_PUBLIC_PONTOS` no `env` do perfil em `eas.json`.
 
 ### Gerar o APK
 
@@ -223,7 +226,7 @@ eas build --platform android --profile preview
 - **Sobre:** para que serve o app, versão e hash do commit, equipe, aparência e créditos
 
 **Veterinário (4 abas):**
-- **Hoje:** agenda do dia, atendimento imediato, prontuário e prescrição com regras de dose
+- **Hoje:** agenda do dia, atendimento imediato, prontuário com a evolução do animal e prescrição com regras de dose
 - **Agenda:** semana com horários livres e ocupados
 - **Pacientes:** lista de pacientes em acompanhamento e plano do paciente
 - **Sobre:** a mesma tela do tutor (versão e hash do commit, equipe, aparência e créditos)
@@ -232,7 +235,8 @@ eas build --platform android --profile preview
 
 ## Observações Técnicas
 
-- **Pata Segura (pontuação):** o saldo de pontos ainda não vem da API. A tela mostra o saldo zerado, e o endpoint `/pontuacao` está previsto para a API Java
+- **Pata Segura (pontuação):** o tutor vê o saldo, que soma todos os pets dele, e o extrato, com o "O que contou" de cada consulta. O vet vê, ao concluir um atendimento, quanto o responsável ganhou. Os dados vêm do Java (`/api/pontuacao/saldo`, `/extrato` e `/consulta/{id}/memoria`), que busca no PetBuddies-API (.NET) com o token de quem pediu. As telas só aparecem com `EXPO_PUBLIC_PONTOS=api` (ou `mock`, com dados de exemplo); sem a chave, a Pata Segura mostra "Em breve". Só há pontos, sem nível. Os pontos dependem do .NET no ar e das regras de pontuação cadastradas pela clínica: sem elas, toda consulta vale 0. Saldo e extrato buscam de novo quando a tela ganha foco
+- **Evolução no fechamento:** o vet marca Melhorou, Estável ou Piorou, de forma opcional, na linha Consulta. O valor vai em `registroAtendimento.evolucao`, e só Melhorou rende ponto ao tutor
 - **Protocolos veterinários** são dados do back-office .NET, não consumidos diretamente pelo app mobile (arquitetura definida em conjunto com a equipe de backend)
 - Toda chamada HTTP usa Bearer Token injetado automaticamente via interceptor do Axios
 - O aplicativo é voltado a Android e iOS. A execução no navegador não é suportada (SecureStore, gravação de áudio e notificações não existem na web)
