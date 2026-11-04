@@ -98,6 +98,13 @@ const descreverPontosConsulta = (
   return { title: 'Pontos enviados', sub: `O detalhe do cálculo aparece no app ${de} quando estiver disponível.` };
 };
 
+// Bloco do vet com o detalhe escondido (EXPO_PUBLIC_PONTOS_DETALHE desligada): não espera a memória
+// de cálculo nem mostra quanto o responsável ganhou, só confirma que o envio foi feito.
+const descreverPontosEnviados = (responsavel: string): { title: string; sub: string } => ({
+  title: 'Pontos enviados',
+  sub: `Os pontos aparecem no app ${responsavel ? `de ${responsavel}` : 'do responsável'} em instantes.`,
+});
+
 // Por que a memória de cálculo não veio e se vale tentar de novo. `status` é o código HTTP do Java;
 // sem resposta (undefined) é falha de rede. Na linha do extrato os pontos já existem, então 404
 // quer dizer que o .NET lançou o total mas não guardou o detalhe (o Mongo falhou na hora).
@@ -112,4 +119,12 @@ const descreverFalhaMemoria = (status: number | undefined): { mensagem: string; 
 };
 
 export type { GestoPontuacao, LancamentoPontos, MemoriaPontos, ParcelaPontos, SaldoPontos, StatusPontosConsulta };
-export { descreverFalhaMemoria, descreverPontosConsulta, formatPontos, GESTOS, gestoInfo, parcelasQuePontuaram };
+export {
+  descreverFalhaMemoria,
+  descreverPontosConsulta,
+  descreverPontosEnviados,
+  formatPontos,
+  GESTOS,
+  gestoInfo,
+  parcelasQuePontuaram,
+};

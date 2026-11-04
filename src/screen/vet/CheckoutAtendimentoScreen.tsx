@@ -7,8 +7,8 @@ import { usePontosDaConsulta } from '../../control/usePontuacaoControl';
 import { formatHourShort } from '../../model/closingSummary';
 import { formatShortDate } from '../../model/formatDate';
 import { daysText } from '../../model/careHome';
-import { descreverPontosConsulta } from '../../model/pontuacao';
-import { pontosAtivos } from '../../model/pontuacaoConfig';
+import { descreverPontosConsulta, descreverPontosEnviados } from '../../model/pontuacao';
+import { pontosAtivos, pontosDetalhe } from '../../model/pontuacaoConfig';
 import type { PacientesTabParamList, VetTabParamList } from '../navigation/types';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -92,9 +92,18 @@ export function CheckoutAtendimentoScreen({ route }: Props) {
   );
 }
 
+// Sem EXPO_PUBLIC_PONTOS_DETALHE o bloco só confirma o envio, na hora, sem buscar a memória de cálculo.
+function PontosBlock({ consultaId, responsavel }: { consultaId: string; responsavel: string }) {
+  if (!pontosDetalhe) {
+    const { title, sub } = descreverPontosEnviados(responsavel);
+    return <Block label="Pontos do responsável" title={title} sub={sub} />;
+  }
+  return <PontosBlockComDetalhe consultaId={consultaId} responsavel={responsavel} />;
+}
+
 // Pontos que o responsável ganhou com esta consulta. O envio ao .NET roda em segundo plano, então
 // o bloco começa em "calculando" e o app tenta de novo alguns segundos antes de desistir do detalhe.
-function PontosBlock({ consultaId, responsavel }: { consultaId: string; responsavel: string }) {
+function PontosBlockComDetalhe({ consultaId, responsavel }: { consultaId: string; responsavel: string }) {
   const { status, memoria } = usePontosDaConsulta(consultaId);
   const { title, sub } = descreverPontosConsulta(status, memoria, responsavel);
   return <Block label="Pontos do responsável" title={title} sub={sub} />;
