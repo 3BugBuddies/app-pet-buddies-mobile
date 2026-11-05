@@ -19,7 +19,7 @@ Aplicativo mobile desenvolvido em React Native / Expo para a plataforma **Clyvo 
 
 | Item | Link |
 |------|------|
-| Vídeo de apresentação da Sprint 4 (YouTube) | <!-- inserir link do vídeo aqui --> |
+| Vídeo de apresentação da Sprint 4 (YouTube) | [Assistir](https://youtu.be/n4j2Izv2WmQ) |
 | App publicado (Firebase App Distribution) | [Baixar o APK](https://appdistribution.firebase.google.com/testerapps/1:457611068502:android:938edafa9299e8693e27f7/releases/7qhonf9cnl228) |
 | Backend (API Java Spring) | `https://petbuddies-java-rm563925.azurewebsites.net/api` |
 | Vídeos da Sprint 3 (YouTube) | [Apresentação](https://youtu.be/EoOUXdXF3Ow) · [Demonstração](https://youtu.be/LHx-mDUD38M) |
