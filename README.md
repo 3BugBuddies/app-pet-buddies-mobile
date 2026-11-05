@@ -137,6 +137,13 @@ As telas só renderizam e chamam hooks de `control/`. Os hooks de `control/` usa
 - **Toque na notificação:** abre a aba **Agenda** do tutor, com o app aberto, em segundo plano ou fechado
 - Ao sair da conta, os lembretes agendados são cancelados, para não chegarem à próxima conta usada no aparelho
 
+Capturas do APK instalado: a confirmação do agendamento do Thor, com o aviso dos lembretes, e o ícone do app com as notificações pendentes.
+
+<p>
+  <img src="docs/img/notificacao-agendamento.jpg" alt="Notificação Consulta agendada, Thor, com os lembretes 2 h, 1 h e 30 min antes" width="240">
+  <img src="docs/img/icone-com-notificacoes.jpg" alt="Ícone do Pet Buddies com 2 notificações pendentes" width="240">
+</p>
+
 ---
 
 ## Tema claro e escuro
@@ -151,7 +158,7 @@ A aba **Sobre** (presente nos dois perfis) mostra a versão, o **hash do commit*
 
 Para o app publicado corresponder exatamente ao código entregue: gerar o build a partir de uma árvore **sem alterações pendentes** (`git status` limpo). Se o build sair com alterações não commitadas, a tela avisa.
 
-**APK entregue:** foi gerado a partir do commit `faa8e0f`, o mesmo hash que a aba **Sobre** mostra. Os commits seguintes na `main` alteram apenas o `README.md` (contas de teste, links da entrega e a lista de funcionalidades), sem mudar o código do app.
+**APK entregue:** foi gerado a partir do commit `faa8e0f`, o mesmo hash que a aba **Sobre** mostra. Os commits seguintes na `main` alteram apenas o `README.md` e as imagens de `docs/img` (contas de teste, links da entrega, lista de funcionalidades e capturas de tela), sem mudar o código do app.
 
 ---
 
